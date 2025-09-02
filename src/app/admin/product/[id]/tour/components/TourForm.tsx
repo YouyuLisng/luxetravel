@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useTransition, useState } from 'react';
+import React, { useTransition, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Form,
@@ -38,14 +38,8 @@ import { useSearchParams } from 'next/navigation';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
 
-import {
-    ToursCreateSchema,
-    type ToursCreateValues,
-} from '@/schemas/tours';
-import {
-    createTours,
-    editTours,
-} from '@/app/admin/product/action/tour';
+import { ToursCreateSchema, type ToursCreateValues } from '@/schemas/tours';
+import { createTours, editTours } from '@/app/admin/product/action/tour';
 import { zhTW } from 'date-fns/locale';
 import { TextareaInput } from '@/components/TextareaInput';
 
@@ -58,13 +52,10 @@ type Props = {
     id?: string;
     initialData?: Partial<TourFormValues> & { id?: string };
     method?: 'POST' | 'PUT';
+    onChange?: (values: TourFormValues) => void;
 };
 
-export default function TourForm({
-    id,
-    initialData,
-    method = 'POST',
-}: Props) {
+export default function TourForm({ id, initialData, method = 'POST', onChange  }: Props) {
     console.log('id', id);
     const LIST_PATH = `/admin/product/${id}/departure`;
     const router = useRouter();
@@ -107,6 +98,13 @@ export default function TourForm({
         },
     });
     const { isValid, isSubmitting } = form.formState;
+
+    useEffect(() => {
+        const subscription = form.watch((values) => {
+            onChange?.(values as TourFormValues);
+        });
+        return () => subscription.unsubscribe();
+    }, [form, onChange]);
 
     const onSubmit: SubmitHandler<TourFormValues> = (values) => {
         setError(undefined);
@@ -545,20 +543,11 @@ export default function TourForm({
 
                             <FormError message={error} />
                             <FormSuccess message={success} />
-                            {process.env.NODE_ENV === 'development' && (
-                                <pre className="text-red-500 text-xs">
-                                    {JSON.stringify(
-                                        form.formState.errors,
-                                        null,
-                                        2
-                                    )}
-                                </pre>
-                            )}
                         </form>
                     </div>
 
                     {/* Footer */}
-                    <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
+                    {/* <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
                         <div className="flex items-center justify-end gap-3">
                             <Button
                                 type="button"
@@ -570,11 +559,20 @@ export default function TourForm({
                             >
                                 取消
                             </Button>
-                            <Button type="submit" form={formId}>
+                            <Button
+                                type="submit"
+                                form={formId}
+                                disabled={
+                                    !isValid ||
+                                    isLoading ||
+                                    isPending ||
+                                    isSubmitting
+                                }
+                            >
                                 {isEdit ? '儲存變更' : '送出需求'}
                             </Button>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </Form>

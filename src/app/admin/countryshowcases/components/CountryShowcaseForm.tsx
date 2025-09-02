@@ -203,7 +203,9 @@ export default function CountryShowcaseForm({
                     );
 
                     // 失效快取（列表＋可選的單筆）
-                    await qc.invalidateQueries({ queryKey: KEYS.list() });
+                    await qc.invalidateQueries({
+                        queryKey: ['country-showcases'],
+                    });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),
@@ -365,6 +367,69 @@ export default function CountryShowcaseForm({
                                         </FormItem>
                                     )}
                                 />
+                                {/* 連結文字（選填） */}
+                                <FormField
+                                    control={form.control}
+                                    name="linkText"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                連結文字（選填）
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            e.target.value ||
+                                                                null
+                                                        )
+                                                    }
+                                                    placeholder="例：查看更多"
+                                                    disabled={
+                                                        isPending ||
+                                                        isLoading ||
+                                                        isSubmitting
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* 連結網址（選填） */}
+                                <FormField
+                                    control={form.control}
+                                    name="linkUrl"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                連結網址（選填）
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) =>
+                                                        field.onChange(
+                                                            e.target.value ||
+                                                                null
+                                                        )
+                                                    }
+                                                    placeholder="https://example.com"
+                                                    disabled={
+                                                        isPending ||
+                                                        isLoading ||
+                                                        isSubmitting
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
                                 {/* 圖片上傳 */}
                                 <div className="space-y-2">
@@ -454,7 +519,6 @@ export default function CountryShowcaseForm({
                             <Button
                                 type="submit"
                                 form={formId}
-                                // ✅ 一定要通過表單驗證才能送出
                                 disabled={
                                     !isValid ||
                                     isLoading ||

@@ -1,30 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useCities } from '../queries/cityQueries';
+import { useQuery } from '@tanstack/react-query';
+import { citiesQuery } from '@/features/city/queries/cityQueries';
 
-/** Hook: 將 City 列表整理成 table row */
-export default function useCityRow() {
-    const { data, isLoading, isError, refetch } = useCities();
-
-    const rows = useMemo(() => {
-        if (!data) return [];
-        return data.map((city: any) => ({
-            id: city.id,
-            code: city.code,
-            nameZh: city.nameZh,
-            nameEn: city.nameEn,
-            country: city.country,
-            imageUrl: city.imageUrl,
-            enabled: city.enabled,
-            createdAt: city.createdAt,
-        }));
-    }, [data]);
+/** 取得 City 列表（分頁版） */
+export default function useCityRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        citiesQuery(page, pageSize)
+    );
 
     return {
-        rows,
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

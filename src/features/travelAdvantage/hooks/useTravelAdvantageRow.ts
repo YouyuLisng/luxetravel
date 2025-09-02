@@ -1,21 +1,20 @@
 'use client';
 
-import * as React from 'react';
-import { useTravelAdvantagesQuery } from './useTravelAdvantage';
+import { useQuery } from '@tanstack/react-query';
+import { KEYS, travelAdvantagesQuery } from '@/features/travelAdvantage/queries/travelAdvantageQuery';
 
-export type TravelAdvantageRow = { id: string | number } & Record<string, any>;
-
-export function useTravelAdvantageRows() {
-    const query = useTravelAdvantagesQuery();
-
-    const rows = React.useMemo<TravelAdvantageRow[]>(
-        () =>
-            (query.data ?? []).map((a: any, i: number) => ({
-                id: a.id ?? a._id ?? a.travelAdvantageId ?? i + 1,
-                ...a,
-            })),
-        [query.data]
+/** 取得 Advantage 列表（分頁版） */
+export default function useTravelAdvantageRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        travelAdvantagesQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }

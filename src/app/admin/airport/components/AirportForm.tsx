@@ -255,7 +255,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
                     if (!res?.error) {
                         // ✅ 失效列表 + 明細，返回列表會自動重抓
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['airports'] }),
                             qc.invalidateQueries({
                                 queryKey: KEYS.detail(id!),
                             }),
@@ -273,8 +273,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
                     } as any);
 
                     if (!res?.error) {
-                        // ✅ 失效列表
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        qc.invalidateQueries({ queryKey: ['airports'] });
                     }
                 }
 

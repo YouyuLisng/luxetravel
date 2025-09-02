@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json(
             {
-                status: true,
+                success: true,
                 message: `Country Showcase「${item.title}」建立成功`,
                 data: item,
             },
@@ -41,17 +41,36 @@ export async function POST(request: Request) {
     }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const showcases = await db.countryShowcase.findMany({
-            orderBy: { order: 'asc' },
-        });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+        );
 
-        return NextResponse.json({
-            status: true,
-            message: '成功取得所有 Country Showcase',
-            data: showcases,
-        });
+        const [total, rows] = await Promise.all([
+            db.countryShowcase.count(),
+            db.countryShowcase.findMany({
+                orderBy: { order: 'asc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
+        return NextResponse.json(
+            {
+                rows,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+                },
+            },
+            { status: 200 }
+        );
     } catch (error) {
         console.error('Error fetching showcases:', error);
         return NextResponse.json(

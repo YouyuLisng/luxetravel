@@ -1,23 +1,20 @@
-// features/category/hooks/useCategoryRow.ts
 'use client';
 
-import * as React from 'react';
-import { useCategorysQuery } from './useCategory';
+import { useQuery } from '@tanstack/react-query';
+import { categoriesQuery } from '@/features/category/queries/categoryQueries';
 
-export type CategoryRow = { id: string | number } & Record<string, any>;
-
-export function useCategoryRows() {
-    const query = useCategorysQuery();
-
-    const rows = React.useMemo<CategoryRow[]>(
-        () =>
-            (query.data ?? []).map((r: any, i: number) => ({
-                id: r.id ?? r._id ?? r.categoryId ?? i + 1,
-                ...r,
-            })),
-        [query.data]
+/** 取得 Category 列表（分頁版） */
+export default function useCategoryRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        categoriesQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }
-

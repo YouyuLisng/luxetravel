@@ -1,29 +1,51 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import {
     LexiconCreateSchema,
     type LexiconCreateValues,
 } from '@/schemas/lexicon';
 
-/** GET /api/admin/lexicon - 取得全部辭庫 (可帶參數篩選) */
+/** GET /api/admin/lexicon?page=&pageSize=&type= */
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const type = searchParams.get('type') || undefined;
-
-        const data = await db.lexicon.findMany({
-            where: type ? { type } : undefined,
-            orderBy: { createdAt: 'desc' },
-        });
-
-        return NextResponse.json({ status: true, data });
-    } catch (err) {
-        return NextResponse.json(
-            { status: false, message: '讀取失敗' },
-            { status: 500 }
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
         );
+
+        const where = type ? { type } : {};
+
+        const [total, rows] = await Promise.all([
+            db.lexicon.count({ where }),
+            db.lexicon.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
+        return NextResponse.json(
+            {
+                rows,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+                },
+            },
+            { status: 200 }
+        );
+    } catch (err) {
+        console.error('GET /lexicon error:', err);
+        return NextResponse.json({ error: '讀取失敗' }, { status: 500 });
     }
 }
+
 /** POST /api/admin/lexicon - 新增 */
 export async function POST(req: Request) {
     try {
@@ -31,7 +53,7 @@ export async function POST(req: Request) {
         const parsed = LexiconCreateSchema.safeParse(body);
         if (!parsed.success) {
             return NextResponse.json(
-                { status: false, message: '欄位格式錯誤' },
+                { error: '欄位格式錯誤' },
                 { status: 400 }
             );
         }
@@ -44,7 +66,7 @@ export async function POST(req: Request) {
         });
         if (dup) {
             return NextResponse.json(
-                { status: false, message: `此類型下已存在同名辭庫：${title}` },
+                { error: `此類型下已存在同名辭庫：${title}` },
                 { status: 400 }
             );
         }
@@ -57,11 +79,9 @@ export async function POST(req: Request) {
             },
         });
 
-        return NextResponse.json({ status: true, data });
+        return NextResponse.json({ success: true, data }, { status: 201 });
     } catch (err) {
-        return NextResponse.json(
-            { status: false, message: '新增失敗' },
-            { status: 500 }
-        );
+        console.error('POST /lexicon error:', err);
+        return NextResponse.json({ error: '新增失敗' }, { status: 500 });
     }
 }

@@ -1,17 +1,8 @@
 // app/(admin)/admin/advantage/[id]/page.tsx
-import type { Metadata } from 'next';
-import {
-    HydrationBoundary,
-    dehydrate,
-    QueryClient,
-} from '@tanstack/react-query';
-
 import AdvantageForm from '@/app/admin/advantage/components/AdvantageForm';
-import {
-    travelAdvantageQuery,
-    type TravelAdvantageEntity,
-} from '@/features/travelAdvantage/queries/travelAdvantageQuery';
+import type { Metadata } from 'next';
 import { db } from '@/lib/db';
+import { notFound } from 'next/navigation';
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -20,37 +11,45 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
     const advantage = await db.travelAdvantage.findUnique({
-        where: {
-            id
-        }
-    })
-    return { title: `典藏優勢 - ${advantage?.title}` };
+        where: { id },
+        select: {
+            id: true,
+            title: true,
+        },
+    });
+
+    return {
+        title: advantage
+            ? `典藏優勢 - ${advantage.title}`
+            : '典藏優勢 - Not Found',
+    };
 }
 
 export default async function Page({ params }: Props) {
     const { id } = await params;
 
-    const queryClient = new QueryClient();
-    const query = travelAdvantageQuery(id);
+    const data = await db.travelAdvantage.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            moduleId: true,
+            imageUrl: true,
+            title: true,
+            content: true,
+            order: true,
+        },
+    });
 
-    await queryClient.prefetchQuery(query);
-    const data = queryClient.getQueryData<TravelAdvantageEntity>(
-        query.queryKey
-    );
+    if (!data) return notFound();
 
-    const initialData = data
-        ? {
-              id: data.id,
-              moduleId: data.moduleId,
-              imageUrl: data.imageUrl,
-              title: data.title,
-              content: data.content,
-          }
-        : undefined;
-    
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <AdvantageForm mode="edit" initialData={initialData} />
-        </HydrationBoundary>
-    );
+    const initialData = {
+        id: data.id,
+        moduleId: data.moduleId,
+        imageUrl: data.imageUrl ?? '',
+        title: data.title ?? '',
+        content: data.content ?? '',
+        order: data.order ?? 0,
+    };
+
+    return <AdvantageForm initialData={initialData} mode="edit" />;
 }

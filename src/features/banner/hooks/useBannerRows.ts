@@ -1,21 +1,20 @@
 'use client';
 
-import * as React from 'react';
-import { useBannersQuery } from './useBanner';
+import { useQuery } from '@tanstack/react-query';
+import { bannersQuery } from '@/features/banner/queries/bannerQueries';
 
-export type BannerRow = { id: string | number } & Record<string, any>;
-
-export function useBannerRows() {
-    const query = useBannersQuery();
-
-    const rows = React.useMemo<BannerRow[]>(
-        () =>
-            (query.data ?? []).map((b: any, i: number) => ({
-                id: b.id ?? b._id ?? b.bannerId ?? i + 1,
-                ...b,
-            })),
-        [query.data]
+/** 取得 Banner 列表（分頁版） */
+export default function useBannerRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        bannersQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }

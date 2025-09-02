@@ -1,15 +1,7 @@
-// app/(admin)/admin/countryshowcases/[id]/page.tsx
-import CountryShowcaseForm from '@/app/admin/countryshowcases/components/CountryShowcaseForm';
 import type { Metadata } from 'next';
-import {
-    HydrationBoundary,
-    dehydrate,
-    QueryClient,
-} from '@tanstack/react-query';
-import {
-    type CountryShowcaseEntity,
-    countryShowcaseQuery,
-} from '@/features/countryShowcase/queries/countryShowcaseQueries';
+import { db } from '@/lib/db';
+import { notFound } from 'next/navigation';
+import CountryShowcaseForm from '../components/CountryShowcaseForm';
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -17,29 +9,36 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
-    return { title: `CountryShowcase - ${id}` };
+    return { title: `Country Showcase - ${id}` };
 }
 
 export default async function Page({ params }: Props) {
     const { id } = await params;
 
-    const queryClient = new QueryClient();
-    const query = countryShowcaseQuery(id);
+    const data = await db.countryShowcase.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            imageUrl: true,
+            title: true,
+            subtitle: true,
+            description: true,
+            linkUrl: true,
+            order: true,
+        },
+    });
 
-    // 預取單筆 CountryShowcase
-    await queryClient.prefetchQuery(query);
+    if (!data) return notFound();
 
-    // 直接從快取拿預取資料，丟給表單做預設值
-    const data = queryClient.getQueryData<CountryShowcaseEntity>(
-        query.queryKey
-    );
+    const initialData = {
+        id: data.id,
+        imageUrl: data.imageUrl ?? '',
+        title: data.title ?? '',
+        subtitle: data.subtitle ?? '',
+        description: data.description ?? '',
+        linkUrl: data.linkUrl ?? '',
+        order: data.order ?? 0,
+    };
 
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <CountryShowcaseForm
-                initialData={data}
-                method="PUT"
-            />
-        </HydrationBoundary>
-    );
+    return <CountryShowcaseForm initialData={initialData} method="PUT" />;
 }

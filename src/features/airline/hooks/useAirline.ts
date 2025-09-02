@@ -1,20 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { KEYS, fetchAirlines } from '../queries/airlineQueries';
+import { airlineQuery } from '@/features/airline/queries/airlineQueries';
 
-/** Hook: 取得 Airline 列表 */
-export default function useAirline() {
-    const { data, isLoading, isError, error, refetch } = useQuery({
-        queryKey: KEYS.list(),
-        queryFn: fetchAirlines,
-    });
-
-    return {
-        rows: data ?? [],
-        isLoading,
-        isError,
-        error,
-        refetch,
-    };
+/** 取得單筆 Airline */
+export default function useAirline(id: string, enabled = true) {
+    const q = airlineQuery(id);
+    return useQuery({ ...q, enabled: enabled && !!id });
 }

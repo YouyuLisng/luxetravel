@@ -1,18 +1,10 @@
-// features/travelConcern/hooks/useTravelConcern.ts
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  travelConcernsQuery,
-  travelConcernQuery,
-} from '@/features/travelConcern/queries/travelConcernQuery';
-
-/** 取得 TravelConcern 列表 */
-export function useTravelConcernsQuery() {
-  return useQuery(travelConcernsQuery());
-}
+import { travelConcernQuery } from '@/features/travelConcern/queries/travelConcernQuery';
 
 /** 取得單筆 TravelConcern */
-export function useTravelConcernQuery(id: string, enabled = true) {
-  return useQuery({ ...travelConcernQuery(id), enabled });
+export default function useTravelConcern(id: string, enabled = true) {
+  const q = travelConcernQuery(id);
+  return useQuery({ ...q, enabled: enabled && !!id });
 }

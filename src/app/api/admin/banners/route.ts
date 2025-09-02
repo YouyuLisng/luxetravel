@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import getCurrentUser from '@/action/getCurrentUser';
 
+// POST /api/admin/banner
 export async function POST(request: Request) {
-    // const currentUser = await getCurrentUser();
-    // if (!currentUser) {
-    //     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-
     try {
         const body = await request.json();
         const { imageUrl, title, subtitle, linkText, linkUrl, order } = body;
@@ -39,7 +35,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json(
             {
-                status: true,
+                success: true,
                 message: `Banner「${banner.title || banner.id}」建立成功`,
                 data: banner,
             },
@@ -54,16 +50,34 @@ export async function POST(request: Request) {
     }
 }
 
-export async function GET() {
+// GET /api/admin/banner?page=&pageSize=
+export async function GET(req: Request) {
     try {
-        const banners = await db.banner.findMany({
-            orderBy: { order: "asc" }, 
-        });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+        );
+
+        const [total, rows] = await Promise.all([
+            db.banner.count(),
+            db.banner.findMany({
+                orderBy: { order: 'asc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
         return NextResponse.json(
             {
-                status: true,
-                message: '成功取得所有 Banners',
-                data: banners,
+                rows,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+                },
             },
             { status: 200 }
         );

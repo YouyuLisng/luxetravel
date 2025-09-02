@@ -1,38 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-    attractionsQuery,
-    KEYS,
-} from '@/features/attraction/queries/attractionQueries';
+import { attractionsQuery } from '@/features/attraction/queries/attractionQueries';
 
-/** Hook: 整理 Attraction 列表成 table rows */
-export function useAttractionRows() {
-    const { data, isLoading, isError, refetch } = useQuery(attractionsQuery());
-
-    const rows = useMemo(() => {
-        if (!data) return [];
-        return data.map((a: any) => ({
-            id: a.id,
-            code: a.code,
-            nameZh: a.nameZh,
-            nameEn: a.nameEn,
-            content: a.content,
-            region: a.region,
-            country: a.country,
-            city: a.city,
-            tags: a.tags,
-            imageUrl: a.imageUrl,
-            enabled: a.enabled,
-            createdAt: a.createdAt,
-        }));
-    }, [data]);
+/** 取得 Attraction 列表（分頁版） */
+export default function useAttractionRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        attractionsQuery(page, pageSize)
+    );
 
     return {
-        rows,
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

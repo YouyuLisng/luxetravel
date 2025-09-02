@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const rows = await db.feedback.findMany({
-            orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-            include: {
-                countries: { include: { country: true } }, // ← 一定要把 country 帶進來
-            },
-        });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+        );
+
+        const [total, rows] = await Promise.all([
+            db.feedback.count(),
+            db.feedback.findMany({
+                orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+                include: {
+                    countries: { include: { country: true } },
+                },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
 
         // 扁平化 countries：只回傳 Country 詳細資料陣列
         const data = rows.map((f) => ({
@@ -36,7 +48,15 @@ export async function GET() {
         }));
 
         return NextResponse.json(
-            { status: true, message: '成功取得 Feedback 清單', data },
+            {
+                rows: data,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+                },
+            },
             { status: 200 }
         );
     } catch (error) {

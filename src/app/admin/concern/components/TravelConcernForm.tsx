@@ -137,7 +137,7 @@ export default function TravelConcernForm({
                         setSuccess(res?.success ?? '更新成功');
                         // 失效列表與這筆明細；返回列表自動重抓
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            await qc.invalidateQueries({ queryKey: ['concerns'] }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                         router.replace(LIST_PATH);
@@ -155,7 +155,7 @@ export default function TravelConcernForm({
                         setError(res.error);
                     } else {
                         setSuccess(res?.success ?? '新增成功');
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await await qc.invalidateQueries({ queryKey: ['concerns'] });
                         router.replace(LIST_PATH);
                         router.refresh(); // 可選
                     }

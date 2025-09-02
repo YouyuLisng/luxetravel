@@ -142,9 +142,9 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
 
     const { isValid, isSubmitting } = form.formState;
 
-    const headingTitle = isEdit ? '編輯 Feedback' : '新增 Feedback';
+    const headingTitle = isEdit ? '編輯旅客迴響' : '新增旅客迴響';
     const headingDesc = isEdit
-        ? '修改此 Feedback 並儲存。帶 * 為必填。'
+        ? '修改此旅客迴響 並儲存。帶 * 為必填。'
         : '請填寫標題、暱稱、連結、選擇國家並上傳圖片。帶 * 為必填。';
     const formId = 'feedback-form';
 
@@ -251,14 +251,14 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                     res = await editFeedback(id, payload as any);
                     if (!res?.error) {
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['feedbacks'] }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                     }
                 } else {
                     res = await createFeedback(payload as any);
                     if (!res?.error) {
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await qc.invalidateQueries({ queryKey: ['feedbacks'] });
                     }
                 }
 
@@ -293,11 +293,11 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                     {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            {isEdit ? '編輯 Feedback' : '新增 Feedback'}
+                            {isEdit ? '編輯旅客迴響' : '新增旅客迴響'}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
                             {isEdit
-                                ? '修改此 Feedback 並儲存。帶 * 為必填。'
+                                ? '修改此旅客迴響 並儲存。帶 * 為必填。'
                                 : '請填寫標題、暱稱、連結、選擇國家並上傳圖片。帶 * 為必填。'}
                         </p>
                     </div>

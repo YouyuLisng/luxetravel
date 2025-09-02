@@ -1,41 +1,74 @@
-'use client';
-
+import axios from '@/lib/axios';
+import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
+// === Schema ===
+export const citySchema = z.object({
+    id: z.string(),
+    code: z.string(),
+    nameZh: z.string(),
+    nameEn: z.string(),
+    country: z.string(),
+    imageUrl: z.string().nullable(),
+    enabled: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+});
 
+export type CityEntity = z.infer<typeof citySchema>;
+
+// === Pagination Schema ===
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
+
+// === Response Schema ===
+export const listResponseSchema = z.object({
+    rows: citySchema.array(),
+    pagination: paginationSchema,
+});
+
+// === Query Keys ===
 export const KEYS = {
-    all: ['cities'] as const,
-    list: () => [...KEYS.all, 'list'] as const,
-    detail: (id: string) => [...KEYS.all, 'detail', id] as const,
+    list: (page: number, pageSize: number) =>
+        ['cities', page, pageSize] as const,
+    detail: (id: string) => ['cities', id] as const,
 };
 
-/** 抓全部 City */
-export async function fetchCities() {
-    const res = await fetch('/api/admin/city');
-    if (!res.ok) throw new Error('無法取得 City 列表');
-    const json = await res.json();
-    return json.data ?? []; // ✅ 只回傳陣列
-}
+// === Queries ===
+export const citiesQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/city', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
 
-/** 抓單一 City */
-export async function fetchCity(id: string) {
-    const res = await fetch(`/api/admin/city/${id}`);
-    if (!res.ok) throw new Error('無法取得 City 資料');
-    return res.json();
-}
-
-/** Hook: 全部 City */
 export function useCities() {
     return useQuery({
-        queryKey: KEYS.list(),
-        queryFn: fetchCities,
+        queryKey: ['cities', 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/city', {
+                params: { page: 1, pageSize: 999 },
+            });
+            return listResponseSchema.parse(res.data).rows;
+        },
+        staleTime: 1000 * 60 * 10,
     });
 }
 
-/** Hook: 單一 City */
-export function useCity(id: string) {
-    return useQuery({
-        queryKey: KEYS.detail(id),
-        queryFn: () => fetchCity(id),
-        enabled: !!id,
-    });
-}
+export const cityQuery = (id: string) => ({
+    queryKey: KEYS.detail(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/city/${id}`);
+        return citySchema.parse(res.data.data);
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+});

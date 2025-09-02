@@ -107,14 +107,14 @@ export default function LexiconForm({ mode = 'create', initialData }: Props) {
 
                     if (!res?.error) {
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['lexicons'] }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                     }
                 } else {
                     res = await createLexicon(values); // create 不需要 id
                     if (!res?.error) {
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await qc.invalidateQueries({ queryKey: ['lexicons'] });
                     }
                 }
 

@@ -3,53 +3,53 @@
 import * as React from 'react';
 import GlobalLoading from '@/components/GlobalLoading';
 import { DataTable } from '@/components/DataTable';
-import { useBannerRows } from '@/features/banner/hooks/useBannerRows';
+import { deleteBanner } from '@/app/admin/banner/action/banner';
+import useBannerRow from '@/features/banner/hooks/useBannerRows';
 
-import {
-    deleteBanner,
-    reorderBannersByIds,
-} from '@/app/admin/banner/action/banner';
+export default function Page() {
+    const [page, setPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState(10);
 
-export default function BannerTable() {
-    const { rows, isLoading, isError, refetch } = useBannerRows();
+    const { rows, pagination, isLoading, isError, refetch } = useBannerRow(
+        page,
+        pageSize
+    );
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;
 
     return (
-        <>
-            <DataTable
-                data={rows}
-                visibleKeys={[
-                    'imageUrl',
-                    'title',
-                    'subtitle',
-                    'linkUrl',
-                    'order',
-                ]}
-                columnLabels={{
-                    imageUrl: '圖片',
-                    order: '排序',
-                    title: '標題',
-                    subtitle: '副標',
-                    linkUrl: '連結',
-                    actions: '操作',
-                }}
-                onDelete={async (id) => {
-                    const res = await deleteBanner(id);
-                    if (res?.error) throw new Error(res.error);
-                    return res;
-                }}
-                onReorder={async (ids) => {
-                    const res = await reorderBannersByIds(ids);
-                    if (res?.error) throw new Error(res.error);
-                    return res;
-                }}
-                onRefresh={refetch}
-                getEditHref={(id) => `/admin/banner/${id}`}
-                addButtonLabel="新增輪播"
-                addButtonHref="/admin/banner/new"
-            />
-        </>
+        <DataTable
+            data={rows}
+            pagination={pagination}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            visibleKeys={[
+                'imageUrl',
+                'title',
+                'subtitle',
+                'linkText',
+                'linkUrl',
+                'order',
+            ]}
+            columnLabels={{
+                imageUrl: '圖片',
+                title: '標題',
+                subtitle: '副標題',
+                linkText: '連結文字',
+                linkUrl: '連結網址',
+                order: '排序',
+                actions: '操作',
+            }}
+            onDelete={async (id) => {
+                const res = await deleteBanner(id);
+                if (res?.error) throw new Error(res.error);
+                return res;
+            }}
+            onRefresh={refetch}
+            getEditHref={(id) => `/admin/banner/${id}`}
+            addButtonLabel="新增 Banner"
+            addButtonHref="/admin/banner/new"
+        />
     );
 }

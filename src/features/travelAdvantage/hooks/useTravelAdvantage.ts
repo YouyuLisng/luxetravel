@@ -1,10 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  travelAdvantagesQuery,
-  travelAdvantageQuery,
-} from '../queries/travelAdvantageQuery';
+import { KEYS, travelAdvantageQuery } from '@/features/travelAdvantage/queries/travelAdvantageQuery';
 
-export const useTravelAdvantagesQuery = () => useQuery(travelAdvantagesQuery());
-export const useTravelAdvantageQuery = (id: string) => useQuery(travelAdvantageQuery(id));
+/** 取得單筆 Advantage */
+export default function useTravelAdvantage(id: string, enabled = true) {
+    const q = travelAdvantageQuery(id);
+    return useQuery({ ...q, enabled: enabled && !!id });
+}

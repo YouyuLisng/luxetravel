@@ -170,7 +170,7 @@ export default function CategoryForm({ initialData, method = 'POST' }: Props) {
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
 
-                    await qc.invalidateQueries({ queryKey: KEYS.list() });
+                    await qc.invalidateQueries({ queryKey: ['categories'] });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),

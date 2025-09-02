@@ -1,11 +1,11 @@
-// features/travelConcern/queries/travelConcernQueries.ts
 import axios from '@/lib/axios';
 import { z } from 'zod';
 
+// === Schema ===
 export const travelConcernSchema = z.object({
     id: z.string(),
     moduleId: z.string(),
-    number: z.string(), // '01' ~ '05'
+    number: z.string(),
     content: z.string(),
     order: z.number(),
     createdAt: z.string(),
@@ -14,29 +14,40 @@ export const travelConcernSchema = z.object({
 
 export type TravelConcernEntity = z.infer<typeof travelConcernSchema>;
 
-/** ✅ Query Key 工廠 */
+// === Pagination Schema ===
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
+
+// === Response Schema ===
+export const listResponseSchema = z.object({
+    rows: travelConcernSchema.array(),
+    pagination: paginationSchema,
+});
+
+// === Query Keys ===
 export const KEYS = {
-    all: ['travel-concerns'] as const,
-    list: () => ['travel-concerns'] as const,
-    detail: (id: string) => ['travel-concerns', id] as const,
-    byModule: (moduleId: string) =>
-        ['travel-concerns', 'module', moduleId] as const,
+    list: (page: number, pageSize: number) =>
+        ['concerns', page, pageSize] as const,
+    detail: (id: string) => ['concerns', id] as const,
 };
 
-/** 取得全部 TravelConcern（可選擇 moduleId 過濾） */
-export const travelConcernsQuery = (opts?: { moduleId?: string }) => ({
-    queryKey: opts?.moduleId ? KEYS.byModule(opts.moduleId) : KEYS.list(),
+// === Queries ===
+export const travelConcernsQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
     queryFn: async () => {
-        const url = opts?.moduleId
-            ? `/api/admin/concerns?moduleId=${encodeURIComponent(opts.moduleId)}`
-            : `/api/admin/concerns`;
-        const res = await axios.get(url);
-        return travelConcernSchema.array().parse(res.data.data);
+        const res = await axios.get('/api/admin/concerns', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
     },
+    keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
 });
 
-/** 取得單筆 TravelConcern */
 export const travelConcernQuery = (id: string) => ({
     queryKey: KEYS.detail(id),
     queryFn: async () => {

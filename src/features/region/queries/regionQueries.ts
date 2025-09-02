@@ -1,98 +1,74 @@
-// features/region/queries/regionQueries.ts
-import { queryOptions } from '@tanstack/react-query';
 import axios from '@/lib/axios';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
-/** ---- Zod Schemas ---- */
-export const regionDTOSchema = z.object({
-    code: z.string(),
-    nameEn: z.string(),
-    nameZh: z.string(),
-    imageUrl: z.string().nullable().optional(),
-    enabled: z.boolean().optional(),
-});
-
-export const regionEntitySchema = z.object({
+// === Schema ===
+export const regionSchema = z.object({
     id: z.string(),
     code: z.string(),
     nameEn: z.string(),
     nameZh: z.string(),
-    imageUrl: z.string().nullable(), // 實體一定有此欄（可為 null）
+    imageUrl: z.string().nullable(),
     enabled: z.boolean(),
     createdAt: z.string(),
     updatedAt: z.string(),
 });
 
-/** ---- Types ---- */
-export type RegionDTO = z.infer<typeof regionDTOSchema>;
-export type RegionEntity = z.infer<typeof regionEntitySchema>;
+export type RegionEntity = z.infer<typeof regionSchema>;
 
-/** ---- API base ---- */
-const BASE = '/api/admin/regions' as const;
+// === Pagination Schema ===
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
 
-/** ---- Query Keys ---- */
+// === Response Schema ===
+export const listResponseSchema = z.object({
+    rows: regionSchema.array(),
+    pagination: paginationSchema,
+});
+
+// === Query Keys ===
 export const KEYS = {
-    list: () => ['regions'] as const,
+    list: (page: number, pageSize: number) =>
+        ['regions', page, pageSize] as const,
     detail: (id: string) => ['regions', id] as const,
 };
 
-/** ---- 小工具：統一處理後端回應 { status, message, data } ---- */
-async function handleJson<T>(p: Promise<any>): Promise<T> {
-    const res = await p;
-    const { data } = res;
-    if (!data || data.status !== true) {
-        throw new Error(data?.message || 'Request failed');
-    }
-    return data.data as T;
-}
+// === Queries ===
+export const regionsQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/regions', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
 
-/** =========================
- *  RESTful API Functions
- *  ========================= */
-export async function getRegions(): Promise<RegionEntity[]> {
-    const raw = await handleJson<unknown>(axios.get(BASE));
-    return z.array(regionEntitySchema).parse(raw);
-}
-
-export async function getRegion(id: string): Promise<RegionEntity> {
-    const raw = await handleJson<unknown>(axios.get(`${BASE}/${id}`));
-    return regionEntitySchema.parse(raw);
-}
-
-export async function createRegion(payload: RegionDTO): Promise<RegionEntity> {
-    const raw = await handleJson<unknown>(axios.post(BASE, payload));
-    return regionEntitySchema.parse(raw);
-}
-
-export async function updateRegion(
-    id: string,
-    payload: RegionDTO
-): Promise<RegionEntity> {
-    const raw = await handleJson<unknown>(axios.put(`${BASE}/${id}`, payload));
-    return regionEntitySchema.parse(raw);
-}
-
-export async function deleteRegion(id: string): Promise<{ id: string }> {
-    const raw = await handleJson<unknown>(axios.delete(`${BASE}/${id}`));
-    const parsed = regionEntitySchema.partial().parse(raw);
-    return { id: parsed.id ?? id };
-}
-
-/** =========================
- *  React Query: Query Options
- *  （可在 Server/Client 共享）
- *  ========================= */
-export const regionsQuery = () =>
-    queryOptions({
-        queryKey: KEYS.list(),
-        queryFn: getRegions,
-        staleTime: 1000 * 60 * 5,
+export function useRegions() {
+    return useQuery({
+        queryKey: ['regions', 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/regions', {
+                params: { page: 1, pageSize: 999 },
+            });
+            return listResponseSchema.parse(res.data).rows;
+        },
+        staleTime: 1000 * 60 * 10,
     });
+}
 
-export const regionQuery = (id: string) =>
-    queryOptions({
-        queryKey: KEYS.detail(id),
-        queryFn: () => getRegion(id),
-        enabled: !!id,
-        staleTime: 1000 * 60 * 5,
-    });
+export const regionQuery = (id: string) => ({
+    queryKey: KEYS.detail(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/regions/${id}`);
+        return regionSchema.parse(res.data.data);
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+});

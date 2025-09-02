@@ -1,40 +1,58 @@
-'use client';
+import axios from '@/lib/axios';
+import { z } from 'zod';
 
-import { useQuery } from '@tanstack/react-query';
+// === Schema ===
+export const airlineSchema = z.object({
+    id: z.string(),
+    code: z.string(),
+    nameZh: z.string(),
+    nameEn: z.string(),
+    imageUrl: z.string().nullable(),
+    enabled: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+});
+export type AirlineEntity = z.infer<typeof airlineSchema>;
 
+// 分頁資訊 schema
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
+
+export const listResponseSchema = z.object({
+    rows: airlineSchema.array(),
+    pagination: paginationSchema,
+});
+
+// === Keys ===
 export const KEYS = {
-    all: ['airlines'] as const,
-    list: () => [...KEYS.all, 'list'] as const,
-    detail: (id: string) => [...KEYS.all, 'detail', id] as const,
+    list: (page: number, pageSize: number) =>
+        ['airlines', page, pageSize] as const,
+    detail: (id: string) => ['airlines', id] as const,
 };
 
-/** 抓全部 Airline */
-export async function fetchAirlines() {
-    const res = await fetch('/api/admin/airline');
-    if (!res.ok) throw new Error('無法取得 Airline 列表');
-    return res.json();
-}
+// === Queries ===
+export const airlinesQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/airline', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
 
-/** 抓單一 Airline */
-export async function fetchAirline(id: string) {
-    const res = await fetch(`/api/admin/airline/${id}`);
-    if (!res.ok) throw new Error('無法取得 Airline 資料');
-    return res.json();
-}
-
-/** Hook: 全部 Airline */
-export function useAirlines() {
-    return useQuery({
-        queryKey: KEYS.list(),
-        queryFn: fetchAirlines,
-    });
-}
-
-/** Hook: 單一 Airline */
-export function useAirline(id: string) {
-    return useQuery({
-        queryKey: KEYS.detail(id),
-        queryFn: () => fetchAirline(id),
-        enabled: !!id,
-    });
-}
+export const airlineQuery = (id: string) => ({
+    queryKey: KEYS.detail(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/airline/${id}`);
+        return airlineSchema.parse(res.data.data);
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+});

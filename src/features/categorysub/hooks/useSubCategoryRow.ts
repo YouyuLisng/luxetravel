@@ -1,31 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useSubCategoriesQuery } from './useSubCategory';
+import { useQuery } from '@tanstack/react-query';
+import { subCategoriesQuery } from '@/features/categorysub/queries/subCategoryQueries';
 
-/** Hook: 將 SubCategory 列表整理成 table row */
-export default function useSubCategoryRow(categoryId?: string) {
-    const { data, isLoading, isError, refetch } =
-        useSubCategoriesQuery(categoryId);
-
-    const rows = useMemo(() => {
-        if (!data) return [];
-        return (data as any[]).map((sub) => ({
-            id: sub.id,
-            code: sub.code,
-            nameZh: sub.nameZh,
-            nameEn: sub.nameEn,
-            imageUrl: sub.imageUrl,
-            enabled: sub.enabled,
-            categoryName: sub.category?.nameZh ?? '-',
-            createdAt: sub.createdAt,
-        }));
-    }, [data]);
+/** 取得 SubCategory 列表（分頁版） */
+export default function useSubCategoryRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        subCategoriesQuery(page, pageSize)
+    );
 
     return {
-        rows,
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

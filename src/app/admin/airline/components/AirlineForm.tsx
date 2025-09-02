@@ -159,7 +159,7 @@ export default function AirlineForm({ mode = 'create', initialData }: Props) {
                     if (!res?.error) {
                         // ✅ 失效列表 + 明細
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['airlines'] }),
                             qc.invalidateQueries({
                                 queryKey: KEYS.detail(id!),
                             }),
@@ -175,8 +175,7 @@ export default function AirlineForm({ mode = 'create', initialData }: Props) {
                     } as any);
 
                     if (!res?.error) {
-                        // ✅ 失效列表
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await qc.invalidateQueries({ queryKey: ['airlines'] });
                     }
                 }
 

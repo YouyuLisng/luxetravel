@@ -1,28 +1,24 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useLexicons } from '../queries/lexiconQueries';
+import { useQuery } from '@tanstack/react-query';
+import { lexiconsQuery } from '@/features/lexicon/queries/lexiconQueries';
 
-/** Hook: 將 Lexicon 列表整理成 table row */
-export default function useLexiconRow() {
-    const { data, isLoading, isError, refetch } = useLexicons();
-
-    const rows = useMemo(() => {
-        if (!data) return [];
-        return data.map((lex: any) => ({
-            id: lex.id,
-            title: lex.title,
-            type: lex.type,
-            context: lex.context,
-            createdAt: lex.createdAt,
-            updatedAt: lex.updatedAt,
-        }));
-    }, [data]);
+/** 取得 Lexicon 列表（分頁版，可選 type 篩選） */
+export default function useLexiconRow(
+    page: number,
+    pageSize: number,
+    type?: string
+) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        lexiconsQuery(page, pageSize, type)
+    );
 
     return {
-        rows,
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

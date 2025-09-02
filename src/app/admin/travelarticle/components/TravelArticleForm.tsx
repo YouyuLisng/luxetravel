@@ -233,7 +233,7 @@ export default function TravelArticleForm({
                     if (!res?.error) {
                         // ✅ 失效列表 + 明細，回列表會自動 refetch
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['travel-articles'] }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                     }
@@ -248,7 +248,7 @@ export default function TravelArticleForm({
 
                     if (!res?.error) {
                         // ✅ 失效列表
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        qc.invalidateQueries({ queryKey: ['travel-articles'] });
                     }
                 }
 

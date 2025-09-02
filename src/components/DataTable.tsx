@@ -521,15 +521,48 @@ function generateColumns<T extends Record<string, any>>(
             continue;
         }
 
-        if (key === 'country' || key === 'region' || key === 'categoryName') {
+        if (
+            key === 'country' ||
+            key === 'region' ||
+            key === 'category' ||
+            key === 'categoryName'
+        ) {
             generated.push({
                 accessorKey: key,
-                header: () => L(key, key === 'country' ? '國家' : '地區'),
-                cell: ({ row }) => (
-                    <Badge variant="outline" className="px-1.5">
-                        {(row.original as any)[key] || '—'}
-                    </Badge>
-                ),
+                header: () =>
+                    L(
+                        key,
+                        key === 'country'
+                            ? '國家'
+                            : key === 'region'
+                              ? '地區'
+                              : '分類'
+                    ),
+                cell: ({ row }) => {
+                    const raw = (row.original as any)[key];
+
+                    // ✅ 如果是物件 → 顯示它的 nameZh 或 nameEn
+                    let label: string;
+                    if (!raw) {
+                        label = '—';
+                    } else if (typeof raw === 'object') {
+                        // 針對 category 特別處理
+                        label =
+                            raw.nameZh ||
+                            raw.nameEn ||
+                            raw.code ||
+                            raw.id ||
+                            JSON.stringify(raw);
+                    } else {
+                        label = String(raw);
+                    }
+
+                    return (
+                        <Badge variant="outline" className="px-1.5">
+                            {label}
+                        </Badge>
+                    );
+                },
             } as ColumnDef<T>);
             continue;
         }
@@ -820,12 +853,15 @@ export function DataTable({
     data: initialData,
     visibleKeys,
     columnLabels,
-    onDelete, // Server Action：刪除
-    onReorder, // Server Action：排序
-    onRefresh, // 拖曳/刪除成功後呼叫（例如 React Query refetch）
+    onDelete,
+    onReorder,
+    onRefresh,
     getEditHref,
     addButtonLabel = '新增',
     addButtonHref = '/admin/new',
+    pagination: serverPagination,
+    onPageChange,
+    onPageSizeChange,
 }: {
     data: Array<Record<string, any>>;
     visibleKeys?: string[];
@@ -836,6 +872,14 @@ export function DataTable({
     getEditHref?: (id: string | number) => string;
     addButtonLabel?: string;
     addButtonHref?: string;
+    pagination?: {
+        page: number;
+        pageSize: number;
+        total: number;
+        pageCount: number;
+    };
+    onPageChange?: (page: number) => void;
+    onPageSizeChange?: (size: number) => void;
 }) {
     const [data, setData] = React.useState(() => initialData);
     React.useEffect(() => setData(initialData), [initialData]);
@@ -901,15 +945,22 @@ export function DataTable({
             columnVisibility,
             rowSelection,
             columnFilters,
-            pagination,
+            pagination: serverPagination
+                ? {
+                      pageIndex: serverPagination.page - 1,
+                      pageSize: serverPagination.pageSize,
+                  }
+                : pagination,
         },
+        manualPagination: !!serverPagination, // 🚀 後端分頁必須加這個
+        pageCount: serverPagination?.pageCount,
         getRowId: (row) => String((row as any).id),
         enableRowSelection: true,
         onRowSelectionChange: setRowSelection,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
-        onPaginationChange: setPagination,
+        onPaginationChange: serverPagination ? undefined : setPagination, // 如果是後端分頁，就交給外部控制
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -1072,7 +1123,12 @@ export function DataTable({
                 </div>
 
                 {/* 底部分頁 & 每頁數量 */}
-                <PaginationBar table={table} />
+                <PaginationBar
+                    table={table}
+                    serverPagination={serverPagination}
+                    onPageChange={onPageChange}
+                    onPageSizeChange={onPageSizeChange}
+                />
             </div>
 
             {/* 內建 Confirm 刪除 */}
@@ -1155,93 +1211,136 @@ function TableContents({
 /* ========================= 子區塊：分頁列 ========================= */
 function PaginationBar({
     table,
+    serverPagination,
+    onPageChange,
+    onPageSizeChange,
 }: {
     table: ReturnType<typeof useReactTable<any>>;
+    serverPagination?: {
+        page: number;
+        pageSize: number;
+        total: number;
+        pageCount: number;
+    };
+    onPageChange?: (page: number) => void;
+    onPageSizeChange?: (size: number) => void;
 }) {
-    return (
-        <div className="flex items-center justify-between px-4">
-            <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-                {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                {table.getFilteredRowModel().rows.length} row(s) selected.
-            </div>
-            <div className="flex w-full items-center gap-8 lg:w-fit">
-                <div className="hidden items-center gap-2 lg:flex">
-                    <Label
-                        htmlFor="rows-per-page"
-                        className="text-sm font-medium"
+    if (serverPagination) {
+        // ✅ 後端分頁模式
+        const { page, pageSize, pageCount, total } = serverPagination;
+        return (
+            <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm">顯示筆數</span>
+                    <select
+                        value={pageSize}
+                        onChange={(e) =>
+                            onPageSizeChange?.(Number(e.target.value))
+                        }
+                        className="border rounded px-2 py-1 text-sm"
                     >
-                        顯示資料筆數
-                    </Label>
-                    <Select
-                        value={`${table.getState().pagination.pageSize}`}
-                        onValueChange={(v) => table.setPageSize(Number(v))}
-                    >
-                        <SelectTrigger className="h-8 w-20" id="rows-per-page">
-                            <SelectValue
-                                placeholder={
-                                    table.getState().pagination.pageSize
-                                }
-                            />
-                        </SelectTrigger>
-                        <SelectContent side="top">
-                            {[10, 20, 30, 40, 50].map((pageSize) => (
-                                <SelectItem
-                                    key={pageSize}
-                                    value={`${pageSize}`}
-                                >
-                                    {pageSize}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        {[10, 20, 30, 40, 50].map((size) => (
+                            <option key={size} value={size}>
+                                {size}
+                            </option>
+                        ))}
+                    </select>
                 </div>
-                <div className="flex w-fit items-center justify-center text-sm font-medium">
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(1)}
+                        disabled={page <= 1}
+                    >
+                        第一頁
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(page - 1)}
+                        disabled={page <= 1}
+                    >
+                        上一頁
+                    </Button>
+                    <span className="text-sm">（共 {total} 筆）</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(page + 1)}
+                        disabled={page >= pageCount}
+                    >
+                        下一頁
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(pageCount)}
+                        disabled={page >= pageCount}
+                    >
+                        最後一頁
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    // ✅ 前端分頁模式 (原本的)
+    return (
+        <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center gap-2">
+                <span className="text-sm">顯示筆數</span>
+                <select
+                    value={table.getState().pagination.pageSize}
+                    onChange={(e) => table.setPageSize(Number(e.target.value))}
+                    className="border rounded px-2 py-1 text-sm"
+                >
+                    {[10, 20, 30, 40, 50].map((pageSize) => (
+                        <option key={pageSize} value={pageSize}>
+                            {pageSize}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(0)}
+                    disabled={!table.getCanPreviousPage()}
+                >
+                    第一頁
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                >
+                    上一頁
+                </Button>
+                <span className="text-sm">
                     Page {table.getState().pagination.pageIndex + 1} of{' '}
                     {table.getPageCount()}
-                </div>
-                <div className="ml-auto flex items-center gap-2 lg:ml-0">
-                    <Button
-                        variant="outline"
-                        className="hidden h-8 w-8 p-0 lg:flex"
-                        onClick={() => table.setPageIndex(0)}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        <span className="sr-only">Go to first page</span>
-                        <IconChevronsLeft />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="size-8"
-                        size="icon"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        <span className="sr-only">Go to previous page</span>
-                        <IconChevronLeft />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="size-8"
-                        size="icon"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        <span className="sr-only">Go to next page</span>
-                        <IconChevronRight />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="hidden size-8 lg:flex"
-                        size="icon"
-                        onClick={() =>
-                            table.setPageIndex(table.getPageCount() - 1)
-                        }
-                        disabled={!table.getCanNextPage()}
-                    >
-                        <span className="sr-only">Go to last page</span>
-                        <IconChevronsRight />
-                    </Button>
-                </div>
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                >
+                    下一頁
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                    disabled={!table.getCanNextPage()}
+                >
+                    最後一頁
+                </Button>
             </div>
         </div>
     );

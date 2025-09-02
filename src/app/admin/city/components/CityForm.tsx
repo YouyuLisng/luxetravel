@@ -161,7 +161,7 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
 
                     if (!res?.error) {
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            await qc.invalidateQueries({ queryKey: ['cities'] }),
                             qc.invalidateQueries({
                                 queryKey: KEYS.detail(id!),
                             }),
@@ -178,7 +178,7 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
                     } as any);
 
                     if (!res?.error) {
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await qc.invalidateQueries({ queryKey: ['cities'] });
                     }
                 }
 

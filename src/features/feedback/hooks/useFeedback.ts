@@ -1,14 +1,10 @@
-// src/features/feedback/hooks/useFeedback.ts
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { feedbackListQuery } from '@/features/feedback/queries/feedbackQueries';
+import { feedbackQuery } from '@/features/feedback/queries/feedbackQueries';
 
-export function useFeedback() {
-    const query = useQuery(feedbackListQuery());
-
-    return {
-        ...query,
-        data: query.data ?? [],
-    };
+/** 取得單筆 Feedback */
+export default function useFeedback(id: string, enabled = true) {
+    const q = feedbackQuery(id);
+    return useQuery({ ...q, enabled: enabled && !!id });
 }

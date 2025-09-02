@@ -45,7 +45,7 @@ import {
 } from '@/app/admin/categorysub/action/subCategory';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS as SubCategoryKEYS } from '@/features/categorysub/queries/subCategoryQueries';
-import { useCategorysQuery } from '@/features/category/hooks/useCategory';
+import { useCategories } from '@/features/category/queries/categoryQueries';
 
 const LIST_PATH = '/admin/categorysub';
 
@@ -90,7 +90,7 @@ export default function SubCategoryForm({
     const { isValid, isSubmitting } = form.formState;
 
     // 取得大類別資料
-    const { data: categories } = useCategorysQuery();
+    const { data: categories } = useCategories();
 
     // 正規化值
     function normalize(values: SubCategoryFormValues): SubCategoryFormValues {
@@ -191,8 +191,9 @@ export default function SubCategoryForm({
                     );
 
                     await qc.invalidateQueries({
-                        queryKey: SubCategoryKEYS.list(),
+                        queryKey: ['sub-categories'],
                     });
+
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: SubCategoryKEYS.detail(initialData.id),

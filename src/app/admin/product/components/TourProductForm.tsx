@@ -41,9 +41,9 @@ import { KEYS } from '@/features/product/queries/tourProductQueries';
 
 import CreatableMultiSelect from '@/components/CreatableMultiSelect';
 import { useLexicons } from '@/features/lexicon/queries/lexiconQueries';
-import useAirports from '@/features/airport/hooks/useAirport';
-import { useCategorysQuery } from '@/features/category/hooks/useCategory';
-import { useSubCategoriesQuery } from '@/features/categorysub/hooks/useSubCategory';
+import { useAirports } from '@/features/airport/queries/airportQueries';
+import { useCategories } from '@/features/category/queries/categoryQueries';
+import { useSubCategories } from '@/features/categorysub/queries/subCategoryQueries';
 import { useCities } from '@/features/city/queries/cityQueries';
 import useCountry from '@/features/country/hooks/useCountry';
 import { TextareaInput } from '@/components/TextareaInput';
@@ -117,13 +117,11 @@ export default function TourProductForm({
     const { data: notes = [] } = useLexicons({ type: '備註' });
     const { data: reminders = [] } = useLexicons({ type: '貼心提醒' });
     const { data: policys = [] } = useLexicons({ type: '參團須知' });
-    const { rows: airports } = useAirports();
+    const { data: airports = [] } = useAirports();
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry();
-    const { data: categories = [] } = useCategorysQuery();
-    const { data: subCategories = [] } = useSubCategoriesQuery(
-        form.watch('categoryId')
-    );
+    const { data: categories = [] } = useCategories();
+    const { data: subCategories = [] } = useSubCategories();
 
     useEffect(() => {
         const fetchUsers = async () => {

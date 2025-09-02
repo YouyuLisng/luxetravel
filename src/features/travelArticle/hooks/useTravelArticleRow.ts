@@ -1,22 +1,20 @@
-// features/travelArticle/hooks/useTravelArticleRow.ts
 'use client';
 
-import * as React from 'react';
-import { useTravelArticlesQuery } from './useTravelArticle';
+import { useQuery } from '@tanstack/react-query';
+import { travelArticlesQuery } from '@/features/travelArticle/queries/travelArticleQueries';
 
-export type TravelArticleRow = { id: string | number } & Record<string, any>;
-
-export function useTravelArticleRows() {
-    const query = useTravelArticlesQuery();
-
-    const rows = React.useMemo<TravelArticleRow[]>(
-        () =>
-            (query.data ?? []).map((a: any, i: number) => ({
-                id: a.id ?? a._id ?? a.travelArticleId ?? i + 1,
-                ...a,
-            })),
-        [query.data]
+/** 取得 TravelArticle 列表（分頁版） */
+export default function useTravelArticleRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        travelArticlesQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }

@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-// import getCurrentUser from '@/action/getCurrentUser';
 
+// POST /api/admin/article-countries
 export async function POST(request: Request) {
-    // const currentUser = await getCurrentUser();
-    // if (!currentUser) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-
     try {
         const body = await request.json();
         const { name, nameZh, code } = body;
@@ -30,13 +25,14 @@ export async function POST(request: Request) {
                 { status: 400 }
             );
         }
+
         const country = await db.articleCountry.create({
             data: { name, nameZh, code },
         });
-        console.log(country)
+
         return NextResponse.json(
             {
-                status: true,
+                success: true,
                 message: `Country「${country.name} / ${country.nameZh}」建立成功`,
                 data: country,
             },
@@ -45,7 +41,6 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error('Error creating country:', error);
         if (error?.code === 'P2002') {
-            // name 欄位 unique
             return NextResponse.json(
                 { error: 'Country 已存在（name 重複）' },
                 { status: 409 }
@@ -58,16 +53,40 @@ export async function POST(request: Request) {
     }
 }
 
-export async function GET() {
+// GET /api/admin/article-countries?page=&pageSize=&q=
+export async function GET(req: Request) {
     try {
-        const rows = await db.articleCountry.findMany({
-            orderBy: { name: 'asc' },
-            include: {
-                articles: { include: { article: true } },
-            },
-        });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+        );
+        const q = searchParams.get('q');
 
-        const countries = rows.map((row) => ({
+        const where: any = {};
+        if (q) {
+            where.OR = [
+                { name: { contains: q, mode: 'insensitive' } },
+                { nameZh: { contains: q, mode: 'insensitive' } },
+                { code: { contains: q, mode: 'insensitive' } },
+            ];
+        }
+
+        const [total, rows] = await Promise.all([
+            db.articleCountry.count({ where }),
+            db.articleCountry.findMany({
+                where,
+                orderBy: { name: 'asc' },
+                include: {
+                    articles: { include: { article: true } },
+                },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
+        const data = rows.map((row) => ({
             id: row.id,
             name: row.name,
             nameZh: row.nameZh,
@@ -85,18 +104,19 @@ export async function GET() {
             })),
         }));
 
-        return NextResponse.json(
-            {
-                status: true,
-                message: '成功取得 Countries',
-                data: countries,
+        return NextResponse.json({
+            rows: data,
+            pagination: {
+                page,
+                pageSize,
+                total,
+                pageCount: Math.max(1, Math.ceil(total / pageSize)),
             },
-            { status: 200 }
-        );
+        });
     } catch (error) {
-        console.error('Error fetching countries:', error);
+        console.error('Error fetching article countries:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch countries' },
+            { error: 'Failed to fetch article countries' },
             { status: 500 }
         );
     }

@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select';
 import useRegion from '@/features/region/hooks/useRegion';
 import { TextareaInput } from '@/components/TextareaInput';
+import { useRegions } from '@/features/region/queries/regionQueries';
 /* ========== Zod Schema：符合 Prisma/Server 行為 ========== */
 const FormSchema = z.object({
     code: z.string().optional().nullable(), // 選填
@@ -85,7 +86,7 @@ export default function AttractionForm({
 
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry();
-    const { rows: regions } = useRegion();
+    const { data: regions = [] } = useRegions();
     const form = useForm<AttractionFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
@@ -232,7 +233,7 @@ export default function AttractionForm({
 
                     if (!res?.error) {
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: KEYS.list() }),
+                            qc.invalidateQueries({ queryKey: ['attractions'] }),
                             qc.invalidateQueries({
                                 queryKey: KEYS.detail(id!),
                             }),
@@ -253,7 +254,7 @@ export default function AttractionForm({
                     } as any);
 
                     if (!res?.error) {
-                        await qc.invalidateQueries({ queryKey: KEYS.list() });
+                        await qc.invalidateQueries({ queryKey: ['attractions'] });
                     }
                 }
 

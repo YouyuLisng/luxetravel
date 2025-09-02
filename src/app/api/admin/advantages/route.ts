@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { ModuleType } from '@prisma/client';
 
 export async function POST(request: Request) {
     try {
@@ -10,14 +9,14 @@ export async function POST(request: Request) {
         if (!moduleId || !imageUrl || !title || !content || !order) {
             return NextResponse.json(
                 {
-                    error: 'Missing required fields (moduleId, imageUrl, title, content)',
+                    error: 'Missing required fields (moduleId, imageUrl, title, content, order)',
                 },
                 { status: 400 }
             );
         }
 
-        const advantages = await db.module.findUnique({ where: { id: moduleId } });
-        if (!advantages) {
+        const module = await db.module.findUnique({ where: { id: moduleId } });
+        if (!module) {
             return NextResponse.json(
                 { error: '找不到對應的 Module' },
                 { status: 404 }
@@ -30,7 +29,7 @@ export async function POST(request: Request) {
                 imageUrl,
                 title,
                 content,
-                order
+                order,
             },
         });
 
@@ -51,17 +50,33 @@ export async function POST(request: Request) {
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const advantages = await db.travelAdvantage.findMany({
-            orderBy: { order: 'asc' },
-        });
+        const { searchParams } = new URL(request.url);
+        const page = parseInt(searchParams.get('page') ?? '1', 10);
+        const pageSize = parseInt(searchParams.get('pageSize') ?? '10', 10);
 
+        const skip = (page - 1) * pageSize;
+
+        const [advantages, total] = await Promise.all([
+            db.travelAdvantage.findMany({
+                skip,
+                take: pageSize,
+                orderBy: { order: 'asc' },
+            }),
+            db.travelAdvantage.count(),
+        ]);
 
         return NextResponse.json({
             status: true,
-            message: `成功取得 Advantage 模組與清單`,
-            data: advantages,
+            message: '成功取得 Advantage 模組與清單',
+            rows: advantages,
+            pagination: {
+                page,
+                pageSize,
+                total,
+                pageCount: Math.ceil(total / pageSize),
+            },
         });
     } catch (error) {
         console.error('Error fetching advantages:', error);

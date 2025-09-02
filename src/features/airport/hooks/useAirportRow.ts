@@ -1,31 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
-import useAirport from './useAirport';
+import { useQuery } from '@tanstack/react-query';
+import { airportsQuery } from '@/features/airport/queries/airportQueries';
 
-/** Hook: 將 Airport 列表整理成 table row */
-export default function useAirportRow() {
-    const { rows, pagination, isLoading, isError, refetch } = useAirport();
-
-    const tableRows = useMemo(() => {
-        return rows.map((airport: any) => ({
-            id: airport.id,
-            code: airport.code,
-            nameZh: airport.nameZh,
-            nameEn: airport.nameEn,
-            region: airport.region?.nameZh ?? '',
-            country: airport.country?.nameZh ?? '',
-            imageUrl: airport.imageUrl,
-            enabled: airport.enabled,
-            createdAt: airport.createdAt,
-        }));
-    }, [rows]);
+/** 取得 Airport 列表（分頁版） */
+export default function useAirportRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        airportsQuery(page, pageSize)
+    );
 
     return {
-        rows: tableRows,
-        pagination,
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

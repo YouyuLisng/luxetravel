@@ -1,22 +1,20 @@
-// features/travelConcern/hooks/useTravelConcernsRow.ts
 'use client';
 
-import * as React from 'react';
-import { useTravelConcernsQuery } from './useTravelConcerns';
+import { useQuery } from '@tanstack/react-query';
+import { travelConcernsQuery } from '@/features/travelConcern/queries/travelConcernQuery';
 
-export type TravelConcernRow = { id: string | number } & Record<string, any>;
-
-export function useTravelConcernsRows() {
-    const query = useTravelConcernsQuery();
-
-    const rows = React.useMemo<TravelConcernRow[]>(
-        () =>
-            (query.data ?? []).map((t: any, i: number) => ({
-                id: t.id ?? t._id ?? t.travelConcernId ?? i + 1,
-                ...t,
-            })),
-        [query.data]
+/** 取得 TravelConcern 列表（分頁版） */
+export default function useTravelConcernRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        travelConcernsQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }

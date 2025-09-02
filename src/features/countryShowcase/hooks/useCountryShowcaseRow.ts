@@ -1,21 +1,20 @@
 'use client';
 
-import * as React from 'react';
-import { useCountryShowcasesQuery } from './useCountryShowcase';
+import { useQuery } from '@tanstack/react-query';
+import { countryShowcasesQuery } from '@/features/countryShowcase/queries/countryShowcaseQueries';
 
-export type CountryShowcaseRow = { id: string | number } & Record<string, any>;
-
-export function useCountryShowcaseRows() {
-    const query = useCountryShowcasesQuery();
-
-    const rows = React.useMemo<CountryShowcaseRow[]>(
-        () =>
-            (query.data ?? []).map((c: any, i: number) => ({
-                id: c.id ?? c._id ?? c.countryShowcaseId ?? i + 1,
-                ...c,
-            })),
-        [query.data]
+/** 取得 CountryShowcase 列表（分頁版） */
+export default function useCountryShowcaseRow(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        countryShowcasesQuery(page, pageSize)
     );
 
-    return { ...query, rows };
+    return {
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    };
 }

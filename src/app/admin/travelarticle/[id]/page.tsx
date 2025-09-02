@@ -1,16 +1,7 @@
 // app/(admin)/admin/travel-article/[id]/page.tsx
 import type { Metadata } from 'next';
-import {
-    HydrationBoundary,
-    dehydrate,
-    QueryClient,
-} from '@tanstack/react-query';
-
-import {
-    travelArticleQuery,
-    type TravelArticleEntity,
-} from '@/features/travelArticle/queries/travelArticleQueries';
-
+import { db } from '@/lib/db';
+import { notFound } from 'next/navigation';
 import TravelArticleForm from '../components/TravelArticleForm';
 
 interface Props {
@@ -25,35 +16,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
     const { id } = await params;
 
-    const queryClient = new QueryClient();
-    const articleQ = travelArticleQuery(id);
+    const data = await db.article.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            title: true,
+            subtitle: true,
+            linkUrl: true,
+            imageUrl: true,
+            countries: {
+                include: {
+                    country: true,
+                },
+            },
+        },
+    });
 
-    // 預抓單筆文章
-    await queryClient.prefetchQuery(articleQ);
+    if (!data) return notFound();
 
-    // 從快取拿出預取資料
-    const data = queryClient.getQueryData<TravelArticleEntity>(
-        articleQ.queryKey
-    );
+    const initialData = {
+        id: data.id,
+        title: data.title ?? '',
+        subtitle: data.subtitle ?? '',
+        linkUrl: data.linkUrl ?? '',
+        imageUrl: data.imageUrl ?? null,
+        countries: data.countries.map((c) => ({
+            id: c.country.id,
+            name: c.country.name,
+            nameZh: c.country.nameZh,
+        })),
+    };
 
-    // 轉成表單期望的型別（含 countries，表單會自動轉成 countryIds）
-    const initialData = data
-        ? {
-              id: data.id,
-              title: data.title,
-              subtitle: data.subtitle,
-              linkUrl: data.linkUrl,
-              imageUrl: data.imageUrl,
-              countries: data.countries?.map((c) => ({
-                  id: c.id,
-                  name: c.name,
-                  nameZh: c.nameZh,
-              })),
-          }
-        : undefined;
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <TravelArticleForm mode="edit" initialData={initialData} />
-        </HydrationBoundary>
-    );
+    return <TravelArticleForm initialData={initialData} mode="edit" />;
 }

@@ -5,18 +5,50 @@ import {
     type AttractionCreateValues,
 } from '@/schemas/attraction';
 
-/** GET /api/admin/attraction - 取得全部 Attraction */
-export async function GET() {
+/** GET /api/admin/attraction?page=&pageSize=&q= */
+export async function GET(req: Request) {
     try {
-        const data = await db.attraction.findMany({
-            orderBy: { createdAt: 'desc' },
-        });
-        return NextResponse.json({ status: true, data });
-    } catch (err) {
-        return NextResponse.json(
-            { status: false, message: '讀取失敗' },
-            { status: 500 }
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
         );
+        const q = searchParams.get('q');
+
+        const where: any = {};
+        if (q) {
+            where.OR = [
+                { name: { contains: q, mode: 'insensitive' } },
+                { code: { contains: q, mode: 'insensitive' } },
+            ];
+        }
+
+        const [total, rows] = await Promise.all([
+            db.attraction.count({ where }),
+            db.attraction.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+
+        return NextResponse.json(
+            {
+                rows,
+                pagination: {
+                    page,
+                    pageSize,
+                    total,
+                    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+                },
+            },
+            { status: 200 }
+        );
+    } catch (err) {
+        console.error('Error fetching attractions:', err);
+        return NextResponse.json({ error: '讀取失敗' }, { status: 500 });
     }
 }
 
@@ -27,7 +59,7 @@ export async function POST(req: Request) {
         const parsed = AttractionCreateSchema.safeParse(json);
         if (!parsed.success) {
             return NextResponse.json(
-                { status: false, message: '欄位格式錯誤' },
+                { error: '欄位格式錯誤', issues: parsed.error.flatten() },
                 { status: 400 }
             );
         }
@@ -40,7 +72,7 @@ export async function POST(req: Request) {
             const dup = await db.attraction.findUnique({ where: { code: up } });
             if (dup) {
                 return NextResponse.json(
-                    { status: false, message: `代碼已存在：${up}` },
+                    { error: `代碼已存在：${up}` },
                     { status: 409 }
                 );
             }
@@ -49,13 +81,11 @@ export async function POST(req: Request) {
 
         const created = await db.attraction.create({ data });
         return NextResponse.json(
-            { status: true, data: created },
+            { success: true, data: created },
             { status: 201 }
         );
     } catch (err) {
-        return NextResponse.json(
-            { status: false, message: '建立失敗' },
-            { status: 500 }
-        );
+        console.error('Error creating attraction:', err);
+        return NextResponse.json({ error: '建立失敗' }, { status: 500 });
     }
 }

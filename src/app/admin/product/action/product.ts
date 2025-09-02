@@ -72,48 +72,48 @@ export async function createTourProduct(values: TourProductCreateValues) {
         });
 
         // ⚡ 如果有填寫機場，建立 Flight 資料
-        if (departAirport && arriveAirport) {
-            // 查詢 Airport 資料表
-            const dep = await db.airport.findUnique({
-                where: { code: departAirport },
-            });
-            const arr = await db.airport.findUnique({
-                where: { code: arriveAirport },
-            });
+        // if (departAirport && arriveAirport) {
+        //     // 查詢 Airport 資料表
+        //     const dep = await db.airport.findUnique({
+        //         where: { code: departAirport },
+        //     });
+        //     const arr = await db.airport.findUnique({
+        //         where: { code: arriveAirport },
+        //     });
 
-            if (dep && arr) {
-                await db.flight.createMany({
-                    data: [
-                        {
-                            productId: product.id,
-                            departAirport: dep.code,
-                            departName: dep.nameZh,
-                            arriveAirport: arr.code,
-                            arriveName: arr.nameZh,
-                            departTime: '', // 先留空，之後可編輯
-                            arriveTime: '',
-                            duration: '',
-                            airlineCode: '',
-                            airlineName: '',
-                            flightNo: '',
-                        },
-                        {
-                            productId: product.id,
-                            departAirport: arr.code,
-                            departName: arr.nameZh,
-                            arriveAirport: dep.code,
-                            arriveName: dep.nameZh,
-                            departTime: '',
-                            arriveTime: '',
-                            duration: '',
-                            airlineCode: '',
-                            airlineName: '',
-                            flightNo: '',
-                        },
-                    ],
-                });
-            }
-        }
+        //     if (dep && arr) {
+        //         await db.flight.createMany({
+        //             data: [
+        //                 {
+        //                     productId: product.id,
+        //                     departAirport: dep.code,
+        //                     departName: dep.nameZh,
+        //                     arriveAirport: arr.code,
+        //                     arriveName: arr.nameZh,
+        //                     departTime: '', // 先留空，之後可編輯
+        //                     arriveTime: '',
+        //                     duration: '',
+        //                     airlineCode: '',
+        //                     airlineName: '',
+        //                     flightNo: '',
+        //                 },
+        //                 {
+        //                     productId: product.id,
+        //                     departAirport: arr.code,
+        //                     departName: arr.nameZh,
+        //                     arriveAirport: dep.code,
+        //                     arriveName: dep.nameZh,
+        //                     departTime: '',
+        //                     arriveTime: '',
+        //                     duration: '',
+        //                     airlineCode: '',
+        //                     airlineName: '',
+        //                     flightNo: '',
+        //                 },
+        //             ],
+        //         });
+        //     }
+        // }
 
         return { success: '新增成功', data: product };
     } catch (err) {

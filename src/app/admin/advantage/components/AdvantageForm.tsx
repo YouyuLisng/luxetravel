@@ -198,7 +198,7 @@ export default function TravelAdvantageForm({
                     );
 
                     // 失效列表與（編輯時）明細
-                    await qc.invalidateQueries({ queryKey: KEYS.list() });
+                    await qc.invalidateQueries({ queryKey: ['travel-advantages'] });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),
