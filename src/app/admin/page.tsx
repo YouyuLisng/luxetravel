@@ -3,8 +3,6 @@
 import React from 'react';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-
 export default function Page() {
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();

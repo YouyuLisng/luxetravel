@@ -6,7 +6,7 @@ export async function GET() {
     try {
         const data = await db.tourProduct.findMany({
             include: {
-                departures: true,
+                tour: true,
                 flights: true,
                 maps: true,
                 highlights: true,

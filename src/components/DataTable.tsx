@@ -732,7 +732,7 @@ function generateColumns<T extends Record<string, any>>(
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/admin/product/${id}/departure`}>
+                                    <Link href={`/admin/product/${id}/tour`}>
                                         檢視行程日曆
                                     </Link>
                                 </DropdownMenuItem>

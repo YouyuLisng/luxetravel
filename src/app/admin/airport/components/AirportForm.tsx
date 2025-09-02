@@ -64,7 +64,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
-    const qc = useQueryClient(); // ✅ React Query 客戶端
+    const qc = useQueryClient();
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
