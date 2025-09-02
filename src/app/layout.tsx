@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import ToasterProvider from '@/components/providers/ToastProvider';
 import { Toaster } from '@/components/ui/toaster';
+import RouteLoadingProvider from '@/components/providers/RouteLoadingProvider';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -36,7 +37,9 @@ export default async function RootLayout({
                         <TooltipProvider>
                             <ToasterProvider />
                             <Toaster />
-                            {children}
+                            <RouteLoadingProvider>
+                                {children}
+                            </RouteLoadingProvider>
                         </TooltipProvider>
                     </ThemeProvider>
                 </QueryProvider>
