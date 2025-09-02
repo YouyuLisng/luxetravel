@@ -305,7 +305,7 @@ export default function AttractionForm({
                         >
                             <div className="grid grid-cols-1 gap-6">
                                 {/* 代碼（選填） */}
-                                <FormField
+                                {/* <FormField
                                     control={form.control}
                                     name="code"
                                     render={({ field }) => (
@@ -335,7 +335,7 @@ export default function AttractionForm({
                                             <FormMessage />
                                         </FormItem>
                                     )}
-                                />
+                                /> */}
                                 {/* 中文名稱 */}
                                 <FormField
                                     control={form.control}

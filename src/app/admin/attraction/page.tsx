@@ -26,7 +26,6 @@ export default function Page() {
             onPageSizeChange={setPageSize}
             visibleKeys={[
                 'imageUrl',
-                'code',
                 'nameZh',
                 'nameEn',
                 'content',
@@ -37,7 +36,6 @@ export default function Page() {
             ]}
             columnLabels={{
                 imageUrl: '圖片',
-                code: '代碼',
                 nameZh: '中文名',
                 nameEn: '英文名',
                 content: '內容',
