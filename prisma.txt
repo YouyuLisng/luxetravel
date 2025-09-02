@@ -1,0 +1,11 @@
+npm i -D prisma
+
+npm i @prisma/client
+
+npx prisma init
+
+npx prisma generate
+
+npx prisma db pull
+
+npx prisma studio

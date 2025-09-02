@@ -1,0 +1,227 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Member API",
+        "version": "1.0.0",
+        "description": "會員登入、註冊 API 文件。"
+    },
+    "servers": [
+        {
+            "url": "https://member-ten.vercel.app",
+            "description": "會員專案"
+        }
+    ],
+    "paths": {
+        "/api/auth/login": {
+            "post": {
+                "summary": "用戶登入",
+                "description": "使用 email 與 password 進行登入，成功後回傳 JWT token。",
+                "requestBody": {
+                    "description": "登入資訊",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "your_password"
+                                    }
+                                },
+                                "required": ["email", "password"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "登入成功，回傳 JWT token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "登入成功"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "請求格式錯誤，例如缺少 email 或 password"
+                    },
+                    "401": {
+                        "description": "認證資訊無效"
+                    },
+                    "500": {
+                        "description": "伺服器錯誤"
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "summary": "會員註冊",
+                "description": "透過此 API 可註冊新會員，成功後回傳驗證連結。",
+                "requestBody": {
+                    "description": "會員註冊資料",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "compid": {
+                                        "type": "string",
+                                        "example": "A21730"
+                                    },
+                                    "salesid": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "S001"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "先生"
+                                    },
+                                    "firstName": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "lastName": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john@example.com"
+                                    },
+                                    "birthday": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "nullable": true,
+                                        "example": "1990-01-01T00:00:00.000Z"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "0123456789"
+                                    },
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "0987654321"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "台北市信義區"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "your_password"
+                                    },
+                                    "instagram": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "john_insta"
+                                    },
+                                    "line": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "john_line"
+                                    },
+                                    "vip": {
+                                        "type": "string",
+                                        "example": "VIP"
+                                    },
+                                    "updateLogin": {
+                                        "type": "string",
+                                        "example": "admin"
+                                    },
+                                    "tag": {
+                                        "type": "string",
+                                        "example": "租車"
+                                    },
+                                    "preferences": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "key": {
+                                                    "type": "string",
+                                                    "example": "車型"
+                                                },
+                                                "value": {
+                                                    "type": "string",
+                                                    "example": "SUV"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "sourceUrl": {
+                                        "type": "string",
+                                        "example": "https://www.dtsgroup.com.tw"
+                                    }
+                                },
+                                "required": [
+                                    "compid",
+                                    "firstName",
+                                    "lastName",
+                                    "email",
+                                    "mobile",
+                                    "password",
+                                    "tag",
+                                    "sourceUrl"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "會員註冊成功，回傳驗證連結",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "會員註冊成功，請檢查信箱進行認證"
+                                        },
+                                        "verificationLink": {
+                                            "type": "string",
+                                            "example": "/auth/verify/eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "缺少必要欄位或請求格式錯誤"
+                    },
+                    "401": {
+                        "description": "認證資訊無效"
+                    },
+                    "500": {
+                        "description": "伺服器錯誤"
+                    }
+                }
+            }
+        }
+    }
+}
