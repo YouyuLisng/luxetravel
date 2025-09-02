@@ -15,8 +15,8 @@ export async function POST(request: Request) {
             );
         }
 
-        const module = await db.module.findUnique({ where: { id: moduleId } });
-        if (!module) {
+        const mod = await db.module.findUnique({ where: { id: moduleId } });
+        if (!mod) {
             return NextResponse.json(
                 { error: '找不到對應的 Module' },
                 { status: 404 }
