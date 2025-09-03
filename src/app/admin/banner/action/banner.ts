@@ -8,6 +8,7 @@ import {
     type BannerCreateValues,
     type BannerEditValues,
 } from '@/schemas/banner';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 export async function createBanner(values: BannerCreateValues) {
     const parsed = BannerCreateSchema.safeParse(values);
@@ -29,7 +30,7 @@ export async function createBanner(values: BannerCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Banner（依 id） */
+/** 編輯 Banner（依 id，並刪除舊 blob 圖片） */
 export async function editBanner(id: string, values: BannerEditValues) {
     if (!id) return { error: '無效的 ID' };
 
@@ -40,6 +41,15 @@ export async function editBanner(id: string, values: BannerEditValues) {
     if (!exists) return { error: '找不到 Banner' };
 
     const { imageUrl, title, subtitle, linkText, linkUrl, order } = parsed.data;
+
+    // 如果換了新圖，刪除舊 blob
+    if (imageUrl !== undefined && exists.imageUrl && exists.imageUrl !== imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
 
     const data = await db.banner.update({
         where: { id },
@@ -56,12 +66,23 @@ export async function editBanner(id: string, values: BannerEditValues) {
     return { success: '更新成功', data };
 }
 
-/** 刪除 Banner（依 id） */
+/** 刪除 Banner（依 id，並刪除 blob 圖片） */
 export async function deleteBanner(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.banner.findUnique({ where: { id } });
+    const exists = await db.banner.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到 Banner' };
+
+    if (exists.imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除 Blob 圖片失敗:', err);
+        }
+    }
 
     const data = await db.banner.delete({ where: { id } });
     return { success: '刪除成功', data };
@@ -104,7 +125,6 @@ export async function reorderBanners(input: z.infer<typeof ReorderSchema>) {
     }
 
     try {
-        // 兩段式更新，避免 unique(order) 臨時衝突
         await db.$transaction([
             // 暫存大位移
             ...ids.map((id, i) =>
@@ -132,6 +152,5 @@ export async function reorderBanners(input: z.infer<typeof ReorderSchema>) {
 /** 便捷函式：直接丟 ids（可選 startFrom） */
 export async function reorderBannersByIds(ids: string[], startFrom?: number) {
     if (!ids.length) return { error: 'ids 不可為空' };
-    // TS 修正：告知編譯器這裡經檢查為非空
     return reorderBanners({ ids: ids as [string, ...string[]], startFrom });
 }

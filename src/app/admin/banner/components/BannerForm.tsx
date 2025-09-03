@@ -55,7 +55,7 @@ export default function BannerForm({ initialData, method = 'POST' }: Props) {
     const [success, setSuccess] = useState<string>();
 
     const isEdit = method === 'PUT' || Boolean(initialData?.id);
-    const headingTitle = isEdit ? '編輯輪播' : '新增輪播';
+    const headingTitle = isEdit ? '編輯首頁輪播大圖' : '新增首頁輪播大圖';
     const headingDesc = '請填寫相關資料。帶 * 為必填。';
 
     const form = useForm<BannerFormValues>({

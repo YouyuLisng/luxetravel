@@ -7,6 +7,7 @@ import {
     type AirportCreateValues,
     type AirportEditValues,
 } from '@/schemas/airport';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 新增 Airport（檢查唯一碼與外鍵存在） */
 export async function createAirport(values: AirportCreateValues) {
@@ -44,7 +45,7 @@ export async function createAirport(values: AirportCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Airport（依 id） */
+/** 編輯 Airport（依 id，並刪除舊 blob 圖片） */
 export async function editAirport(id: string, values: AirportEditValues) {
     if (!id) return { error: '無效的 ID' };
 
@@ -78,6 +79,19 @@ export async function editAirport(id: string, values: AirportEditValues) {
         if (!country) return { error: '找不到國家' };
     }
 
+    // ⚡ 檢查舊圖是否需要刪除
+    if (
+        imageUrl !== undefined &&
+        exists.imageUrl &&
+        exists.imageUrl !== imageUrl
+    ) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
+
     const patch: {
         code?: string;
         nameZh?: string;
@@ -105,8 +119,20 @@ export async function editAirport(id: string, values: AirportEditValues) {
 export async function deleteAirport(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.airport.findUnique({ where: { id } });
+    const exists = await db.airport.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到 Airport' };
+
+    // 刪除圖片
+    if (exists.imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除 Blob 圖片失敗:', err);
+        }
+    }
 
     const data = await db.airport.delete({ where: { id } });
     return { success: '刪除成功', data };

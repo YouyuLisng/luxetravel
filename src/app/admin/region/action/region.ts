@@ -1,4 +1,3 @@
-// src/app/admin/region/action/region.ts
 'use server';
 
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import {
     type RegionCreateValues,
     type RegionEditValues,
 } from '@/schemas/region';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 新增 Region */
 export async function createRegion(values: RegionCreateValues) {
@@ -34,7 +34,7 @@ export async function createRegion(values: RegionCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Region（依 id） */
+/** 編輯 Region（依 id，並刪除舊 blob 圖片） */
 export async function editRegion(id: string, values: RegionEditValues) {
     if (!id) return { error: '無效的 ID' };
 
@@ -55,6 +55,15 @@ export async function editRegion(id: string, values: RegionEditValues) {
         }
     }
 
+    // ⚡ 如果更新 imageUrl 且與舊的不同 → 刪除舊 blob
+    if (imageUrl !== undefined && exists.imageUrl && exists.imageUrl !== imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
+
     const patch: {
         code?: string;
         nameZh?: string;
@@ -66,8 +75,7 @@ export async function editRegion(id: string, values: RegionEditValues) {
     if (code !== undefined) patch.code = code.toUpperCase();
     if (nameZh !== undefined) patch.nameZh = nameZh.trim();
     if (nameEn !== undefined) patch.nameEn = nameEn.trim();
-    if (imageUrl !== undefined)
-        patch.imageUrl = imageUrl === null ? null : imageUrl.trim();
+    if (imageUrl !== undefined) patch.imageUrl = imageUrl === null ? null : imageUrl.trim();
     if (enabled !== undefined) patch.enabled = enabled;
 
     const data = await db.region.update({ where: { id }, data: patch });
@@ -75,23 +83,30 @@ export async function editRegion(id: string, values: RegionEditValues) {
     return { success: '更新成功', data };
 }
 
-/** 刪除 Region（依 id）— 先刪機場再刪地區（交易保護） */
+/** 刪除 Region（依 id，並刪除 blob 圖片） */
 export async function deleteRegion(id: string) {
     if (!id) return { error: '無效的 ID' };
 
     try {
         const exists = await db.region.findUnique({
             where: { id },
-            select: { id: true, nameZh: true },
+            select: { id: true, nameZh: true, imageUrl: true },
         });
         if (!exists) return { error: '找不到地區資料' };
 
+        // ⚡ 刪除圖片
+        if (exists.imageUrl) {
+            try {
+                await deleteFromVercelBlob(exists.imageUrl);
+            } catch (err) {
+                console.error('刪除 Blob 圖片失敗:', err);
+            }
+        }
+
         const { deleted, removedCount } = await db.$transaction(async (tx) => {
-            // 先刪此地區底下的所有機場
             const removed = await tx.airport.deleteMany({
                 where: { regionId: id },
             });
-            // 再刪地區
             const deleted = await tx.region.delete({ where: { id } });
             return { deleted, removedCount: removed.count };
         });

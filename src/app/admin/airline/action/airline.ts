@@ -7,7 +7,7 @@ import {
     type AirlineCreateValues,
     type AirlineEditValues,
 } from '@/schemas/airline';
-
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 /** 新增 Airline（檢查唯一碼） */
 export async function createAirline(values: AirlineCreateValues) {
     const parsed = AirlineCreateSchema.safeParse(values);
@@ -38,10 +38,12 @@ export async function editAirline(id: string, values: AirlineEditValues) {
     if (!id) return { error: '無效的 ID' };
 
     const parsed = AirlineEditSchema.safeParse(values);
-    console.log(values)
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
-    const exists = await db.airline.findUnique({ where: { id } });
+    const exists = await db.airline.findUnique({
+        where: { id },
+        select: { id: true, code: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到 Airline' };
 
     const { code, nameZh, nameEn, imageUrl, enabled } = parsed.data;
@@ -66,9 +68,17 @@ export async function editAirline(id: string, values: AirlineEditValues) {
     if (code !== undefined) patch.code = code.toUpperCase();
     if (nameZh !== undefined) patch.nameZh = nameZh.trim();
     if (nameEn !== undefined) patch.nameEn = nameEn.trim();
-    if (imageUrl !== undefined)
-        patch.imageUrl = imageUrl === null ? null : imageUrl.trim();
     if (enabled !== undefined) patch.enabled = enabled;
+
+    // 🟢 如果傳入新 imageUrl，且與舊圖不同 → 刪掉舊的 Blob
+    if (imageUrl !== undefined) {
+        const newUrl = imageUrl === null ? null : imageUrl.trim();
+        patch.imageUrl = newUrl;
+
+        if (newUrl && exists.imageUrl && exists.imageUrl !== newUrl) {
+            await deleteFromVercelBlob(exists.imageUrl);
+        }
+    }
 
     const data = await db.airline.update({ where: { id }, data: patch });
     return { success: '更新成功', data };
@@ -78,9 +88,18 @@ export async function editAirline(id: string, values: AirlineEditValues) {
 export async function deleteAirline(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.airline.findUnique({ where: { id } });
+    const exists = await db.airline.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true }, // 👈 取出 imageUrl
+    });
     if (!exists) return { error: '找不到 Airline' };
 
+    // 如果有圖片 → 先刪除 Blob 檔案
+    if (exists.imageUrl) {
+        await deleteFromVercelBlob(exists.imageUrl);
+    }
+
+    // 再刪 DB
     const data = await db.airline.delete({ where: { id } });
     return { success: '刪除成功', data };
 }

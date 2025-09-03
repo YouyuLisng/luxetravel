@@ -44,6 +44,15 @@ export async function editTravelAdvantage(
 
     const { imageUrl, title, content, order } = parsed.data;
 
+    // 如果有傳新圖，且和舊的不一樣，就刪掉舊的 blob
+    if (imageUrl && exists.imageUrl && exists.imageUrl !== imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
+
     const data = await db.travelAdvantage.update({
         where: { id },
         data: { imageUrl, title, content, order },

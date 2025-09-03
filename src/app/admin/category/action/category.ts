@@ -8,6 +8,7 @@ import {
     type CategoryCreateValues,
     type CategoryEditValues,
 } from '@/schemas/category';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 新增 Category */
 export async function createCategory(values: CategoryCreateValues) {
@@ -34,7 +35,7 @@ export async function createCategory(values: CategoryCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Category（依 id） */
+/** 編輯 Category（依 id，並刪除舊 Blob 圖片） */
 export async function editCategory(id: string, values: CategoryEditValues) {
     if (!id) return { error: '無效的 ID' };
 
@@ -42,7 +43,7 @@ export async function editCategory(id: string, values: CategoryEditValues) {
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     const exists = await db.category.findUnique({ where: { id } });
-    if (!exists) return { error: '找不到小類別資料' };
+    if (!exists) return { error: '找不到大類別資料' };
 
     const { code, nameZh, nameEn, imageUrl, enabled } = parsed.data;
 
@@ -52,6 +53,15 @@ export async function editCategory(id: string, values: CategoryEditValues) {
         if (upper !== exists.code) {
             const dup = await db.category.findUnique({ where: { code: upper } });
             if (dup) return { error: `代碼已存在：${upper}` };
+        }
+    }
+
+    // ⚡ 如果 imageUrl 被更新，且與舊的不一樣，就刪掉舊 Blob
+    if (imageUrl !== undefined && exists.imageUrl && exists.imageUrl !== imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
         }
     }
 
@@ -66,8 +76,7 @@ export async function editCategory(id: string, values: CategoryEditValues) {
     if (code !== undefined) patch.code = code.toUpperCase();
     if (nameZh !== undefined) patch.nameZh = nameZh.trim();
     if (nameEn !== undefined) patch.nameEn = nameEn.trim();
-    if (imageUrl !== undefined)
-        patch.imageUrl = imageUrl === null ? null : imageUrl.trim();
+    if (imageUrl !== undefined) patch.imageUrl = imageUrl === null ? null : imageUrl.trim();
     if (enabled !== undefined) patch.enabled = enabled;
 
     const data = await db.category.update({ where: { id }, data: patch });
@@ -75,20 +84,31 @@ export async function editCategory(id: string, values: CategoryEditValues) {
     return { success: '更新成功', data };
 }
 
-/** 刪除 Category（依 id）*/
+/** 刪除 Category（依 id，並刪除 Blob 圖片） */
 export async function deleteCategory(id: string) {
     if (!id) return { error: '無效的 ID' };
 
     try {
-        const exists = await db.category.delete({
+        const exists = await db.category.findUnique({
             where: { id },
-            select: { id: true, nameZh: true },
+            select: { id: true, nameZh: true, imageUrl: true },
         });
         if (!exists) return { error: '找不到大類別資料' };
 
+        // ⚡ 刪除 blob
+        if (exists.imageUrl) {
+            try {
+                await deleteFromVercelBlob(exists.imageUrl);
+            } catch (err) {
+                console.error('刪除 Blob 圖片失敗:', err);
+            }
+        }
+
+        const deleted = await db.category.delete({ where: { id } });
+
         return {
             success: `刪除成功：已刪除大類別`,
-            data: exists,
+            data: deleted,
         };
     } catch (e) {
         console.error('deleteCategory error:', e);

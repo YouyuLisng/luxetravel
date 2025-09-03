@@ -1,4 +1,3 @@
-// src/app/admin/feedback/action/feedback.ts
 'use server';
 
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import {
     type FeedbackCreateValues,
     type FeedbackEditValues,
 } from '@/schemas/feedback';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 建立 Feedback（可同時掛上多個 countryId） */
 export async function createFeedback(input: FeedbackCreateValues) {
@@ -16,10 +16,8 @@ export async function createFeedback(input: FeedbackCreateValues) {
 
     const { countryIds, ...fields } = parsed.data;
 
-    // 先建主體（含 title, subtitle?, content?, nickname, imageUrl, linkUrl, linekName?, order）
     const created = await db.feedback.create({ data: fields });
 
-    // 建立關聯（先去重，避免 unique 衝突）
     if (countryIds?.length) {
         const uniqueCountryIds = [...new Set(countryIds)];
         if (uniqueCountryIds.length) {
@@ -28,7 +26,6 @@ export async function createFeedback(input: FeedbackCreateValues) {
                     feedbackId: created.id,
                     countryId: cid,
                 })),
-                // skipDuplicates: true, // ❌ Mongo 不支援 -> 會造成 TS2322
             });
         }
     }
@@ -41,7 +38,7 @@ export async function createFeedback(input: FeedbackCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Feedback（可選擇是否覆寫國家關聯） */
+/** 編輯 Feedback（依 id，並可更新國家關聯與圖片） */
 export async function editFeedback(id: string, input: FeedbackEditValues) {
     if (!id) return { error: '無效 ID' };
 
@@ -52,6 +49,19 @@ export async function editFeedback(id: string, input: FeedbackEditValues) {
     if (!exists) return { error: '找不到資料' };
 
     const { countryIds, ...fields } = parsed.data;
+
+    // ⚡ 如果更新了 imageUrl，刪除舊 blob
+    if (
+        fields.imageUrl !== undefined &&
+        exists.imageUrl &&
+        exists.imageUrl !== fields.imageUrl
+    ) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
 
     // 更新主體欄位
     await db.feedback.update({ where: { id }, data: fields });
@@ -92,17 +102,30 @@ export async function editFeedback(id: string, input: FeedbackEditValues) {
     return { success: '更新成功', data };
 }
 
-/** 刪除 Feedback（onDelete: Cascade 會清除關聯） */
+/** 刪除 Feedback（並刪除 blob 圖片；onDelete: Cascade 清關聯） */
 export async function deleteFeedback(id: string) {
     if (!id) return { error: '無效 ID' };
-    const exists = await db.feedback.findUnique({ where: { id } });
+
+    const exists = await db.feedback.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到資料' };
+
+    // ⚡ 刪除圖片
+    if (exists.imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除 Blob 圖片失敗:', err);
+        }
+    }
 
     const data = await db.feedback.delete({ where: { id } });
     return { success: '刪除成功', data };
 }
 
-/** 重新排序：依傳入的 id 順序把 order 改為 0..n */
+/** 重新排序 */
 export async function reorderFeedback(idsInOrder: string[]) {
     if (!Array.isArray(idsInOrder) || idsInOrder.length === 0) {
         return { error: '無效的排序清單' };

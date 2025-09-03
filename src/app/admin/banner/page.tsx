@@ -48,7 +48,7 @@ export default function Page() {
             }}
             onRefresh={refetch}
             getEditHref={(id) => `/admin/banner/${id}`}
-            addButtonLabel="新增 Banner"
+            addButtonLabel="新增首頁輪播大圖"
             addButtonHref="/admin/banner/new"
         />
     );

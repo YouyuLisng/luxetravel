@@ -116,16 +116,11 @@ export default function TravelAdvantageForm({
                     body: file,
                 });
                 if (!res.ok) throw new Error('上傳失敗');
-                const { url: newUrl } = await res.json();
+                const { url } = await res.json();
 
-                // 如果有舊的 imageUrl，先刪除舊的 Blob 檔案
-                const oldUrl = form.getValues('imageUrl');
-                if (oldUrl && oldUrl !== newUrl) {
-                    await deleteFromVercelBlob(oldUrl);
-                }
-
-                form.setValue('imageUrl', newUrl, { shouldValidate: true });
-                setImgPreview(URL.createObjectURL(file));
+                form.setValue('imageUrl', url, { shouldValidate: true });
+                const previewUrl = URL.createObjectURL(file);
+                setImgPreview(previewUrl);
 
                 toast({
                     title: '上傳成功',

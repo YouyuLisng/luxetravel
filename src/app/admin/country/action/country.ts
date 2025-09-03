@@ -1,4 +1,3 @@
-// src/app/admin/country/action/country.ts
 'use server';
 
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import {
     type CountryCreateValues,
     type CountryEditValues,
 } from '@/schemas/country';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 新增 Country（同時同步 ArticleCountry + FeedbackCountry） */
 export async function createCountry(values: CountryCreateValues) {
@@ -17,7 +17,7 @@ export async function createCountry(values: CountryCreateValues) {
     const { code, nameZh, nameEn, imageUrl, enabled } = parsed.data;
     const upper = code.toUpperCase();
 
-    // 唯一性檢查（Country.code）
+    // 唯一性檢查
     const dup = await db.country.findUnique({ where: { code: upper } });
     if (dup) return { error: `代碼已存在：${upper}` };
 
@@ -32,14 +32,14 @@ export async function createCountry(values: CountryCreateValues) {
             },
         });
 
-        // === 同步 ArticleCountry（以 name 為 unique，使用 nameEn 作為 name）
+        // 同步 ArticleCountry
         await tx.articleCountry.upsert({
             where: { name: nameEn.trim() },
             update: { nameZh: nameZh.trim(), code: upper },
             create: { name: nameEn.trim(), nameZh: nameZh.trim(), code: upper },
         });
 
-        // === 同步 FeedbackCountry（以 name 為 unique，使用 nameEn 作為 name）
+        // 同步 FeedbackCountry
         await tx.feedbackCountry.upsert({
             where: { name: nameEn.trim() },
             update: { nameZh: nameZh.trim(), code: upper },
@@ -52,7 +52,7 @@ export async function createCountry(values: CountryCreateValues) {
     return { success: '新增成功', data };
 }
 
-/** 編輯 Country（依 id；同步更新 ArticleCountry + FeedbackCountry，包含改名與代碼） */
+/** 編輯 Country（同步更新 ArticleCountry + FeedbackCountry） */
 export async function editCountry(id: string, values: CountryEditValues) {
     if (!id) return { error: '無效的 ID' };
 
@@ -64,7 +64,7 @@ export async function editCountry(id: string, values: CountryEditValues) {
 
     const { code, nameZh, nameEn, imageUrl, enabled } = parsed.data;
 
-    // 若更新 code，需檢查唯一
+    // code 唯一性檢查
     if (code !== undefined) {
         const upper = code.toUpperCase();
         if (upper !== exists.code) {
@@ -73,7 +73,6 @@ export async function editCountry(id: string, values: CountryEditValues) {
         }
     }
 
-    // 計算更新後的欄位
     const newCode = code !== undefined ? code.toUpperCase() : exists.code;
     const newNameEn = nameEn !== undefined ? nameEn.trim() : exists.nameEn;
     const newNameZh = nameZh !== undefined ? nameZh.trim() : exists.nameZh;
@@ -85,8 +84,16 @@ export async function editCountry(id: string, values: CountryEditValues) {
             : exists.imageUrl;
     const newEnabled = enabled !== undefined ? enabled : exists.enabled;
 
+    // ⚡ 刪除舊 blob（若有更新圖片）
+    if (imageUrl !== undefined && exists.imageUrl && exists.imageUrl !== imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
+
     const data = await db.$transaction(async (tx) => {
-        // 1) 先更新 Country
         const updated = await tx.country.update({
             where: { id },
             data: {
@@ -98,12 +105,9 @@ export async function editCountry(id: string, values: CountryEditValues) {
             },
         });
 
-        // 2) 同步 ArticleCountry
+        // 同步 ArticleCountry
         const oldNameEn = exists.nameEn;
-        const oldArticle = await tx.articleCountry.findUnique({
-            where: { name: oldNameEn },
-        });
-
+        const oldArticle = await tx.articleCountry.findUnique({ where: { name: oldNameEn } });
         if (oldArticle) {
             await tx.articleCountry.update({
                 where: { name: oldNameEn },
@@ -117,11 +121,8 @@ export async function editCountry(id: string, values: CountryEditValues) {
             });
         }
 
-        // 3) 同步 FeedbackCountry（邏輯同上）
-        const oldFeedback = await tx.feedbackCountry.findUnique({
-            where: { name: oldNameEn },
-        });
-
+        // 同步 FeedbackCountry
+        const oldFeedback = await tx.feedbackCountry.findUnique({ where: { name: oldNameEn } });
         if (oldFeedback) {
             await tx.feedbackCountry.update({
                 where: { name: oldNameEn },
@@ -141,20 +142,29 @@ export async function editCountry(id: string, values: CountryEditValues) {
     return { success: '更新成功', data };
 }
 
-/** 刪除 Country（依 id）
- *  - 先刪該國家的所有 Airport，再刪 Country，避免 P2014 關聯錯誤
- *  - 不主動刪除 ArticleCountry / FeedbackCountry（避免影響既有文章/回饋關聯）
- */
+/** 刪除 Country（依 id，並刪除 blob 圖片） */
 export async function deleteCountry(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.country.findUnique({ where: { id } });
+    const exists = await db.country.findUnique({
+        where: { id },
+        select: { id: true, nameZh: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到 Country' };
+
+    // ⚡ 刪除圖片
+    if (exists.imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除 Blob 圖片失敗:', err);
+        }
+    }
 
     const data = await db.$transaction(async (tx) => {
         await tx.airport.deleteMany({ where: { countryId: id } });
         return await tx.country.delete({ where: { id } });
     });
 
-    return { success: `已刪除「${data.nameZh}」及其所有機場`, data };
+    return { success: `已刪除「${exists.nameZh}」及其所有機場`, data };
 }

@@ -7,6 +7,7 @@ import {
     type ArticleCreateValues,
     type ArticleEditValues,
 } from '@/schemas/article';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 const uniq = (arr: string[]) => Array.from(new Set(arr));
 
@@ -66,6 +67,19 @@ export async function editArticle(id: string, values: ArticleEditValues) {
 
     const { countryIds, ...articleData } = parsed.data;
 
+    // ⚡ 如果更新了 imageUrl，刪除舊 blob
+    if (
+        articleData.imageUrl !== undefined &&
+        exists.imageUrl &&
+        exists.imageUrl !== articleData.imageUrl
+    ) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除舊 Blob 圖片失敗:', err);
+        }
+    }
+
     try {
         const updated = await db.$transaction(async (tx) => {
             const a = await tx.article.update({
@@ -82,13 +96,12 @@ export async function editArticle(id: string, values: ArticleEditValues) {
                         `Country 不存在：${check.missing.join(', ')}`
                     );
 
-                // 1) 先移除不在新清單內的
+                // 先移除不在新清單內的
                 await tx.travelArticleOnCountry.deleteMany({
                     where: { articleId: id, NOT: { countryId: { in: ids } } },
                 });
 
                 if (ids.length) {
-                    // 2) 查現有關聯，僅建立缺少的
                     const existing = await tx.travelArticleOnCountry.findMany({
                         where: { articleId: id, countryId: { in: ids } },
                         select: { countryId: true },
@@ -104,7 +117,6 @@ export async function editArticle(id: string, values: ArticleEditValues) {
                         });
                     }
                 } else {
-                    // 空陣列 => 清空全部關聯
                     await tx.travelArticleOnCountry.deleteMany({
                         where: { articleId: id },
                     });
@@ -128,8 +140,20 @@ export async function editArticle(id: string, values: ArticleEditValues) {
 export async function deleteArticle(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.article.findUnique({ where: { id } });
+    const exists = await db.article.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到 Article' };
+
+    // ⚡ 刪除圖片
+    if (exists.imageUrl) {
+        try {
+            await deleteFromVercelBlob(exists.imageUrl);
+        } catch (err) {
+            console.error('刪除 Blob 圖片失敗:', err);
+        }
+    }
 
     try {
         await db.$transaction(async (tx) => {
