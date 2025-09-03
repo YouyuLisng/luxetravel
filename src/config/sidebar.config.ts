@@ -73,7 +73,7 @@ export const sidebarItems: SidebarItem[] = [
             { title: '城市管理', url: '/admin/city' },
             { title: '航空公司', url: '/admin/airline' },
             { title: '景點管理', url: '/admin/attraction' },
-            { title: '辭條管理', url: '/admin/dictionary' },
+            { title: '辭庫管理', url: '/admin/dictionary' },
         ],
     },
     {

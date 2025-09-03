@@ -31,6 +31,7 @@ export default function Page() {
                 'subtitle',
                 'description',
                 'linkUrl',
+                'linkText',
                 'order',
             ]}
             columnLabels={{
@@ -39,6 +40,7 @@ export default function Page() {
                 subtitle: '副標題',
                 description: '描述',
                 linkUrl: '連結',
+                linkText: '連結文字',
                 order: '排序',
                 actions: '操作',
             }}

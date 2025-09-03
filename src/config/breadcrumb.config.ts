@@ -17,6 +17,7 @@ export const breadcrumbMap: Record<string, string> = {
     attraction: '景點管理',
     category: '大類別',
     categorysub: '小類別',
+    dictionary: '辭庫管理',
     // 首頁設定
     menu: '前台選單',
     banner: '首頁輪播大圖',
