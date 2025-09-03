@@ -6,6 +6,10 @@ import { z } from 'zod';
 export const FlightCreateSchema = z.object({
     productId: z.string().min(1, '缺少產品 ID'),
 
+    direction: z.enum(['OUTBOUND', 'RETURN'], {
+        required_error: '缺少航班方向',
+    }),
+
     departAirport: z.string().min(1, '缺少出發機場代碼'),
     departName: z.string().min(1, '缺少出發機場名稱'),
 
@@ -28,7 +32,7 @@ export const FlightCreateSchema = z.object({
 
 /**
  * Flight 編輯用 Schema
- * - 允許部分欄位
+ * - 因為全刪再寫，這邊其實用不到，但保留
  */
 export const FlightEditSchema = FlightCreateSchema.partial();
 
