@@ -20,8 +20,8 @@ import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
 
 import {
-    TravelAdvantageCreateSchema, // 保留給 server action 使用
-    TravelAdvantageEditSchema, // 保留給 server action 使用
+    TravelAdvantageCreateSchema,
+    TravelAdvantageEditSchema,
     type TravelAdvantageCreateValues,
     type TravelAdvantageEditValues,
 } from '@/schemas/travelAdvantage';
@@ -34,6 +34,7 @@ import {
 } from '@/app/admin/advantage/action/travelAdvantage';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useToast } from '@/hooks/use-toast';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /* ========================= 常數 ========================= */
 const LIST_PATH = '/admin/advantage';
@@ -115,11 +116,16 @@ export default function TravelAdvantageForm({
                     body: file,
                 });
                 if (!res.ok) throw new Error('上傳失敗');
-                const { url } = await res.json();
+                const { url: newUrl } = await res.json();
 
-                form.setValue('imageUrl', url, { shouldValidate: true });
-                const previewUrl = URL.createObjectURL(file);
-                setImgPreview(previewUrl);
+                // 如果有舊的 imageUrl，先刪除舊的 Blob 檔案
+                const oldUrl = form.getValues('imageUrl');
+                if (oldUrl && oldUrl !== newUrl) {
+                    await deleteFromVercelBlob(oldUrl);
+                }
+
+                form.setValue('imageUrl', newUrl, { shouldValidate: true });
+                setImgPreview(URL.createObjectURL(file));
 
                 toast({
                     title: '上傳成功',
@@ -198,7 +204,9 @@ export default function TravelAdvantageForm({
                     );
 
                     // 失效列表與（編輯時）明細
-                    await qc.invalidateQueries({ queryKey: ['travel-advantages'] });
+                    await qc.invalidateQueries({
+                        queryKey: ['travel-advantages'],
+                    });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),

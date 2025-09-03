@@ -8,7 +8,7 @@ import {
     type TravelAdvantageCreateValues,
     type TravelAdvantageEditValues,
 } from '@/schemas/travelAdvantage';
-
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 /** 新增 TravelAdvantage */
 export async function createTravelAdvantage(
     values: TravelAdvantageCreateValues
@@ -56,9 +56,18 @@ export async function editTravelAdvantage(
 export async function deleteTravelAdvantage(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.travelAdvantage.findUnique({ where: { id } });
+    const exists = await db.travelAdvantage.findUnique({
+        where: { id },
+        select: { id: true, imageUrl: true },
+    });
     if (!exists) return { error: '找不到資料' };
 
+    // 先刪除 Vercel Blob 圖片
+    if (exists.imageUrl) {
+        await deleteFromVercelBlob(exists.imageUrl);
+    }
+
+    // 再刪除 DB 資料
     const data = await db.travelAdvantage.delete({ where: { id } });
     return { success: '刪除成功', data };
 }
@@ -97,13 +106,13 @@ export async function reorderTravelAdvantages(
     });
 
     if (items.length !== ids.length) {
-        const existSet = new Set(items.map((x) => x.id));
+        const existSet = new Set(items.map((x: { id: any }) => x.id));
         const missing = ids.filter((id) => !existSet.has(id));
         return { error: `找不到資料：${missing.join(', ')}` };
     }
 
     // 確認同一個 moduleId
-    const moduleSet = new Set(items.map((x) => x.moduleId));
+    const moduleSet = new Set(items.map((x: { moduleId: any }) => x.moduleId));
     if (moduleSet.size !== 1) {
         return { error: '不同模組的資料不可同時排序' };
     }
