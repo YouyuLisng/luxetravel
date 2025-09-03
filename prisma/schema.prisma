@@ -426,7 +426,7 @@ model Attraction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+   itineraries ItineraryOnAttraction[]
   @@index([enabled])
   @@index([region])
   @@index([country])
@@ -446,6 +446,20 @@ model Lexicon {
 }
 
 // -------------------- 行程系統 --------------------
+
+/// 航班方向：去程 / 回程
+enum FlightDirection {
+  OUTBOUND   /// 去程
+  RETURN     /// 回程
+}
+
+/// 景點參觀方式
+enum VisitType {
+  INSIDE     /// 入內參觀
+  OUTSIDE    /// 下車參觀
+  PHOTO      /// 拍照打卡
+  PASSBY     /// 車覽
+}
 
 model TourProduct {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId  /// 主鍵 ID
@@ -507,6 +521,8 @@ model Tours {
 model Flight {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
   productId     String   @db.ObjectId         /// 關聯 TourProduct ID
+  direction     FlightDirection               /// 去程 or 回程
+
   departAirport String                        /// 出發機場代碼
   departName    String                        /// 出發機場名稱
   arriveAirport String                        /// 抵達機場代碼
@@ -567,16 +583,31 @@ model Itinerary {
   dinner    String?                       /// 晚餐資訊
   hotel     String?                       /// 住宿飯店
   note      String?                       /// 備註
-  attractions    String[] @default([])    /// 景點 ID 陣列
-  attractionTypes Int[]   @default([])    /// 景點類型（數字枚舉）
   featured   Boolean  @default(false)     /// 是否為重點行程
   depart     String?                      /// 出發地
   arrive     String?                      /// 抵達地
   duration   String?                      /// 行程時間
   distance   String?                      /// 行程距離
 
-  product   TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attractions ItineraryOnAttraction[]     /// 🔹 改成關聯表
 
   createdAt DateTime @default(now())      /// 建立時間
   updatedAt DateTime @updatedAt           /// 更新時間
+}
+
+model ItineraryOnAttraction {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  itineraryId  String   @db.ObjectId
+  attractionId String   @db.ObjectId
+  visitType    VisitType                     /// 入內參觀 / 下車參觀 / 拍照打卡 / 車覽
+
+  itinerary    Itinerary  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([itineraryId])
+  @@index([attractionId])
 }

@@ -47,7 +47,7 @@ export default function TourProductTable() {
             }}
             onRefresh={refetch}
             getEditHref={(id) => `/admin/product/${id}`}
-            addButtonLabel="新增產品"
+            addButtonLabel="新增行程產品"
             addButtonHref="/admin/product/new"
         />
     );

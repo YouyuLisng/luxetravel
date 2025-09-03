@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useTransition, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 
@@ -20,7 +19,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 
 import { FlightCreateSchema, type FlightCreateValues } from '@/schemas/flight';
-import { createFlights, editFlights } from '@/app/admin/product/action/flight';
+import {
+    createFlights,
+    editFlights,
+    getFlightsByProductId,
+} from '@/app/admin/product/action/flight';
 import { Plus, X } from 'lucide-react';
 
 import {
@@ -32,7 +35,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-// 共用 hooks
 import { useAirports } from '@/features/airport/queries/airportQueries';
 import { useAirlines } from '@/features/airline/queries/airlineQueries';
 
@@ -43,25 +45,15 @@ export type FlightFormValues = {
 
 type Props = {
     productId: string;
-    initialData?: FlightCreateValues[];
-    method?: 'POST' | 'PUT';
-    onChange?: (values: FlightCreateValues[]) => void; // 👈 父層收集
 };
 
-export default function FlightForm({
-    productId,
-    initialData = [],
-    method = 'POST',
-    onChange,
-}: Props) {
-    const router = useRouter();
+export default function FlightForm({ productId }: Props) {
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
 
     const [isLoading, setIsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
-    const [error, setError] = useState<string>();
-    const [success, setSuccess] = useState<string>();
+    const [isEdit, setIsEdit] = useState(false);
 
     const { data: airports = [] } = useAirports();
     const { data: airlines = [] } = useAirlines();
@@ -72,27 +64,24 @@ export default function FlightForm({
         ) as any,
         mode: 'onChange',
         defaultValues: {
-            flights:
-                initialData.length > 0
-                    ? initialData
-                    : [
-                          {
-                              productId,
-                              departAirport: '',
-                              departName: '',
-                              arriveAirport: '',
-                              arriveName: '',
-                              departTime: '',
-                              arriveTime: '',
-                              duration: '',
-                              crossDay: false,
-                              airlineCode: '',
-                              airlineName: '',
-                              flightNo: '',
-                              isTransit: false,
-                              remark: '',
-                          },
-                      ],
+            flights: [
+                {
+                    productId,
+                    departAirport: '',
+                    departName: '',
+                    arriveAirport: '',
+                    arriveName: '',
+                    departTime: '',
+                    arriveTime: '',
+                    duration: '',
+                    crossDay: false,
+                    airlineCode: '',
+                    airlineName: '',
+                    flightNo: '',
+                    isTransit: false,
+                    remark: '',
+                },
+            ],
         },
     });
 
@@ -104,25 +93,20 @@ export default function FlightForm({
 
     const { isValid, isSubmitting } = form.formState;
     const formId = 'flight-form';
-    const isEdit = method === 'PUT';
 
-    // 👇 當表單值改變時，回傳給父層
+    // 初始化時撈取航班
     useEffect(() => {
-        const subscription = form.watch((values) => {
-            if (values?.flights) {
-                const safeFlights = values.flights.filter(
-                    (f): f is FlightCreateValues => f !== undefined
-                );
-                onChange?.(safeFlights);
+        async function fetchFlights() {
+            const res = await getFlightsByProductId(productId);
+            if ('data' in res && res.data.length > 0) {
+                setIsEdit(true);
+                form.reset({ flights: res.data });
             }
-        });
-        return () => subscription.unsubscribe();
-    }, [form, onChange]);
+        }
+        if (productId) fetchFlights();
+    }, [productId, form]);
 
     const onSubmit = (values: FlightFormValues) => {
-        setError(undefined);
-        setSuccess(undefined);
-
         startTransition(async () => {
             setIsLoading(true);
             show();
@@ -130,34 +114,38 @@ export default function FlightForm({
                 let res: { error?: string; success?: string } | undefined;
 
                 if (isEdit) {
-                    // 批次更新，每筆都有 id
                     const payload = values.flights.map((f: any) => ({
                         id: f.id,
                         data: f,
                     }));
                     res = await editFlights(payload as any);
                 } else {
-                    // 建立
                     res = await createFlights(values.flights);
                 }
 
                 if (res?.error) {
-                    setError(res.error);
-                    toast({
-                        variant: 'destructive',
-                        title: res.error,
-                    });
+                    toast({ variant: 'destructive', title: res.error });
                 } else {
-                    const msg =
-                        res?.success ?? (isEdit ? '更新成功' : '新增成功');
-                    setSuccess(msg);
-                    toast({ title: msg });
-                    router.back();
+                    toast({
+                        title:
+                            res?.success ?? (isEdit ? '更新成功' : '新增成功'),
+                    });
+
+                    // ✅ 新增成功 → reload → 轉成編輯模式
+                    if (!isEdit) {
+                        const refreshed =
+                            await getFlightsByProductId(productId);
+                        if ('data' in refreshed) {
+                            setIsEdit(true);
+                            form.reset({ flights: refreshed.data });
+                        }
+                    }
                 }
             } catch (err: any) {
-                const msg = err?.message ?? (isEdit ? '更新失敗' : '新增失敗');
-                setError(msg);
-                toast({ variant: 'destructive', title: msg });
+                toast({
+                    variant: 'destructive',
+                    title: err?.message ?? (isEdit ? '更新失敗' : '新增失敗'),
+                });
             } finally {
                 setIsLoading(false);
                 hide();
@@ -172,7 +160,7 @@ export default function FlightForm({
                     {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            {isEdit ? '編輯航班' : '航班設定'}
+                            {isEdit ? '編輯航班' : '新增航班'}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
                             請填寫航班基本資料，帶 * 為必填。
@@ -250,10 +238,10 @@ export default function FlightForm({
                                                                     >
                                                                         {
                                                                             a.nameZh
-                                                                        } (
-                                                                        {
-                                                                            a.code
-                                                                        })
+                                                                        }{' '}
+                                                                        (
+                                                                        {a.code}
+                                                                        )
                                                                     </SelectItem>
                                                                 )
                                                             )}
@@ -320,10 +308,10 @@ export default function FlightForm({
                                                                     >
                                                                         {
                                                                             a.nameZh
-                                                                        } (
-                                                                        {
-                                                                            a.code
-                                                                        })
+                                                                        }{' '}
+                                                                        (
+                                                                        {a.code}
+                                                                        )
                                                                     </SelectItem>
                                                                 )
                                                             )}
@@ -344,7 +332,7 @@ export default function FlightForm({
                                         className="bg-slate-50"
                                     />
 
-                                    {/* 航班號碼 & 航空公司 */}
+                                    {/* 航班號碼 */}
                                     <FormField
                                         control={control}
                                         name={`flights.${index}.flightNo`}
@@ -362,6 +350,7 @@ export default function FlightForm({
                                         )}
                                     />
 
+                                    {/* 航空公司 */}
                                     <FormField
                                         control={control}
                                         name={`flights.${index}.airlineCode`}
@@ -405,10 +394,12 @@ export default function FlightForm({
                                                                     >
                                                                         {
                                                                             al.nameZh
-                                                                        } (
+                                                                        }{' '}
+                                                                        (
                                                                         {
                                                                             al.code
-                                                                        })
+                                                                        }
+                                                                        )
                                                                     </SelectItem>
                                                                 )
                                                             )}
@@ -498,7 +489,9 @@ export default function FlightForm({
                                                     <TextareaInput
                                                         rows={3}
                                                         {...field}
-                                                        value={field.value ?? ''}
+                                                        value={
+                                                            field.value ?? ''
+                                                        }
                                                         placeholder="請輸入航班備註"
                                                         disabled={
                                                             isPending ||
@@ -540,6 +533,21 @@ export default function FlightForm({
                                     <Plus className="h-4 w-4" /> 新增航班
                                 </Button>
                             )}
+
+                            <div className="flex justify-end">
+                                <Button
+                                    type="submit"
+                                    form={formId}
+                                    disabled={
+                                        !isValid ||
+                                        isLoading ||
+                                        isPending ||
+                                        isSubmitting
+                                    }
+                                >
+                                    {isEdit ? '儲存變更' : '送出需求'}
+                                </Button>
+                            </div>
                         </form>
                     </div>
                 </div>

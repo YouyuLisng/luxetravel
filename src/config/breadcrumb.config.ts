@@ -4,7 +4,7 @@
 export const breadcrumbMap: Record<string, string> = {
     admin: '管理後台',
     // 行程管理
-    product: '團體',
+    product: '行程管理',
     package: '自由行',
     // 共用資料表
     categry: '大類別管理',

@@ -70,6 +70,7 @@ export default function TourProductForm({
     initialData,
     method = 'POST',
 }: Props) {
+    console.log('initialData', initialData);
     const router = useRouter();
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
@@ -182,7 +183,9 @@ export default function TourProductForm({
                         });
                     }
 
-                    router.replace(LIST_PATH);
+                    if (!isEdit) {
+                        router.replace(LIST_PATH);
+                    }
                 }
             } catch (err: any) {
                 setError(err?.message ?? (isEdit ? '更新失敗' : '新增失敗'));

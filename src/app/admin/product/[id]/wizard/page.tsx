@@ -1,0 +1,28 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import ProductWizard from '../../components/ProductWizard';
+import { getTourProductById } from '../../action/data/getTourProductById';
+import { db } from '@/lib/db';
+
+interface Props {
+    params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { id } = await params;
+    return { title: `TourProduct - ${id}` };
+}
+export default async function Page({ params }: Props) {
+    const { id } = await params;
+    const tourProduct = await getTourProductById(id);
+    const data = await db.tourProduct.findUnique({
+        where: { id },
+        include: {
+            flights: true,
+            itineraries: true,
+            highlights: true,
+            maps: true,
+        },
+    });
+    return <ProductWizard productId={id} tourProduct={tourProduct} data={data} />;
+}

@@ -32,7 +32,7 @@ export default function TourCalendar({
                 events={events}
                 onDateClick={(date) => {
                     console.log('👉 點擊日期:', date);
-                    router.push(`/admin/product/${productId}/tour/new?departDate=${date}`);
+                    router.push(`/admin/product/${productId}/wizard?departDate=${date}`);
                 }}
                 onEventClick={(id) => {
                     console.log('👉 點擊事件 ID:', id);

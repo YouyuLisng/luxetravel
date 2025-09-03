@@ -94,7 +94,7 @@ export const sidebarItems: SidebarItem[] = [
         url: '',
         icon: BookOpen,
         items: [
-            { title: '團體', url: '/admin/product' },
+            { title: '行程', url: '/admin/product' },
         ],
     },
 ];
