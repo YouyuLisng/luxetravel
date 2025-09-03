@@ -320,45 +320,68 @@ export default function TourProductForm({
                                 <FormField
                                     control={form.control}
                                     name="subCategoryId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="required">
-                                                子類別
-                                            </FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                                disabled={
-                                                    !form.watch('categoryId')
-                                                }
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="請選擇子類別" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {subCategories?.map(
-                                                            (sub: any) => (
-                                                                <SelectItem
-                                                                    key={sub.id}
-                                                                    value={
-                                                                        sub.id
-                                                                    }
-                                                                >
-                                                                    {sub.nameZh}{' '}
-                                                                    ({sub.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
+                                    render={({ field }) => {
+                                        // 依照已選的大類別過濾
+                                        const filteredSubs =
+                                            subCategories.filter(
+                                                (sub: any) =>
+                                                    sub.categoryId ===
+                                                    form.watch('categoryId')
+                                            );
+
+                                        return (
+                                            <FormItem>
+                                                <FormLabel className="required">
+                                                    子類別
+                                                </FormLabel>
+                                                <Select
+                                                    value={field.value ?? ''}
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                    disabled={
+                                                        !form.watch(
+                                                            'categoryId'
+                                                        )
+                                                    }
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="請選擇子類別" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {filteredSubs.map(
+                                                                (sub: any) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            sub.id
+                                                                        }
+                                                                        value={
+                                                                            sub.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            sub.nameZh
+                                                                        }{' '}
+                                                                        (
+                                                                        {
+                                                                            sub.code
+                                                                        }
+                                                                        )
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        );
+                                    }}
                                 />
+
                                 <FormField
                                     control={form.control}
                                     name="name"

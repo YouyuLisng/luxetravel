@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
             'github.com',
             'localhost',
             'qt0qrczeczbveoxc.public.blob.vercel-storage.com',
+            'szhwqq1yurynqzf6.public.blob.vercel-storage.com',
             'example.com',
             'www.example.com',
             'cdn.example.com'

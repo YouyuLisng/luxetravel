@@ -13,7 +13,6 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TextareaInput } from '@/components/TextareaInput';
 import FormError from '@/components/auth/FormError';
@@ -30,6 +29,7 @@ import {
     editItineraries,
     createItineraries,
 } from '@/app/admin/product/action/itinerary';
+import { useAttractions } from '@/features/attraction/hooks/useAttraction';
 
 // === 型別 ===
 export type ItineraryFormValues = {
@@ -53,6 +53,7 @@ export default function ItineraryForm({
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
 
+    const { data } = useAttractions(1, 999);
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>();

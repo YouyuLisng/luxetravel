@@ -1,4 +1,5 @@
 import axios from '@/lib/axios';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
 // === Schema ===
@@ -46,6 +47,19 @@ export const airlinesQuery = (page: number, pageSize: number) => ({
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
 });
+
+export function useAirlines() {
+    return useQuery({
+        queryKey: ['airlines', 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/airline', {
+                params: { page: 1, pageSize: 999 },
+            });
+            return listResponseSchema.parse(res.data).rows;
+        },
+        staleTime: 1000 * 60 * 10,
+    });
+}
 
 export const airlineQuery = (id: string) => ({
     queryKey: KEYS.detail(id),

@@ -23,6 +23,19 @@ import { FlightCreateSchema, type FlightCreateValues } from '@/schemas/flight';
 import { createFlights, editFlights } from '@/app/admin/product/action/flight';
 import { Plus, X } from 'lucide-react';
 
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+
+// 共用 hooks
+import { useAirports } from '@/features/airport/queries/airportQueries';
+import { useAirlines } from '@/features/airline/queries/airlineQueries';
+
 // === 表單型別：陣列 ===
 export type FlightFormValues = {
     flights: FlightCreateValues[];
@@ -49,6 +62,9 @@ export default function FlightForm({
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
+
+    const { data: airports = [] } = useAirports();
+    const { data: airlines = [] } = useAirlines();
 
     const form = useForm<FlightFormValues>({
         resolver: zodResolver(
@@ -195,35 +211,67 @@ export default function FlightForm({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="required">
-                                                    出發機場代碼
+                                                    出發機場
                                                 </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="例：TPE"
-                                                    />
-                                                </FormControl>
+                                                <Select
+                                                    value={field.value ?? ''}
+                                                    onValueChange={(val) => {
+                                                        field.onChange(val);
+                                                        const selected =
+                                                            airports.find(
+                                                                (a) =>
+                                                                    a.code ===
+                                                                    val
+                                                            );
+                                                        if (selected) {
+                                                            form.setValue(
+                                                                `flights.${index}.departName`,
+                                                                selected.nameZh
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="選擇出發機場" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {airports.map(
+                                                                (a) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            a.id
+                                                                        }
+                                                                        value={
+                                                                            a.code
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            a.nameZh
+                                                                        } (
+                                                                        {
+                                                                            a.code
+                                                                        })
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={control}
-                                        name={`flights.${index}.departName`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="required">
-                                                    出發機場名稱
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="例：桃園國際機場"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
+                                    <Input
+                                        value={
+                                            form.watch(
+                                                `flights.${index}.departName`
+                                            ) ?? ''
+                                        }
+                                        readOnly
+                                        className="bg-slate-50"
                                     />
 
                                     {/* 抵達機場 */}
@@ -233,35 +281,67 @@ export default function FlightForm({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="required">
-                                                    抵達機場代碼
+                                                    抵達機場
                                                 </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="例：HND"
-                                                    />
-                                                </FormControl>
+                                                <Select
+                                                    value={field.value ?? ''}
+                                                    onValueChange={(val) => {
+                                                        field.onChange(val);
+                                                        const selected =
+                                                            airports.find(
+                                                                (a) =>
+                                                                    a.code ===
+                                                                    val
+                                                            );
+                                                        if (selected) {
+                                                            form.setValue(
+                                                                `flights.${index}.arriveName`,
+                                                                selected.nameZh
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="選擇抵達機場" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {airports.map(
+                                                                (a) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            a.id
+                                                                        }
+                                                                        value={
+                                                                            a.code
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            a.nameZh
+                                                                        } (
+                                                                        {
+                                                                            a.code
+                                                                        })
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={control}
-                                        name={`flights.${index}.arriveName`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="required">
-                                                    抵達機場名稱
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="例：東京羽田機場"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
+                                    <Input
+                                        value={
+                                            form.watch(
+                                                `flights.${index}.arriveName`
+                                            ) ?? ''
+                                        }
+                                        readOnly
+                                        className="bg-slate-50"
                                     />
 
                                     {/* 航班號碼 & 航空公司 */}
@@ -281,21 +361,72 @@ export default function FlightForm({
                                             </FormItem>
                                         )}
                                     />
+
                                     <FormField
                                         control={control}
-                                        name={`flights.${index}.airlineName`}
+                                        name={`flights.${index}.airlineCode`}
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>航空公司</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="例：日本航空"
-                                                    />
-                                                </FormControl>
+                                                <Select
+                                                    value={field.value ?? ''}
+                                                    onValueChange={(val) => {
+                                                        field.onChange(val);
+                                                        const selected =
+                                                            airlines.find(
+                                                                (al) =>
+                                                                    al.code ===
+                                                                    val
+                                                            );
+                                                        if (selected) {
+                                                            form.setValue(
+                                                                `flights.${index}.airlineName`,
+                                                                selected.nameZh
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="選擇航空公司" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {airlines.map(
+                                                                (al) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            al.id
+                                                                        }
+                                                                        value={
+                                                                            al.code
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            al.nameZh
+                                                                        } (
+                                                                        {
+                                                                            al.code
+                                                                        })
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
+                                    />
+                                    <Input
+                                        value={
+                                            form.watch(
+                                                `flights.${index}.airlineName`
+                                            ) ?? ''
+                                        }
+                                        readOnly
+                                        className="bg-slate-50"
                                     />
 
                                     {/* 起飛 / 抵達時間 */}
@@ -367,9 +498,7 @@ export default function FlightForm({
                                                     <TextareaInput
                                                         rows={3}
                                                         {...field}
-                                                        value={
-                                                            field.value ?? ''
-                                                        }
+                                                        value={field.value ?? ''}
                                                         placeholder="請輸入航班備註"
                                                         disabled={
                                                             isPending ||
@@ -413,32 +542,6 @@ export default function FlightForm({
                             )}
                         </form>
                     </div>
-
-                    {/* Footer */}
-                    {/* <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
-                        <div className="flex items-center justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => router.back()}
-                                disabled={isLoading || isPending}
-                            >
-                                取消
-                            </Button>
-                            <Button
-                                type="submit"
-                                form={formId}
-                                disabled={
-                                    !isValid ||
-                                    isLoading ||
-                                    isPending ||
-                                    isSubmitting
-                                }
-                            >
-                                {isEdit ? '儲存變更' : '送出需求'}
-                            </Button>
-                        </div>
-                    </div> */}
                 </div>
             </div>
         </Form>
