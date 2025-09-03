@@ -1,25 +1,34 @@
 import { z } from 'zod';
 
-export const ItineraryCreateSchema = z.object({
-    productId: z.string().min(1, '缺少產品 ID'),
-    day: z.number().min(1, '必須填寫天數'),
-    title: z.string().min(1, '請輸入標題'),
-    subtitle: z.string().optional().nullable(),
-    content: z.string().optional().nullable(),
-    breakfast: z.string().optional().nullable(),
-    lunch: z.string().optional().nullable(),
-    dinner: z.string().optional().nullable(),
-    hotel: z.string().optional().nullable(),
-    note: z.string().optional().nullable(),
-    attractions: z.array(z.string()).optional().default([]),
-    attractionTypes: z.array(z.number()).optional().default([]),
-    featured: z.boolean().optional().default(false),
-    depart: z.string().optional().nullable(),
-    arrive: z.string().optional().nullable(),
-    duration: z.string().optional().nullable(),
-    distance: z.string().optional().nullable(),
+// 🔹 景點 + 參觀方式
+export const ItineraryAttractionSchema = z.object({
+    attractionId: z.string().min(1, '缺少景點 ID'),
+    visitType: z.enum(['INSIDE', 'OUTSIDE', 'PHOTO', 'PASSBY']),
 });
 
+/** 建立 Itinerary 用 Schema */
+export const ItineraryCreateSchema = z.object({
+    productId: z.string().min(1),
+    day: z.number().min(1),
+    title: z.string().min(1),
+    subtitle: z.string().nullable().optional(),
+    content: z.string().nullable().optional(),
+    breakfast: z.string().nullable().optional(),
+    lunch: z.string().nullable().optional(),
+    dinner: z.string().nullable().optional(),
+    hotel: z.string().nullable().optional(),
+    note: z.string().nullable().optional(),
+    featured: z.boolean().default(false),
+    depart: z.string().nullable().optional(),
+    arrive: z.string().nullable().optional(),
+    duration: z.string().nullable().optional(),
+    distance: z.string().nullable().optional(),
+
+    // 🔹 attractions 改成物件陣列
+    attractions: z.array(ItineraryAttractionSchema).default([]),
+});
+
+/** 編輯 Itinerary 用 Schema */
 export const ItineraryEditSchema = ItineraryCreateSchema.partial();
 
 export type ItineraryCreateValues = z.infer<typeof ItineraryCreateSchema>;
