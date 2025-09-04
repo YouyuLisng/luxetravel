@@ -18,6 +18,7 @@ export default async function Page({ params }: Props) {
     const data = await db.tourProduct.findUnique({
         where: { id },
         include: {
+            tour: true,
             flights: true,
             highlights: true,
             maps: true,

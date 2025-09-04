@@ -56,7 +56,6 @@ type Props = {
 };
 
 export default function TourForm({ id, initialData, method = 'POST', onChange  }: Props) {
-    console.log('id', id);
     const LIST_PATH = `/admin/product/${id}/departure`;
     const router = useRouter();
     const searchParams = useSearchParams();

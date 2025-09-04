@@ -65,8 +65,11 @@ export const breadcrumbPathOverrides: Record<string, string> = {
     '/admin/attraction/new': '新增景點',
     '/admin/airline/new': '新增使用者',
 
-    // ✅ tour 特例：不顯示編輯團體
+    // ✅ 特例：出發日曆
     '/admin/product/:id/tour': '出發日曆',
+
+    // ✅ 特例：行程編輯 Wizard
+    '/admin/product/:id/wizard': '編輯行程',
 };
 
 /* ---------- 工具 ---------- */
@@ -114,8 +117,18 @@ export function buildBreadcrumbs(pathname: string) {
         );
 
         if (override) {
-            // tour 頁 → 只保留「管理後台 > 團體 > 出發日曆」
+            // tour 頁 → 只保留「管理後台 > 行程管理 > 出發日曆」
             if (override[0] === '/admin/product/:id/tour') {
+                const base = crumbs.filter(
+                    (c) => c.href === '/admin' || c.href === '/admin/product'
+                );
+                crumbs.length = 0;
+                crumbs.push(...base, { label: override[1], href });
+                continue;
+            }
+
+            // wizard 頁 → 只保留「管理後台 > 行程管理 > 編輯行程」
+            if (override[0] === '/admin/product/:id/wizard') {
                 const base = crumbs.filter(
                     (c) => c.href === '/admin' || c.href === '/admin/product'
                 );

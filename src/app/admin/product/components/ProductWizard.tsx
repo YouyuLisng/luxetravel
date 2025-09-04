@@ -13,6 +13,8 @@ import ItineraryForm from '../[id]/tour/components/ItineraryForm';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLoadingStore } from '@/stores/useLoadingStore';
+import TourForm from '../[id]/tour/components/TourForm';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 type Props = {
     productId: string;
@@ -32,11 +34,11 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { show, hide } = useLoadingStore();
+    const queryClient = useQueryClient();
 
     const stepParam = searchParams.get('step') ?? 'product';
     const [currentStep, setCurrentStep] = useState(stepParam);
 
-    const [progress, setProgress] = useState<ProductProgress | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
@@ -52,28 +54,17 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         setCurrentStep(stepParam);
     }, [stepParam]);
 
-    useEffect(() => {
-        let mounted = true;
-        async function fetchProgress() {
-            try {
-                show();
-                const res = await getProductProgress(productId);
-                if (!mounted) return;
-                if ('error' in res) {
-                    setError(res.error);
-                } else {
-                    setProgress(res);
-                }
-            } finally {
-                hide();
-            }
-        }
-        fetchProgress();
-        return () => {
-            mounted = false;
-            hide();
-        };
-    }, [productId, currentStep, show, hide]);
+    const {
+        data: progress,
+        isLoading: progressLoading,
+        isError,
+    } = useQuery<ProductProgress>({
+        queryKey: ['product-progress', productId],
+        queryFn: () =>
+            getProductProgress(productId) as Promise<ProductProgress>,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+    });
 
     const handlePublish = async () => {
         setError(undefined);
@@ -86,6 +77,9 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 setError(res.error);
             } else {
                 setSuccess(res.success);
+                queryClient.invalidateQueries({
+                    queryKey: ['product-progress', productId],
+                });
             }
         } finally {
             setLoading(false);
@@ -93,8 +87,12 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         }
     };
 
-    if (!progress) {
-        return null;
+    if (progressLoading) {
+        return <p className="p-6">載入進度中...</p>;
+    }
+
+    if (!progress || isError || 'error' in progress) {
+        return <p className="p-6 text-red-600">無法載入進度</p>;
     }
 
     return (
@@ -107,11 +105,9 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                             <div className="flex items-center space-x-1">
                                 <span>{step.label}</span>
                                 <span>
-                                    {progress
-                                        ? progress[
-                                              step.id as keyof ProductProgress
-                                          ]
-                                        : '⭕'}
+                                    {progress[
+                                        step.id as keyof ProductProgress
+                                    ] ?? '⭕'}
                                 </span>
                             </div>
                         </TabsTrigger>
@@ -137,43 +133,43 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 </div>
 
                 {/* 每個步驟對應內容 */}
-                <TabsContent value="product">
+                <div hidden={currentStep !== 'product'}>
                     <TourProductForm
                         id={productId}
                         method="PUT"
                         initialData={tourProduct}
                     />
-                </TabsContent>
+                </div>
 
-                <TabsContent value="flight">
-                    <FlightForm productId={productId} initialData={data.flights} />
-                </TabsContent>
+                <div hidden={currentStep !== 'flight'}>
+                    <FlightForm
+                        productId={productId}
+                        initialData={data.flights}
+                    />
+                </div>
 
-                <TabsContent value="itinerary">
+                <div hidden={currentStep !== 'itinerary'}>
                     <ItineraryForm
                         productId={productId}
                         initialData={data.itineraries}
                     />
-                </TabsContent>
+                </div>
 
-                <TabsContent value="highlight">
-                    <div>
-                        <h2 className="text-lg font-semibold mb-2">
-                            亮點與地圖
-                        </h2>
-                    </div>
-                </TabsContent>
+                <div hidden={currentStep !== 'highlight'}>
+                    <h2 className="text-lg font-semibold mb-2">亮點與地圖</h2>
+                </div>
 
-                <TabsContent value="tours">
+                <div hidden={currentStep !== 'tours'}>
+                    <h2 className="text-lg font-semibold mb-2">團次設定</h2>
                     <div>
-                        <h2 className="text-lg font-semibold mb-2">團次設定</h2>
-                        <div className="mt-6 flex justify-end">
-                            <Button onClick={handlePublish} disabled={loading}>
-                                完成並上架
-                            </Button>
-                        </div>
+                        <TourForm id={productId} initialData={data.tour} />
                     </div>
-                </TabsContent>
+                    <div className="mt-6 flex justify-end">
+                        <Button onClick={handlePublish} disabled={loading}>
+                            完成並上架
+                        </Button>
+                    </div>
+                </div>
             </Tabs>
 
             {error && <p className="mt-4 text-red-600">{error}</p>}
