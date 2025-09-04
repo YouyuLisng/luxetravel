@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, type SubmitHandler } from 'react-hook-form';
 
 import {
     Form,
@@ -18,13 +18,10 @@ import { TextareaInput } from '@/components/TextareaInput';
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 
-import { FlightCreateSchema, type FlightCreateValues } from '@/schemas/flight';
-import {
-    saveFlights,
-    getFlightsByProductId,
-} from '@/app/admin/product/action/flight';
+import { FlightFormSchema, type FlightFormValues } from '@/schemas/flight';
+import { saveFlights } from '@/app/admin/product/action/flight';
 import { Plus, X } from 'lucide-react';
-
+import type { Resolver } from 'react-hook-form';
 import {
     Select,
     SelectContent,
@@ -37,67 +34,68 @@ import {
 import { useAirports } from '@/features/airport/queries/airportQueries';
 import { useAirlines } from '@/features/airline/queries/airlineQueries';
 
-// === 表單型別：陣列 ===
-export type FlightFormValues = {
-    flights: FlightCreateValues[];
-};
-
 type Props = {
     productId: string;
+    initialData?: FlightFormValues['flights']; // 🚩 新增
 };
 
-export default function FlightForm({ productId }: Props) {
+export default function FlightForm({ productId, initialData }: Props) {
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
 
     const [isLoading, setIsLoading] = useState(false);
-    const [isPending, startTransition] = useTransition();
 
     const { data: airports = [] } = useAirports();
     const { data: airlines = [] } = useAirlines();
 
+    // 🚩 如果沒有傳 initialData，顯示預設的兩筆空白航班
+    const defaultFlights =
+        initialData && initialData.length > 0
+            ? initialData
+            : [
+                  {
+                      productId,
+                      direction: 'OUTBOUND' as const,
+                      day: undefined,
+                      departAirport: '',
+                      departName: '',
+                      arriveAirport: '',
+                      arriveName: '',
+                      departTime: '',
+                      arriveTime: '',
+                      duration: '',
+                      crossDay: false,
+                      airlineCode: '',
+                      airlineName: '',
+                      flightNo: '',
+                      isTransit: false,
+                      remark: '',
+                  },
+                  {
+                      productId,
+                      direction: 'RETURN' as const,
+                      day: undefined,
+                      departAirport: '',
+                      departName: '',
+                      arriveAirport: '',
+                      arriveName: '',
+                      departTime: '',
+                      arriveTime: '',
+                      duration: '',
+                      crossDay: false,
+                      airlineCode: '',
+                      airlineName: '',
+                      flightNo: '',
+                      isTransit: false,
+                      remark: '',
+                  },
+              ];
+
     const form = useForm<FlightFormValues>({
-        resolver: zodResolver(
-            FlightCreateSchema.array().min(2, '至少需要一筆去程與一筆回程航班')
-        ) as any,
+        resolver: zodResolver(FlightFormSchema) as Resolver<FlightFormValues>,
         mode: 'onChange',
         defaultValues: {
-            flights: [
-                {
-                    productId,
-                    direction: 'OUTBOUND',
-                    departAirport: '',
-                    departName: '',
-                    arriveAirport: '',
-                    arriveName: '',
-                    departTime: '',
-                    arriveTime: '',
-                    duration: '',
-                    crossDay: false,
-                    airlineCode: '',
-                    airlineName: '',
-                    flightNo: '',
-                    isTransit: false,
-                    remark: '',
-                },
-                {
-                    productId,
-                    direction: 'RETURN',
-                    departAirport: '',
-                    departName: '',
-                    arriveAirport: '',
-                    arriveName: '',
-                    departTime: '',
-                    arriveTime: '',
-                    duration: '',
-                    crossDay: false,
-                    airlineCode: '',
-                    airlineName: '',
-                    flightNo: '',
-                    isTransit: false,
-                    remark: '',
-                },
-            ],
+            flights: defaultFlights,
         },
     });
 
@@ -107,54 +105,35 @@ export default function FlightForm({ productId }: Props) {
         name: 'flights',
     });
 
-    const { isValid, isSubmitting } = form.formState;
-    const formId = 'flight-form';
+    const { isSubmitting } = form.formState;
 
-    // 初始化撈取資料
-    useEffect(() => {
-        async function fetchFlights() {
-            const res = await getFlightsByProductId(productId);
-            if ('data' in res && res.data && res.data.length > 0) {
-                form.reset({ flights: res.data });
+    const onSubmit: SubmitHandler<FlightFormValues> = async (values) => {
+        setIsLoading(true);
+        show();
+        try {
+            const res = await saveFlights(productId, values.flights);
+            if ('error' in res) {
+                toast({ variant: 'destructive', title: res.error });
+            } else {
+                toast({ title: res.success ?? '航班已更新' });
+                // 🚩 不再重抓 API，直接保留當前值
             }
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: err?.message ?? '航班儲存失敗',
+            });
+        } finally {
+            setIsLoading(false);
+            hide();
         }
-        if (productId) fetchFlights();
-    }, [productId, form]);
-
-    const onSubmit = (values: FlightFormValues) => {
-        startTransition(async () => {
-            setIsLoading(true);
-            show();
-            try {
-                const res = await saveFlights(productId, values.flights);
-
-                if ('error' in res) {
-                    toast({ variant: 'destructive', title: res.error });
-                } else {
-                    toast({ title: res.success ?? '航班已更新' });
-                    const refreshed = await getFlightsByProductId(productId);
-                    if ('data' in refreshed && refreshed.data) {
-                        form.reset({ flights: refreshed.data });
-                    }
-                }
-            } catch (err: any) {
-                toast({
-                    variant: 'destructive',
-                    title: err?.message ?? '航班儲存失敗',
-                });
-            } finally {
-                setIsLoading(false);
-                hide();
-            }
-        });
     };
 
-    // 分去程 / 回程
-    const outboundFlights = fields.filter((f) => f.direction === 'OUTBOUND');
-    const returnFlights = fields.filter((f) => f.direction === 'RETURN');
-
     const renderFlightSegment = (index: number) => (
-        <div className="border rounded-lg p-4 space-y-4 relative">
+        <div
+            key={fields[index].id}
+            className="border rounded-lg p-4 space-y-4 relative"
+        >
             <div className="absolute right-2 top-2">
                 <Button
                     type="button"
@@ -203,14 +182,6 @@ export default function FlightForm({ productId }: Props) {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
-                        <Input
-                            value={
-                                form.watch(`flights.${index}.departAirport`) ??
-                                ''
-                            }
-                            readOnly
-                            className="mt-2 bg-slate-50"
-                        />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -253,14 +224,6 @@ export default function FlightForm({ productId }: Props) {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
-                        <Input
-                            value={
-                                form.watch(`flights.${index}.arriveAirport`) ??
-                                ''
-                            }
-                            readOnly
-                            className="mt-2 bg-slate-50"
-                        />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -303,13 +266,6 @@ export default function FlightForm({ productId }: Props) {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
-                        <Input
-                            value={
-                                form.watch(`flights.${index}.airlineCode`) ?? ''
-                            }
-                            readOnly
-                            className="mt-2 bg-slate-50"
-                        />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -339,7 +295,11 @@ export default function FlightForm({ productId }: Props) {
                         <FormItem>
                             <FormLabel>起飛時間</FormLabel>
                             <FormControl>
-                                <Input {...field} placeholder="例：08:00" />
+                                <Input
+                                    {...field}
+                                    type="text"
+                                    placeholder="19:55"
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -352,13 +312,42 @@ export default function FlightForm({ productId }: Props) {
                         <FormItem>
                             <FormLabel>抵達時間</FormLabel>
                             <FormControl>
-                                <Input {...field} placeholder="例：12:00" />
+                                <Input
+                                    {...field}
+                                    type="text"
+                                    placeholder="21:25"
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
             </div>
+
+            {/* Day */}
+            <FormField
+                control={control}
+                name={`flights.${index}.day`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>航段天數</FormLabel>
+                        <FormControl>
+                            <Input
+                                type="text"
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(
+                                        val === '' ? null : Number(val)
+                                    );
+                                }}
+                                placeholder="例：1"
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
 
             {/* Duration */}
             <FormField
@@ -388,7 +377,7 @@ export default function FlightForm({ productId }: Props) {
                                 {...field}
                                 value={field.value ?? ''}
                                 placeholder="請輸入航班備註"
-                                disabled={isPending || isLoading}
+                                disabled={isSubmitting || isLoading}
                             />
                         </FormControl>
                         <FormMessage />
@@ -400,101 +389,114 @@ export default function FlightForm({ productId }: Props) {
 
     return (
         <Form {...form}>
-            <div className="mx-auto w-full">
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="border-b border-slate-100 p-6">
-                        <h2 className="text-xl font-semibold text-slate-900">
-                            航班設定
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            請填寫去程與回程航班，帶 * 為必填。
-                        </p>
-                    </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="mx-auto w-full">
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-100 p-6">
+                            <h2 className="text-xl font-semibold text-slate-900">
+                                航班設定
+                            </h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                請填寫去程與回程航班，帶 * 為必填。
+                            </p>
+                        </div>
 
-                    <div className="p-6 space-y-6">
-                        <form
-                            id={formId}
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-6"
-                        >
-                            <h3 className="font-bold text-lg">去程航班</h3>
-                            {outboundFlights.map((f, idx) => (
-                                <div key={f.id}>{renderFlightSegment(idx)}</div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                    append({
-                                        productId,
-                                        direction: 'OUTBOUND',
-                                        departAirport: '',
-                                        departName: '',
-                                        arriveAirport: '',
-                                        arriveName: '',
-                                        departTime: '',
-                                        arriveTime: '',
-                                        duration: '',
-                                        crossDay: false,
-                                        airlineCode: '',
-                                        airlineName: '',
-                                        flightNo: '',
-                                        isTransit: false,
-                                        remark: '',
-                                    })
-                                }
-                            >
-                                <Plus className="h-4 w-4" /> 新增去程航班
-                            </Button>
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* 去程 */}
+                                <div>
+                                    <h3 className="font-bold text-lg my-4">
+                                        去程航班
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {fields.map((f, index) =>
+                                            f.direction === 'OUTBOUND'
+                                                ? renderFlightSegment(index)
+                                                : null
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={() =>
+                                                append({
+                                                    productId,
+                                                    direction: 'OUTBOUND',
+                                                    day: undefined,
+                                                    departAirport: '',
+                                                    departName: '',
+                                                    arriveAirport: '',
+                                                    arriveName: '',
+                                                    departTime: '',
+                                                    arriveTime: '',
+                                                    duration: '',
+                                                    crossDay: false,
+                                                    airlineCode: '',
+                                                    airlineName: '',
+                                                    flightNo: '',
+                                                    isTransit: false,
+                                                    remark: '',
+                                                })
+                                            }
+                                        >
+                                            <Plus className="h-4 w-4" />{' '}
+                                            新增去程航班
+                                        </Button>
+                                    </div>
+                                </div>
 
-                            <h3 className="font-bold text-lg mt-8">回程航班</h3>
-                            {returnFlights.map((f, idx) => (
-                                <div key={f.id}>{renderFlightSegment(idx)}</div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() =>
-                                    append({
-                                        productId,
-                                        direction: 'RETURN',
-                                        departAirport: '',
-                                        departName: '',
-                                        arriveAirport: '',
-                                        arriveName: '',
-                                        departTime: '',
-                                        arriveTime: '',
-                                        duration: '',
-                                        crossDay: false,
-                                        airlineCode: '',
-                                        airlineName: '',
-                                        flightNo: '',
-                                        isTransit: false,
-                                        remark: '',
-                                    })
-                                }
-                            >
-                                <Plus className="h-4 w-4" /> 新增回程航班
-                            </Button>
+                                {/* 回程 */}
+                                <div>
+                                    <h3 className="font-bold text-lg my-4">
+                                        回程航班
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {fields.map((f, index) =>
+                                            f.direction === 'RETURN'
+                                                ? renderFlightSegment(index)
+                                                : null
+                                        )}
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={() =>
+                                                append({
+                                                    productId,
+                                                    direction: 'RETURN',
+                                                    day: undefined,
+                                                    departAirport: '',
+                                                    departName: '',
+                                                    arriveAirport: '',
+                                                    arriveName: '',
+                                                    departTime: '',
+                                                    arriveTime: '',
+                                                    duration: '',
+                                                    crossDay: false,
+                                                    airlineCode: '',
+                                                    airlineName: '',
+                                                    flightNo: '',
+                                                    isTransit: false,
+                                                    remark: '',
+                                                })
+                                            }
+                                        >
+                                            <Plus className="h-4 w-4" />{' '}
+                                            新增回程航班
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="flex justify-end pt-6">
-                                <Button
-                                    type="submit"
-                                    form={formId}
-                                    disabled={
-                                        !isValid ||
-                                        isLoading ||
-                                        isPending ||
-                                        isSubmitting
-                                    }
-                                >
-                                    儲存航班
+                                <Button type="submit">
+                                    {isSubmitting || isLoading
+                                        ? '儲存中...'
+                                        : '儲存航班'}
                                 </Button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </form>
         </Form>
     );
 }

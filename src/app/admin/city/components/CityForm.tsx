@@ -15,12 +15,21 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
-
+import useCountry from '@/features/country/hooks/useCountry';
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 
@@ -74,6 +83,7 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
         },
     });
 
+    const { rows: countries } = useCountry();
     const { isValid, isSubmitting } = form.formState;
 
     const headingTitle = isEdit ? '編輯城市' : '新增城市';
@@ -161,7 +171,9 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
 
                     if (!res?.error) {
                         await Promise.all([
-                            await qc.invalidateQueries({ queryKey: ['cities'] }),
+                            await qc.invalidateQueries({
+                                queryKey: ['cities'],
+                            }),
                             qc.invalidateQueries({
                                 queryKey: KEYS.detail(id!),
                             }),
@@ -312,17 +324,33 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
                                             <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
                                                 國家
                                             </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="例：JP / 日本"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
+                                            <Select
+                                                value={field.value ?? ''}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="選擇國家" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {countries.map(
+                                                            (c: any) => (
+                                                                <SelectItem
+                                                                    key={c.id}
+                                                                    value={
+                                                                        c.nameZh
+                                                                    }
+                                                                >
+                                                                    {c.nameZh} (
+                                                                    {c.code})
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}

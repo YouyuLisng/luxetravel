@@ -13,7 +13,7 @@ const baseFields = {
     deposit: z.string().optional().nullable(),
     status: z.coerce.number().int().default(0),
     note: z.string().optional().nullable(),
-    arrange: z.string().optional().nullable(),
+    arrangement: z.string().optional().nullable(), // 👈 改正
 };
 
 /** 建立用 schema */
@@ -34,7 +34,7 @@ export const ToursEditSchema = z.object({
     deposit: baseFields.deposit,
     status: baseFields.status.optional(),
     note: baseFields.note,
-    arrange: baseFields.arrange,
+    arrangement: baseFields.arrangement, // 👈 改正
 });
 
 /** 匯出型別 */

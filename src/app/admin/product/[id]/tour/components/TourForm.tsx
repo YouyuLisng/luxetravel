@@ -94,7 +94,7 @@ export default function TourForm({ id, initialData, method = 'POST', onChange  }
             deposit: initialData?.deposit ?? '',
             status: initialData?.status ?? 1,
             note: initialData?.note ?? '',
-            arrange: initialData?.arrange ?? '',
+            arrangement: initialData?.arrangement ?? '',
         },
     });
     const { isValid, isSubmitting } = form.formState;
@@ -525,7 +525,7 @@ export default function TourForm({ id, initialData, method = 'POST', onChange  }
 
                             <FormField
                                 control={form.control}
-                                name="arrange"
+                                name="arrangement"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>行程安排</FormLabel>

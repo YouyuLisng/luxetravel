@@ -19,10 +19,21 @@ export default async function Page({ params }: Props) {
         where: { id },
         include: {
             flights: true,
-            itineraries: true,
             highlights: true,
             maps: true,
+            itineraries: {
+                include: {
+                    routes: true,
+                    attractions: {
+                        include: {
+                            attraction: true,
+                        },
+                    },
+                },
+            },
         },
     });
-    return <ProductWizard productId={id} tourProduct={tourProduct} data={data} />;
+    return (
+        <ProductWizard productId={id} tourProduct={tourProduct} data={data} />
+    );
 }

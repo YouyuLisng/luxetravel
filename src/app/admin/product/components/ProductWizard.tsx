@@ -7,10 +7,12 @@ import {
     type ProductProgress,
 } from '@/app/admin/product/action/productProgress';
 import { Button } from '@/components/ui/button';
-import clsx from 'clsx';
 import TourProductForm from './TourProductForm';
 import FlightForm from '../[id]/tour/components/FlightForm';
 import ItineraryForm from '../[id]/tour/components/ItineraryForm';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useLoadingStore } from '@/stores/useLoadingStore';
 
 type Props = {
     productId: string;
@@ -27,31 +29,58 @@ const steps = [
 ];
 
 export default function ProductWizard({ productId, tourProduct, data }: Props) {
-    const [currentStep, setCurrentStep] = useState('product');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { show, hide } = useLoadingStore();
+
+    const stepParam = searchParams.get('step') ?? 'product';
+    const [currentStep, setCurrentStep] = useState(stepParam);
+
     const [progress, setProgress] = useState<ProductProgress | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
 
-    // 進度檢查
+    const handleStepChange = (stepId: string) => {
+        setCurrentStep(stepId);
+        const params = new URLSearchParams(searchParams);
+        params.set('step', stepId);
+        router.replace(`?${params.toString()}`);
+    };
+
     useEffect(() => {
+        setCurrentStep(stepParam);
+    }, [stepParam]);
+
+    useEffect(() => {
+        let mounted = true;
         async function fetchProgress() {
-            const res = await getProductProgress(productId);
-            if ('error' in res) {
-                setError(res.error);
-            } else {
-                setProgress(res);
+            try {
+                show();
+                const res = await getProductProgress(productId);
+                if (!mounted) return;
+                if ('error' in res) {
+                    setError(res.error);
+                } else {
+                    setProgress(res);
+                }
+            } finally {
+                hide();
             }
         }
         fetchProgress();
-    }, [productId, currentStep]);
+        return () => {
+            mounted = false;
+            hide();
+        };
+    }, [productId, currentStep, show, hide]);
 
-    // 最後上架
     const handlePublish = async () => {
         setError(undefined);
         setSuccess(undefined);
         setLoading(true);
         try {
+            show();
             const res = await publishProduct(productId);
             if ('error' in res) {
                 setError(res.error);
@@ -60,77 +89,82 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
             }
         } finally {
             setLoading(false);
+            hide();
         }
     };
 
+    if (!progress) {
+        return null;
+    }
+
     return (
-        <div className="flex w-full min-h-[600px]">
-            {/* 左側步驟條 */}
-            <div className="w-48 border-r p-4 space-y-2">
-                {steps.map((step) => (
-                    <button
-                        key={step.id}
-                        onClick={() => setCurrentStep(step.id)}
-                        className={clsx(
-                            'w-full flex justify-between px-3 py-2 rounded-md text-left text-sm',
-                            currentStep === step.id
-                                ? 'bg-blue-50 text-blue-600'
-                                : 'hover:bg-slate-50'
-                        )}
-                    >
-                        <span>{step.label}</span>
-                        <span>
-                            {progress
-                                ? progress[step.id as keyof ProductProgress]
-                                : '⭕'}
-                        </span>
-                    </button>
-                ))}
-            </div>
+        <div className="flex flex-col w-full min-h-[600px]">
+            <Tabs value={currentStep} onValueChange={handleStepChange}>
+                {/* Tabs 列表 */}
+                <TabsList className="mb-4">
+                    {steps.map((step) => (
+                        <TabsTrigger key={step.id} value={step.id}>
+                            <div className="flex items-center space-x-1">
+                                <span>{step.label}</span>
+                                <span>
+                                    {progress
+                                        ? progress[
+                                              step.id as keyof ProductProgress
+                                          ]
+                                        : '⭕'}
+                                </span>
+                            </div>
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
 
-            {/* 右側內容區 */}
-            <div className="flex-1 p-6">
                 {/* 進度條 */}
-                {progress && (
-                    <div className="mb-6">
-                        <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium text-slate-700">
-                                完成度
-                            </span>
-                            <span className="text-sm font-medium text-slate-700">
-                                {progress.percent}%
-                            </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2">
-                            <div
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${progress.percent}%` }}
-                            />
-                        </div>
+                <div className="mb-6">
+                    <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium text-slate-700">
+                            完成度
+                        </span>
+                        <span className="text-sm font-medium text-slate-700">
+                            {progress.percent}%
+                        </span>
                     </div>
-                )}
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${progress.percent}%` }}
+                        />
+                    </div>
+                </div>
 
-                {currentStep === 'product' && (
+                {/* 每個步驟對應內容 */}
+                <TabsContent value="product">
                     <TourProductForm
                         id={productId}
                         method="PUT"
                         initialData={tourProduct}
                     />
-                )}
-                {currentStep === 'flight' && (
-                    <FlightForm productId={productId} />
-                )}
-                {currentStep === 'itinerary' && (
-                    <ItineraryForm productId={productId} initialData={data.itineraries} />
-                )}
-                {currentStep === 'highlight' && (
+                </TabsContent>
+
+                <TabsContent value="flight">
+                    <FlightForm productId={productId} initialData={data.flights} />
+                </TabsContent>
+
+                <TabsContent value="itinerary">
+                    <ItineraryForm
+                        productId={productId}
+                        initialData={data.itineraries}
+                    />
+                </TabsContent>
+
+                <TabsContent value="highlight">
                     <div>
                         <h2 className="text-lg font-semibold mb-2">
                             亮點與地圖
                         </h2>
                     </div>
-                )}
-                {currentStep === 'tours' && (
+                </TabsContent>
+
+                <TabsContent value="tours">
                     <div>
                         <h2 className="text-lg font-semibold mb-2">團次設定</h2>
                         <div className="mt-6 flex justify-end">
@@ -139,11 +173,11 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                             </Button>
                         </div>
                     </div>
-                )}
+                </TabsContent>
+            </Tabs>
 
-                {error && <p className="mt-4 text-red-600">{error}</p>}
-                {success && <p className="mt-4 text-green-600">{success}</p>}
-            </div>
+            {error && <p className="mt-4 text-red-600">{error}</p>}
+            {success && <p className="mt-4 text-green-600">{success}</p>}
         </div>
     );
 }

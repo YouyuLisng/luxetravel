@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, {
+    useEffect,
+    useState,
+    useTransition,
+    useCallback,
+    ChangeEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Form,
@@ -14,6 +20,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import {
     Select,
     SelectContent,
@@ -70,12 +77,14 @@ export default function TourProductForm({
     initialData,
     method = 'POST',
 }: Props) {
-    console.log('initialData', initialData);
     const router = useRouter();
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
 
+    const [imgPreview, setImgPreview] = useState(
+        initialData?.mainImageUrl ?? ''
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string>();
@@ -93,9 +102,10 @@ export default function TourProductForm({
             code: initialData?.code ?? '',
             namePrefix: initialData?.namePrefix ?? '',
             name: initialData?.name ?? '',
+            summary: initialData?.summary ?? '',
             description: initialData?.description ?? '',
-            days: initialData?.days ?? 1,
-            nights: initialData?.nights ?? 0,
+            days: initialData?.days,
+            nights: initialData?.nights,
             departAirport: initialData?.departAirport ?? '',
             arriveCountry: initialData?.arriveCountry ?? '',
             arriveCity: initialData?.arriveCity ?? '',
@@ -115,9 +125,9 @@ export default function TourProductForm({
     });
     const { isValid, isSubmitting } = form.formState;
 
-    const { data: notes = [] } = useLexicons({ type: '備註' });
-    const { data: reminders = [] } = useLexicons({ type: '貼心提醒' });
-    const { data: policys = [] } = useLexicons({ type: '參團須知' });
+    // const { data: notes = [] } = useLexicons({ type: '備註' });
+    // const { data: reminders = [] } = useLexicons({ type: '貼心提醒' });
+    // const { data: policys = [] } = useLexicons({ type: '參團須知' });
     const { data: airports = [] } = useAirports();
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry();
@@ -148,6 +158,58 @@ export default function TourProductForm({
         };
         fetchUsers();
     }, [toast, form, isEdit]);
+
+    // 上傳圖片
+    const handleImageUpload = useCallback(
+        async (file: File) => {
+            setIsLoading(true);
+            show();
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'content-type': file.type },
+                    body: file,
+                });
+                if (!res.ok) throw new Error('上傳失敗');
+                const { url } = await res.json();
+
+                form.setValue('mainImageUrl', url, { shouldValidate: true });
+                const previewUrl = URL.createObjectURL(file);
+                setImgPreview(previewUrl);
+
+                toast({
+                    title: '上傳成功',
+                    description: '已更新圖片預覽',
+                    duration: 1500,
+                });
+            } catch (err: any) {
+                toast({
+                    variant: 'destructive',
+                    title: err?.message ?? '上傳失敗',
+                    duration: 1800,
+                });
+            } finally {
+                setIsLoading(false);
+                hide();
+            }
+        },
+        [form, show, hide, toast]
+    );
+
+    const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size / 1024 / 1024 > 50) {
+            toast({
+                variant: 'destructive',
+                title: '檔案過大',
+                description: '上限 50MB，請重新選擇',
+                duration: 1800,
+            });
+            return;
+        }
+        handleImageUpload(file);
+    };
 
     const onSubmit: SubmitHandler<TourProductFormValues> = (values) => {
         setError(undefined);
@@ -250,12 +312,13 @@ export default function TourProductForm({
                                         </FormItem>
                                     )}
                                 />
+                                <div></div>
                                 <FormField
                                     control={form.control}
                                     name="namePrefix"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>名稱前置</FormLabel>
+                                            <FormLabel>名稱前綴</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     value={field.value ?? ''}
@@ -265,6 +328,24 @@ export default function TourProductForm({
                                                                 null
                                                         )
                                                     }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="required">
+                                                名稱
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    placeholder="例：北海道楓雪溫泉五日遊"
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -324,7 +405,6 @@ export default function TourProductForm({
                                     control={form.control}
                                     name="subCategoryId"
                                     render={({ field }) => {
-                                        // 依照已選的大類別過濾
                                         const filteredSubs =
                                             subCategories.filter(
                                                 (sub: any) =>
@@ -383,25 +463,6 @@ export default function TourProductForm({
                                             </FormItem>
                                         );
                                     }}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="required">
-                                                名稱
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="例：北海道楓雪溫泉五日遊"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
                                 />
                                 <FormField
                                     control={form.control}
@@ -487,7 +548,7 @@ export default function TourProductForm({
                             </div>
 
                             {/* === 行程時間 === */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="days"
@@ -498,21 +559,27 @@ export default function TourProductForm({
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    type="number"
-                                                    {...field}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            Number(
-                                                                e.target.value
-                                                            )
-                                                        )
+                                                    type="text"
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
                                                     }
+                                                    onChange={(e) => {
+                                                        const val =
+                                                            e.target.value;
+                                                        field.onChange(
+                                                            val === ''
+                                                                ? undefined
+                                                                : Number(val)
+                                                        );
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     control={form.control}
                                     name="nights"
@@ -523,15 +590,77 @@ export default function TourProductForm({
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    type="number"
-                                                    {...field}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            Number(
-                                                                e.target.value
-                                                            )
-                                                        )
+                                                    type="text"
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
                                                     }
+                                                    onChange={(e) => {
+                                                        const val =
+                                                            e.target.value;
+                                                        field.onChange(
+                                                            val === ''
+                                                                ? undefined
+                                                                : Number(val)
+                                                        );
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="priceMin"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>最低價</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
+                                                    }
+                                                    onChange={(e) => {
+                                                        const val =
+                                                            e.target.value;
+                                                        field.onChange(
+                                                            val === ''
+                                                                ? undefined
+                                                                : Number(val)
+                                                        );
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="priceMax"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>最高價</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    value={
+                                                        field.value?.toString() ??
+                                                        ''
+                                                    }
+                                                    onChange={(e) => {
+                                                        const val =
+                                                            e.target.value;
+                                                        field.onChange(
+                                                            val === ''
+                                                                ? null
+                                                                : Number(val)
+                                                        );
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -551,6 +680,39 @@ export default function TourProductForm({
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="選擇出發機場" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {airports.map((a) => (
+                                                            <SelectItem
+                                                                key={a.id}
+                                                                value={a.code}
+                                                            >
+                                                                {a.nameZh} (
+                                                                {a.code})
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="arriveAirport"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>抵達機場</FormLabel>
+                                            <Select
+                                                value={field.value ?? ''}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="選擇抵達機場" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -646,94 +808,6 @@ export default function TourProductForm({
                                         </FormItem>
                                     )}
                                 />
-
-                                <FormField
-                                    control={form.control}
-                                    name="arriveAirport"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>抵達機場</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達機場" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {airports.map((a) => (
-                                                            <SelectItem
-                                                                key={a.id}
-                                                                value={a.code}
-                                                            >
-                                                                {a.nameZh} (
-                                                                {a.code})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* === 價格 & 標籤 === */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="priceMin"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>最低價</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    {...field}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            Number(
-                                                                e.target.value
-                                                            )
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="priceMax"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>最高價</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ===
-                                                                ''
-                                                                ? null
-                                                                : Number(
-                                                                      e.target
-                                                                          .value
-                                                                  )
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                             </div>
                             <FormField
                                 control={form.control}
@@ -762,101 +836,25 @@ export default function TourProductForm({
                                 )}
                             />
 
-                            {/* === 使用 Lexicon 的欄位 === */}
                             <FormField
                                 control={form.control}
-                                name="note"
+                                name="summary"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>備註</FormLabel>
-                                        <Select
-                                            value={field.value ?? ''}
-                                            onValueChange={field.onChange}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="選擇備註" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {notes.map((d: any) => (
-                                                        <SelectItem
-                                                            key={d.id}
-                                                            value={d.context}
-                                                        >
-                                                            {d.title}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="reminder"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>貼心提醒</FormLabel>
-                                        <Select
-                                            value={field.value ?? ''}
-                                            onValueChange={field.onChange}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="選擇貼心提醒" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {reminders.map((d: any) => (
-                                                        <SelectItem
-                                                            key={d.id}
-                                                            value={d.context}
-                                                        >
-                                                            {d.title}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="policy"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>參團須知</FormLabel>
-                                        <Select
-                                            value={field.value ?? ''}
-                                            onValueChange={field.onChange}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="選擇參團須知" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {policys.map((d: any) => (
-                                                        <SelectItem
-                                                            key={d.id}
-                                                            value={d.context}
-                                                        >
-                                                            {d.title}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
+                                        <FormLabel>行程簡述</FormLabel>
+                                        <FormControl>
+                                            <TextareaInput
+                                                rows={3}
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                placeholder="請輸入行程簡短介紹（會出現在列表卡片上）"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -880,6 +878,135 @@ export default function TourProductForm({
                                                 }
                                             />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="note"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>備註</FormLabel>
+                                        <FormControl>
+                                            <TextareaInput
+                                                rows={8}
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                placeholder="請輸入行程備註"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="reminder"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>貼心提醒</FormLabel>
+                                        <FormControl>
+                                            <TextareaInput
+                                                rows={8}
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                placeholder="請輸入貼心提醒"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="policy"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>參團須知</FormLabel>
+                                        <FormControl>
+                                            <TextareaInput
+                                                rows={8}
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                placeholder="請輸入參團須知"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="mainImageUrl"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>行程圖片</FormLabel>
+
+                                        <label
+                                            htmlFor="upload-airline"
+                                            className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
+                                        >
+                                            <div className="absolute inset-0 z-10" />
+                                            <div
+                                                className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
+                                                    imgPreview
+                                                        ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <svg
+                                                    className="h-7 w-7"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+                                                    <path d="M12 12v9" />
+                                                    <path d="m16 16-4-4-4 4" />
+                                                </svg>
+                                                <p className="mt-2 text-sm text-slate-500">
+                                                    拖曳或點擊上傳
+                                                </p>
+                                            </div>
+
+                                            {imgPreview ? (
+                                                <Image
+                                                    src={imgPreview}
+                                                    alt="預覽圖片"
+                                                    fill
+                                                    className="rounded-xl object-contain bg-white"
+                                                />
+                                            ) : null}
+                                        </label>
+
+                                        <input
+                                            id="upload-airline"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileInput}
+                                        />
+
+                                        <p className="text-xs text-slate-500">
+                                            支援單張圖片上傳（最大 50MB）。
+                                        </p>
                                         <FormMessage />
                                     </FormItem>
                                 )}

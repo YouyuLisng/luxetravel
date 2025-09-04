@@ -1,6 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
+import { randomUUID } from 'crypto';
 import {
     AttractionCreateSchema,
     AttractionEditSchema,
@@ -16,12 +17,15 @@ export async function createAttraction(values: AttractionCreateValues) {
 
     const data = parsed.data;
 
-    // 檢查 code 唯一（有填才檢查）
+    // 如果有輸入 code → 檢查唯一性
     if (data.code) {
         const up = data.code.toUpperCase();
         const dup = await db.attraction.findUnique({ where: { code: up } });
         if (dup) return { error: `代碼已存在：${up}` };
         data.code = up;
+    } else {
+        // 沒有輸入 code → 系統產生 UUID
+        data.code = randomUUID().toUpperCase();
     }
 
     const created = await db.attraction.create({ data });

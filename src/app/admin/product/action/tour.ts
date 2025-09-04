@@ -25,7 +25,7 @@ export async function createTours(values: ToursCreateValues) {
         deposit,
         status,
         note,
-        arrange,
+        arrangement, // 👈 改正
     } = parsed.data;
 
     // 檢查產品是否存在
@@ -48,7 +48,7 @@ export async function createTours(values: ToursCreateValues) {
                 deposit: deposit ?? null,
                 status,
                 note: note ?? null,
-                arrange: arrange ?? null,
+                arrangement: arrangement ?? null, // 👈 改正
             },
         });
 
@@ -81,7 +81,7 @@ export async function editTours(id: string, values: ToursEditValues) {
         deposit,
         status,
         note,
-        arrange,
+        arrangement, // 👈 改正
     } = parsed.data;
 
     // 如果更新了 productId，要檢查是否存在
@@ -107,7 +107,7 @@ export async function editTours(id: string, values: ToursEditValues) {
                 deposit: deposit ?? exists.deposit,
                 status: status ?? exists.status,
                 note: note ?? exists.note,
-                arrange: arrange ?? exists.arrange,
+                arrangement: arrangement ?? exists.arrangement, // 👈 改正
             },
         });
 
@@ -115,21 +115,5 @@ export async function editTours(id: string, values: ToursEditValues) {
     } catch (err) {
         console.error('editTours error:', err);
         return { error: '更新失敗' };
-    }
-}
-
-/** 刪除 Tours（依 id） */
-export async function deleteTours(id: string) {
-    if (!id) return { error: '無效的 ID' };
-
-    const exists = await db.tours.findUnique({ where: { id } });
-    if (!exists) return { error: '找不到梯次資料' };
-
-    try {
-        await db.tours.delete({ where: { id } });
-        return { success: '刪除成功', data: exists };
-    } catch (err) {
-        console.error('deleteTours error:', err);
-        return { error: '刪除失敗' };
     }
 }

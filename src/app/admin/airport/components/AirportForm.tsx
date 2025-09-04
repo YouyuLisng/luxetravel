@@ -88,7 +88,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
                     cache: 'no-store',
                 });
                 const json = await res.json();
-                const list = Array.isArray(json?.data) ? json.data : [];
+                const list = Array.isArray(json?.rows) ? json.rows : [];
                 const opts: Option[] = list.map((r: any) => ({
                     value: r.id,
                     label: r.nameZh || r.nameEn || r.code || r.id,

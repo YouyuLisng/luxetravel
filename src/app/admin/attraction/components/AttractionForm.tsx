@@ -42,7 +42,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import useRegion from '@/features/region/hooks/useRegion';
 import { TextareaInput } from '@/components/TextareaInput';
 import { useRegions } from '@/features/region/queries/regionQueries';
 /* ========== Zod Schema：符合 Prisma/Server 行為 ========== */
@@ -418,14 +417,14 @@ export default function AttractionForm({
                                     name="region"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>抵達國家</FormLabel>
+                                            <FormLabel>抵達地區</FormLabel>
                                             <Select
                                                 value={field.value ?? ''}
                                                 onValueChange={field.onChange}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達國家" />
+                                                        <SelectValue placeholder="選擇抵達地區" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -435,7 +434,7 @@ export default function AttractionForm({
                                                                 <SelectItem
                                                                     key={c.id}
                                                                     value={
-                                                                        c.code
+                                                                        c.nameZh
                                                                     }
                                                                 >
                                                                     {c.nameZh} (
@@ -473,7 +472,7 @@ export default function AttractionForm({
                                                                 <SelectItem
                                                                     key={c.id}
                                                                     value={
-                                                                        c.code
+                                                                        c.nameZh
                                                                     }
                                                                 >
                                                                     {c.nameZh} (
@@ -511,7 +510,7 @@ export default function AttractionForm({
                                                                 <SelectItem
                                                                     key={c.id}
                                                                     value={
-                                                                        c.code
+                                                                        c.nameZh
                                                                     }
                                                                 >
                                                                     {c.nameZh} (
