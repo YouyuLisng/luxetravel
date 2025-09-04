@@ -7,6 +7,7 @@ import {
     type TourProductCreateValues,
     type TourProductEditValues,
 } from '@/schemas/tourProduct';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /** 建立 TourProduct，並依據 days 自動建立 Itinerary */
 export async function createTourProduct(values: TourProductCreateValues) {
@@ -45,7 +46,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 code,
                 namePrefix: namePrefix || null,
                 name,
-                mainImageUrl: mainImageUrl,
+                mainImageUrl,
                 summary: summary || null,
                 description: description || null,
                 days,
@@ -68,7 +69,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 itineraries: {
                     create: Array.from({ length: days }).map((_, i) => ({
                         day: i + 1,
-                        title: "",
+                        title: '',
                     })),
                 },
             },
@@ -122,13 +123,27 @@ export async function editTourProduct(
     } = parsed.data;
 
     try {
+        // 1️⃣ 如果 mainImageUrl 有更新 → 先刪掉舊的 blob 圖片
+        if (
+            mainImageUrl &&
+            exists.mainImageUrl &&
+            mainImageUrl !== exists.mainImageUrl
+        ) {
+            try {
+                await deleteFromVercelBlob(exists.mainImageUrl);
+            } catch (err) {
+                console.warn('刪除舊圖片失敗:', exists.mainImageUrl, err);
+            }
+        }
+
+        // 2️⃣ 更新 DB
         const product = await db.tourProduct.update({
             where: { id },
             data: {
                 code,
                 namePrefix: namePrefix || null,
                 name,
-                mainImageUrl: mainImageUrl,
+                mainImageUrl, // 存新圖
                 summary: summary || null,
                 description: description || null,
                 days,
@@ -151,14 +166,13 @@ export async function editTourProduct(
             },
         });
 
-        // 如果 days 改變，補足或刪減 Itinerary
+        // 3️⃣ 同步 itinerary
         const existingItineraries = await db.itinerary.findMany({
             where: { productId: id },
             orderBy: { day: 'asc' },
         });
 
         if (days > existingItineraries.length) {
-            // 多出來的天數要新增
             const toCreate = Array.from(
                 { length: days - existingItineraries.length },
                 (_, i) => ({
@@ -169,7 +183,6 @@ export async function editTourProduct(
             );
             await db.itinerary.createMany({ data: toCreate });
         } else if (days < existingItineraries.length) {
-            // 減少天數要刪掉多餘的
             await db.itinerary.deleteMany({
                 where: {
                     productId: id,
@@ -185,14 +198,34 @@ export async function editTourProduct(
     }
 }
 
-/** 刪除 TourProduct（依 id，同時刪關聯資料） */
+/** 刪除 TourProduct（依 id，同時刪關聯資料 & blob 圖片） */
 export async function deleteTourProduct(id: string) {
     if (!id) return { error: '無效的 ID' };
 
-    const exists = await db.tourProduct.findUnique({ where: { id } });
+    const exists = await db.tourProduct.findUnique({
+        where: { id },
+        include: {
+            maps: true,
+            highlights: true,
+        },
+    });
     if (!exists) return { error: '找不到產品' };
 
     try {
+        const imageUrls: string[] = [];
+        if (exists.mainImageUrl) imageUrls.push(exists.mainImageUrl);
+        for (const m of exists.maps) if (m.imageUrl) imageUrls.push(m.imageUrl);
+        for (const h of exists.highlights)
+            if (h.imageUrl) imageUrls.push(h.imageUrl);
+
+        for (const url of imageUrls) {
+            try {
+                await deleteFromVercelBlob(url);
+            } catch (err) {
+                console.warn('刪除 blob 失敗:', url, err);
+            }
+        }
+
         await db.$transaction([
             db.itinerary.deleteMany({ where: { productId: id } }),
             db.tours.deleteMany({ where: { productId: id } }),
