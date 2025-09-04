@@ -76,10 +76,10 @@ export async function createTourProduct(values: TourProductCreateValues) {
             include: { itineraries: true },
         });
 
-        return { success: '新增成功', data: product };
+        return { success: '行程新增成功', data: product };
     } catch (err) {
         console.error('createTourProduct error:', err);
-        return { error: '新增失敗' };
+        return { error: '行程新增失敗' };
     }
 }
 
@@ -191,10 +191,10 @@ export async function editTourProduct(
             });
         }
 
-        return { success: '更新成功', data: product };
+        return { success: '行程更新成功', data: product };
     } catch (err) {
         console.error('editTourProduct error:', err);
-        return { error: '更新失敗' };
+        return { error: '行程更新失敗' };
     }
 }
 

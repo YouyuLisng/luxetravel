@@ -102,6 +102,7 @@ export default function TourProductForm({
             code: initialData?.code ?? '',
             namePrefix: initialData?.namePrefix ?? '',
             name: initialData?.name ?? '',
+            mainImageUrl: initialData?.mainImageUrl ?? '',
             summary: initialData?.summary ?? '',
             description: initialData?.description ?? '',
             days: initialData?.days,
@@ -232,8 +233,10 @@ export default function TourProductForm({
                 }
 
                 if (res?.error) {
+                    toast({ variant: 'destructive', title: res.error });
                     setError(res.error);
                 } else {
+                    toast({ title: res.success ?? '更新成功' });
                     setSuccess(
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );

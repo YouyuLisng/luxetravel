@@ -59,9 +59,9 @@ export async function replaceItineraries(
             }
         });
 
-        return { success: '行程更新成功' };
+        return { success: '每日行程更新成功' };
     } catch (e) {
         console.error(e);
-        return { error: '覆寫更新失敗' };
+        return { error: '每日行程更新失敗' };
     }
 }

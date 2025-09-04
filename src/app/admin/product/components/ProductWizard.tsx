@@ -64,6 +64,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
             getProductProgress(productId) as Promise<ProductProgress>,
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
+        refetchOnMount: false, 
     });
 
     const handlePublish = async () => {
