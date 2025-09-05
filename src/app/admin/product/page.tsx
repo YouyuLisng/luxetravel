@@ -7,7 +7,6 @@ import useTourProductRows from '@/features/product/hooks/useTourProductRows';
 
 import {
     deleteTourProduct,
-    editTourProduct,
 } from '@/app/admin/product/action/product';
 
 export default function TourProductTable() {
