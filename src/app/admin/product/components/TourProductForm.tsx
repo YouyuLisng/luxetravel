@@ -241,7 +241,8 @@ export default function TourProductForm({
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
 
-                    await qc.invalidateQueries({ queryKey: KEYS.list() });
+                    await qc.invalidateQueries({ queryKey: ['tourProducts'] });
+
                     if (isEdit && values.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(values.id),
