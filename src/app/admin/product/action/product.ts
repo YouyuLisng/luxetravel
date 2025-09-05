@@ -123,7 +123,6 @@ export async function editTourProduct(
     } = parsed.data;
 
     try {
-        // 1️⃣ 如果 mainImageUrl 有更新 → 先刪掉舊的 blob 圖片
         if (
             mainImageUrl &&
             exists.mainImageUrl &&
@@ -136,14 +135,13 @@ export async function editTourProduct(
             }
         }
 
-        // 2️⃣ 更新 DB
         const product = await db.tourProduct.update({
             where: { id },
             data: {
                 code,
                 namePrefix: namePrefix || null,
                 name,
-                mainImageUrl, // 存新圖
+                mainImageUrl,
                 summary: summary || null,
                 description: description || null,
                 days,
@@ -205,8 +203,8 @@ export async function deleteTourProduct(id: string) {
     const exists = await db.tourProduct.findUnique({
         where: { id },
         include: {
-            map: true, // 👈 單數，一對一
-            highlights: true, // 👈 一對多
+            map: true, 
+            highlights: true, 
         },
     });
     if (!exists) return { error: '找不到產品' };
@@ -215,12 +213,10 @@ export async function deleteTourProduct(id: string) {
         const imageUrls: string[] = [];
         if (exists.mainImageUrl) imageUrls.push(exists.mainImageUrl);
 
-        // map (單一物件)
         if (exists.map?.imageUrl) {
             imageUrls.push(exists.map.imageUrl);
         }
 
-        // highlights (多筆，每筆是 imageUrls: string[])
         for (const h of exists.highlights) {
             if (h.imageUrls) {
                 for (const url of h.imageUrls) {
@@ -229,7 +225,6 @@ export async function deleteTourProduct(id: string) {
             }
         }
 
-        // 刪除 blob
         for (const url of imageUrls) {
             try {
                 await deleteFromVercelBlob(url);
@@ -238,7 +233,6 @@ export async function deleteTourProduct(id: string) {
             }
         }
 
-        // 刪除關聯資料 & 產品
         await db.$transaction([
             db.itinerary.deleteMany({ where: { productId: id } }),
             db.tours.deleteMany({ where: { productId: id } }),
