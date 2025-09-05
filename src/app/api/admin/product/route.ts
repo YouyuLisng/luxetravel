@@ -5,19 +5,13 @@ import { db } from '@/lib/db';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-
-        // 取得 query string
         const page = parseInt(searchParams.get('page') ?? '1', 10);
         const pageSize = parseInt(searchParams.get('pageSize') ?? '10', 10);
-
-        // 分頁計算
         const skip = (page - 1) * pageSize;
         const take = pageSize;
 
-        // 總數
         const total = await db.tourProduct.count();
 
-        // 查詢資料
         const data = await db.tourProduct.findMany({
             skip,
             take,
@@ -46,7 +40,7 @@ export async function GET(req: NextRequest) {
                 page,
                 pageSize,
                 total,
-                pageCount: Math.ceil(total / pageSize), // 👈 改這裡
+                pageCount: Math.ceil(total / pageSize),
             },
         });
     } catch (err) {
