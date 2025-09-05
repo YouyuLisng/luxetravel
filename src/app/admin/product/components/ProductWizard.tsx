@@ -47,7 +47,8 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         setCurrentStep(stepId);
         const params = new URLSearchParams(searchParams);
         params.set('step', stepId);
-        router.replace(`?${params.toString()}`);
+        const newUrl = `?${params.toString()}`;
+        window.history.replaceState(null, '', newUrl);
     };
 
     useEffect(() => {
@@ -64,7 +65,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
             getProductProgress(productId) as Promise<ProductProgress>,
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
-        refetchOnMount: false, 
+        refetchOnMount: false,
     });
 
     const handlePublish = async () => {
