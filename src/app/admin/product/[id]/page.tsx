@@ -10,7 +10,10 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
-    return { title: `TourProduct - ${id}` };
+    const product = await db.tourProduct.findUnique({
+        where: { id },
+    });
+    return { title: `${product?.name} - ${product?.code}` };
 }
 export default async function Page({ params }: Props) {
     const { id } = await params;

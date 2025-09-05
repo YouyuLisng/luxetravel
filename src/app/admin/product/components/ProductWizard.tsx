@@ -175,6 +175,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 <TabsContent value="tours">
                     <TourForm
                         productId={productId}
+                        productCode={tourProduct.code}                        
                         productDays={data.days}
                         initialData={data.tour}
                         initialDates={data.tour?.map((t: any) => new Date(t.departDate)) ?? []}

@@ -49,6 +49,7 @@ export type TourFormValues = z.infer<typeof TourFormSchema>;
 
 type Props = {
     productId: string;
+    productCode: string;
     productDays: number;
     initialData?: TourValues[];
     initialDates?: Date[]; // 👈 新增，用來顯示已上架的日期
@@ -56,6 +57,7 @@ type Props = {
 
 export default function TourForm({
     productId,
+    productCode,
     productDays,
     initialData = [],
     initialDates = [],
@@ -92,11 +94,11 @@ export default function TourForm({
     const { isSubmitting } = form.formState;
 
     // === 自動生成代碼 ===
-    const generateCode = (productId: string, date: Date, index: number) => {
+    const generateCode = (productCode: string, date: Date, index: number) => {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
-        return `${productId}-${y}${m}${d}-${String(index + 1).padStart(2, '0')}`;
+        return `${productCode}-${y}${m}${d}-${String(index + 1).padStart(2, '0')}`;
     };
 
     // === 送出 ===
@@ -117,7 +119,7 @@ export default function TourForm({
 
                     return {
                         productId,
-                        code: generateCode(productId, departDate, idx),
+                        code: generateCode(productCode, departDate, idx),
                         departDate,
                         returnDate,
                         adult: values.adult,
