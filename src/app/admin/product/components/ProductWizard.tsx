@@ -10,11 +10,15 @@ import { Button } from '@/components/ui/button';
 import TourProductForm from './TourProductForm';
 import FlightForm from '../[id]/tour/components/FlightForm';
 import ItineraryForm from '../[id]/tour/components/ItineraryForm';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import TourForm from '../[id]/tour/components/TourForm';
+import TourMapForm from '../[id]/tour/components/TourMapForm';
+import TourHighlightForm from '../[id]/tour/components/TourHighlightForm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import FormError from '@/components/auth/FormError';
+import FormSuccess from '@/components/auth/FormSuccess';
 
 type Props = {
     productId: string;
@@ -26,12 +30,12 @@ const steps = [
     { id: 'product', label: '產品' },
     { id: 'flight', label: '航班' },
     { id: 'itinerary', label: '行程表' },
-    { id: 'highlight', label: '亮點&地圖' },
+    { id: 'highlight', label: '亮點' },
+    { id: 'map', label: '地圖' },
     { id: 'tours', label: '團次' },
 ];
 
 export default function ProductWizard({ productId, tourProduct, data }: Props) {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const { show, hide } = useLoadingStore();
     const queryClient = useQueryClient();
@@ -47,7 +51,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         setCurrentStep(stepId);
         const params = new URLSearchParams(searchParams);
         params.set('step', stepId);
-        const newUrl = `?${params.toString()}`;
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
         window.history.replaceState(null, '', newUrl);
     };
 
@@ -135,47 +139,56 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 </div>
 
                 {/* 每個步驟對應內容 */}
-                <div hidden={currentStep !== 'product'}>
+                <TabsContent value="product">
                     <TourProductForm
                         id={productId}
                         method="PUT"
                         initialData={tourProduct}
                     />
-                </div>
+                </TabsContent>
 
-                <div hidden={currentStep !== 'flight'}>
+                <TabsContent value="flight">
                     <FlightForm
                         productId={productId}
                         initialData={data.flights}
                     />
-                </div>
+                </TabsContent>
 
-                <div hidden={currentStep !== 'itinerary'}>
+                <TabsContent value="itinerary">
                     <ItineraryForm
                         productId={productId}
                         initialData={data.itineraries}
                     />
-                </div>
+                </TabsContent>
 
-                <div hidden={currentStep !== 'highlight'}>
-                    <h2 className="text-lg font-semibold mb-2">亮點與地圖</h2>
-                </div>
+                <TabsContent value="highlight">
+                    <TourHighlightForm
+                        productId={productId}
+                        initialData={data.highlights}
+                    />
+                </TabsContent>
 
-                <div hidden={currentStep !== 'tours'}>
-                    <h2 className="text-lg font-semibold mb-2">團次設定</h2>
-                    <div>
-                        <TourForm id={productId} initialData={data.tour} />
-                    </div>
-                    <div className="mt-6 flex justify-end">
+                <TabsContent value="map">
+                    <TourMapForm productId={productId} initialData={data.map} />
+                </TabsContent>
+
+                <TabsContent value="tours">
+                    <TourForm
+                        productId={productId}
+                        productDays={data.days}
+                        initialData={data.tour}
+                        initialDates={data.tour?.map((t: any) => new Date(t.departDate)) ?? []}
+                    />
+                    {/* <div className="mt-6 flex justify-end">
                         <Button onClick={handlePublish} disabled={loading}>
                             完成並上架
                         </Button>
-                    </div>
-                </div>
+                    </div> */}
+                </TabsContent>
             </Tabs>
 
-            {error && <p className="mt-4 text-red-600">{error}</p>}
-            {success && <p className="mt-4 text-green-600">{success}</p>}
+            <FormError message={error} />
+            <FormSuccess message={success} />
         </div>
     );
 }

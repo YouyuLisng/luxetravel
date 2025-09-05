@@ -1,12 +1,9 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const TourMapCreateSchema = z.object({
-    productId: z.string().min(1, '缺少產品 ID'),
-    imageUrl: z.string().min(1, '缺少圖片網址'),
-    content: z.string().nullable().optional(),
+export const TourMapSchema = z.object({
+  productId: z.string().min(1, "缺少產品 ID"),
+  imageUrl: z.string().url("地圖圖片必須是合法網址"),
+  content: z.string().optional().nullable(),
 });
 
-export const TourMapEditSchema = TourMapCreateSchema.partial();
-
-export type TourMapCreateValues = z.infer<typeof TourMapCreateSchema>;
-export type TourMapEditValues = z.infer<typeof TourMapEditSchema>;
+export type TourMapValues = z.infer<typeof TourMapSchema>;

@@ -1,75 +1,45 @@
 'use client';
 
-import {
-    useState,
-    useTransition,
-    useCallback,
-    ChangeEvent,
-    useEffect,
-} from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState, ChangeEvent } from 'react';
 import Image from 'next/image';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { z } from 'zod';
 
 import {
     Form,
-    FormControl,
     FormField,
     FormItem,
     FormLabel,
+    FormControl,
     FormMessage,
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { TextareaInput } from '@/components/TextareaInput';
-import FormError from '@/components/auth/FormError';
-import FormSuccess from '@/components/auth/FormSuccess';
-
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 
-import {
-    createTourMaps,
-    editTourMaps,
-} from '@/app/admin/product/action/tourmap';
+import { TourMapSchema, type TourMapValues } from '@/schemas/tourmap';
+import { replaceTourMap } from '@/app/admin/product/action/tourmap';
+import FormError from '@/components/auth/FormError';
+import FormSuccess from '@/components/auth/FormSuccess';
 
-// ======== Schema ========
-const FormSchema = z.object({
-    productId: z.string().min(1, '缺少產品 ID'),
-    imageUrl: z.string().url('請輸入正確的圖片網址'),
-    content: z.string().optional().nullable(),
-});
-
-// ======== 型別 ========
-export type TourMapFormValues = z.input<typeof FormSchema>;
-
-interface Props {
+type Props = {
     productId: string;
-    method?: 'POST' | 'PUT'; // 👈 新增
-    initialData?: Partial<TourMapFormValues> & { id?: string };
-    onChange?: (values: TourMapFormValues) => void; // 👈 新增
-}
+    initialData?: TourMapValues | null;
+};
 
-export default function TourMapForm({
-    productId,
-    method = 'POST',
-    initialData,
-    onChange,
-}: Props) {
-    const isEdit = method === 'PUT' || initialData?.id !== undefined;
+export default function TourMapForm({ productId, initialData }: Props) {
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
 
-    const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
-    const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
 
-    const form = useForm<TourMapFormValues>({
-        resolver: zodResolver(FormSchema),
+    const form = useForm<TourMapValues>({
+        resolver: zodResolver(TourMapSchema),
         mode: 'onChange',
         defaultValues: {
             productId,
@@ -78,153 +48,97 @@ export default function TourMapForm({
         },
     });
 
-    const { isValid, isSubmitting } = form.formState;
+    const { isSubmitting } = form.formState;
 
-    // 👇 當表單值改變時，回傳給父層
-    useEffect(() => {
-        const subscription = form.watch((values) => {
-            onChange?.(values as TourMapFormValues);
-        });
-        return () => subscription.unsubscribe();
-    }, [form, onChange]);
-
-    const headingTitle = isEdit ? '編輯行程地圖' : '新增行程地圖';
-    const formId = 'tourmap-form';
-
-    // 圖片上傳
-    const handleImageUpload = useCallback(
-        async (file: File) => {
-            setIsLoading(true);
-            show();
-            try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'content-type': file.type },
-                    body: file,
-                });
-                if (!res.ok) throw new Error('上傳失敗');
-                const { url } = await res.json();
-
-                form.setValue('imageUrl', url, { shouldValidate: true });
-                const previewUrl = URL.createObjectURL(file);
-                setImgPreview(previewUrl);
-
-                toast({
-                    title: '上傳成功',
-                    description: '已更新圖片預覽',
-                    duration: 1500,
-                });
-            } catch (err: any) {
-                toast({
-                    variant: 'destructive',
-                    title: err?.message ?? '上傳失敗',
-                    duration: 1800,
-                });
-            } finally {
-                setIsLoading(false);
-                hide();
-            }
-        },
-        [form, show, hide, toast]
-    );
-
-    const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    // === 圖片上傳 ===
+    const handleFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
         if (file.size / 1024 / 1024 > 50) {
             toast({
                 variant: 'destructive',
                 title: '檔案過大',
                 description: '上限 50MB，請重新選擇',
-                duration: 1800,
             });
             return;
         }
-        handleImageUpload(file);
+
+        setIsLoading(true);
+        show();
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'content-type': file.type },
+                body: file,
+            });
+            if (!res.ok) throw new Error('上傳失敗');
+            const { url } = await res.json();
+
+            form.setValue('imageUrl', url, { shouldValidate: true });
+
+            toast({ title: '上傳成功', description: '已更新圖片' });
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: err?.message ?? '上傳失敗',
+            });
+        } finally {
+            setIsLoading(false);
+            hide();
+        }
     };
 
-    const onSubmit: SubmitHandler<TourMapFormValues> = (values) => {
+    // === 送出 ===
+    const onSubmit: SubmitHandler<TourMapValues> = async (values) => {
         setError(undefined);
         setSuccess(undefined);
 
-        startTransition(async () => {
-            setIsLoading(true);
-            show();
-            try {
-                let res: { error?: string; success?: string } | undefined;
-
-                if (isEdit) {
-                    const id = initialData?.id;
-                    if (!id) {
-                        setError('缺少編輯目標 ID');
-                        setIsLoading(false);
-                        hide();
-                        return;
-                    }
-
-                    res = await editTourMaps(id, {
-                        imageUrl: values.imageUrl,
-                        content: values.content ?? null,
-                        productId: productId,
-                    } as any);
-                } else {
-                    res = await createTourMaps({
-                        productId,
-                        imageUrl: values.imageUrl,
-                        content: values.content ?? null,
-                    } as any);
-                }
-
-                if (res?.error) {
-                    setError(res.error);
-                } else {
-                    setSuccess(
-                        res?.success ?? (isEdit ? '更新成功' : '新增成功')
-                    );
-                    router.back();
-                    router.refresh();
-                }
-            } catch (e: any) {
-                setError(
-                    e?.response?.data?.message ||
-                        e?.message ||
-                        (isEdit
-                            ? '更新失敗，請稍後再試'
-                            : '新增失敗，請稍後再試')
-                );
-            } finally {
-                setIsLoading(false);
-                hide();
+        setIsLoading(true);
+        show();
+        try {
+            const res = await replaceTourMap(values);
+            if ('error' in res) {
+                setError(res.error);
+                toast({ variant: 'destructive', title: res.error });
+            } else {
+                const msg = res.success ?? '地圖已更新';
+                setSuccess(msg);
+                toast({ title: msg });
+                router.refresh();
             }
-        });
+        } catch (err: any) {
+            const msg = err?.message ?? '地圖儲存失敗';
+            setError(msg);
+            toast({ variant: 'destructive', title: msg });
+        } finally {
+            setIsLoading(false);
+            hide();
+        }
     };
 
     return (
         <Form {...form}>
-            <div className="mx-auto w-full">
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    {/* Header */}
-                    <div className="border-b border-slate-100 p-6">
-                        <h2 className="text-xl font-semibold text-slate-900">
-                            {headingTitle}
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            請填寫行程地圖相關資料，帶 * 為必填。
-                        </p>
-                    </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="mx-auto w-full">
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        {/* Header */}
+                        <div className="border-b border-slate-100 p-6">
+                            <h2 className="text-xl font-semibold text-slate-900">
+                                行程地圖設定
+                            </h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                請上傳行程地圖圖片，帶 * 為必填。
+                            </p>
+                        </div>
 
-                    {/* Content */}
-                    <div className="p-6">
-                        <form
-                            id={formId}
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-8"
-                        >
+                        {/* Content */}
+                        <div className="p-6 space-y-6">
                             {/* 圖片上傳 */}
                             <FormField
                                 control={form.control}
                                 name="imageUrl"
-                                render={() => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
                                             圖片
@@ -236,7 +150,7 @@ export default function TourMapForm({
                                             <div className="absolute inset-0 z-10" />
                                             <div
                                                 className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
-                                                    imgPreview
+                                                    field.value
                                                         ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
                                                         : ''
                                                 }`}
@@ -256,10 +170,10 @@ export default function TourMapForm({
                                                     拖曳或點擊上傳
                                                 </p>
                                             </div>
-                                            {imgPreview ? (
+                                            {field.value ? (
                                                 <Image
-                                                    src={imgPreview}
-                                                    alt="預覽圖片"
+                                                    src={field.value}
+                                                    alt="地圖圖片"
                                                     fill
                                                     className="rounded-xl object-contain bg-white"
                                                 />
@@ -293,8 +207,9 @@ export default function TourMapForm({
                                                 rows={4}
                                                 {...field}
                                                 value={field.value ?? ''}
+                                                placeholder="請輸入地圖說明"
                                                 disabled={
-                                                    isPending || isLoading
+                                                    isSubmitting || isLoading
                                                 }
                                             />
                                         </FormControl>
@@ -303,40 +218,24 @@ export default function TourMapForm({
                                 )}
                             />
 
+                            {/* 錯誤/成功訊息 */}
                             <FormError message={error} />
                             <FormSuccess message={success} />
-                        </form>
-                    </div>
 
-                    {/* Footer */}
-                    {/* <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
-                        <div className="flex items-center justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => router.back()}
-                                disabled={
-                                    isLoading || isPending || isSubmitting
-                                }
-                            >
-                                取消
-                            </Button>
-                            <Button
-                                type="submit"
-                                form={formId}
-                                disabled={
-                                    !isValid ||
-                                    isLoading ||
-                                    isPending ||
-                                    isSubmitting
-                                }
-                            >
-                                {isEdit ? '儲存變更' : '送出需求'}
-                            </Button>
+                            <div className="flex justify-end pt-6">
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmitting || isLoading}
+                                >
+                                    {isSubmitting || isLoading
+                                        ? '儲存中...'
+                                        : '儲存地圖'}
+                                </Button>
+                            </div>
                         </div>
-                    </div> */}
+                    </div>
                 </div>
-            </div>
+            </form>
         </Form>
     );
 }

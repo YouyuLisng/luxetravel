@@ -459,6 +459,7 @@ enum VisitType {
   OUTSIDE /// 下車參觀
   PHOTO /// 拍照打卡
   PASSBY /// 車覽
+  FEATURED /// 精選
 }
 
 model TourProduct {
@@ -491,7 +492,7 @@ model TourProduct {
   /// 關聯
   tour        Tours[]
   flights     Flight[]
-  maps        TourMap[]
+  map         TourMap?
   highlights  TourHighlight[]
   itineraries Itinerary[]
 
@@ -546,32 +547,33 @@ model Flight {
 }
 
 model TourMap {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
-  productId String  @db.ObjectId /// 關聯 TourProduct ID
-  imageUrl  String /// 行程地圖圖片 URL
-  content   String? /// 地圖說明
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  productId String       @unique @db.ObjectId
+  imageUrl  String
+  content   String?
 
-  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   TourProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now()) /// 建立時間
-  updatedAt DateTime @updatedAt /// 更新時間
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TourHighlight {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
-  productId String  @db.ObjectId /// 關聯 TourProduct ID
-  imageUrl  String /// 亮點圖片 URL
-  layout    Int /// 版型（版面配置）
-  title     String /// 亮點標題
-  subtitle  String? /// 亮點副標題
-  content   String? /// 亮點描述
-  order     Int /// 顯示排序
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  imageUrls String[] @default([]) /// 多張亮點圖片 URL
+  layout    Int
+  title     String
+  subtitle  String?
+  content   String?
+  order     Int
 
-  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now()) /// 建立時間
-  updatedAt DateTime @updatedAt /// 更新時間
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
 
 model Itinerary {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID

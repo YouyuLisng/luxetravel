@@ -1,17 +1,11 @@
 'use client';
 
-import {
-    useState,
-    useTransition,
-    useCallback,
-    ChangeEvent,
-    useEffect,
-} from 'react';
+import { useState, useTransition, useCallback, ChangeEvent, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 import {
     Form,
@@ -40,31 +34,33 @@ import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 
 import {
-    TourHighlightCreateSchema,
-    type TourHighlightCreateValues,
+    TourHighlightSchema,
+    type TourHighlightValues,
 } from '@/schemas/tourHighlight';
-import {
-    createTourHighlights,
-    editTourHighlights,
-} from '@/app/admin/product/action/tourHighlight';
+import { replaceTourHighlights } from '@/app/admin/product/action/tourHighlight';
 
-// === 型別 ===
-export type TourHighlightFormValues = {
-    highlights: TourHighlightCreateValues[];
-};
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
+import { z } from 'zod';
+
+// === Schema ===
+export const TourHighlightFormSchema = z.object({
+    highlights: TourHighlightSchema.array().min(1, '至少要有一筆亮點'),
+});
+export type TourHighlightFormValues = z.infer<typeof TourHighlightFormSchema>;
 
 interface Props {
     productId: string;
-    initialData?: TourHighlightCreateValues[];
-    method?: 'POST' | 'PUT';
-    onChange?: (values: TourHighlightCreateValues[]) => void;
+    initialData?: TourHighlightValues[];
 }
 
 export default function TourHighlightForm({
     productId,
     initialData = [],
-    method = 'POST',
-    onChange,
 }: Props) {
     const router = useRouter();
     const { toast } = useToast();
@@ -76,9 +72,7 @@ export default function TourHighlightForm({
     const [success, setSuccess] = useState<string>();
 
     const form = useForm<TourHighlightFormValues>({
-        resolver: zodResolver(
-            TourHighlightCreateSchema.array().min(1, '至少要有一筆亮點')
-        ) as any,
+        resolver: zodResolver(TourHighlightFormSchema),
         mode: 'onChange',
         defaultValues: {
             highlights:
@@ -87,12 +81,12 @@ export default function TourHighlightForm({
                     : [
                           {
                               productId,
-                              imageUrl: '',
                               layout: 1,
                               title: '',
                               subtitle: '',
                               content: '',
                               order: 0,
+                              imageUrls: [''], // ✅ 預設至少一張空圖片，避免驗證失敗
                           },
                       ],
         },
@@ -104,27 +98,12 @@ export default function TourHighlightForm({
         name: 'highlights',
     });
 
-    const { isValid, isSubmitting } = form.formState;
+    const { isSubmitting } = form.formState;
     const formId = 'tour-highlight-form';
-    const isEdit = method === 'PUT';
 
-    // 👇 當表單值改變時，回傳給父層
-    useEffect(() => {
-        const subscription = form.watch((values) => {
-            if (values?.highlights) {
-                onChange?.(
-                    values.highlights.filter(
-                        (h): h is TourHighlightCreateValues => h !== undefined
-                    )
-                );
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, [form, onChange]);
-
-    // 圖片上傳
+    // === 圖片上傳 ===
     const handleImageUpload = useCallback(
-        async (file: File, index: number) => {
+        async (file: File, highlightIndex: number, imageIndex: number) => {
             setIsLoading(true);
             show();
             try {
@@ -136,9 +115,11 @@ export default function TourHighlightForm({
                 if (!res.ok) throw new Error('上傳失敗');
                 const { url } = await res.json();
 
-                form.setValue(`highlights.${index}.imageUrl`, url, {
-                    shouldValidate: true,
-                });
+                form.setValue(
+                    `highlights.${highlightIndex}.imageUrls.${imageIndex}`,
+                    url,
+                    { shouldValidate: true }
+                );
 
                 toast({
                     title: '上傳成功',
@@ -161,7 +142,8 @@ export default function TourHighlightForm({
 
     const handleFileInput = (
         e: ChangeEvent<HTMLInputElement>,
-        index: number
+        highlightIndex: number,
+        imageIndex: number
     ) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -174,36 +156,27 @@ export default function TourHighlightForm({
             });
             return;
         }
-        handleImageUpload(file, index);
+        handleImageUpload(file, highlightIndex, imageIndex);
     };
 
+    // === 送出 ===
     const onSubmit = (values: TourHighlightFormValues) => {
         setError(undefined);
         setSuccess(undefined);
-
+        console.log('onSubmit values:', values);
         startTransition(async () => {
             setIsLoading(true);
             show();
             try {
-                let res: { error?: string; success?: string } | undefined;
-
-                if (isEdit) {
-                    const payload = values.highlights.map((h: any) => ({
-                        id: h.id,
-                        data: h,
-                    }));
-                    res = await editTourHighlights(payload as any);
-                } else {
-                    res = await createTourHighlights(values.highlights);
-                }
+                const res = await replaceTourHighlights(
+                    productId,
+                    values.highlights
+                );
 
                 if (res?.error) {
                     setError(res.error);
                 } else {
-                    setSuccess(
-                        res?.success ?? (isEdit ? '更新成功' : '新增成功')
-                    );
-                    router.back();
+                    setSuccess(res?.success ?? '操作成功');
                     router.refresh();
                 }
             } catch (e: any) {
@@ -219,17 +192,16 @@ export default function TourHighlightForm({
         <Form {...form}>
             <div className="mx-auto w-full">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            {isEdit ? '編輯行程亮點' : '行程亮點'}
+                            行程亮點
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            可新增多個亮點，帶 * 為必填。
+                            可新增多個亮點，每個亮點可包含多張圖片，帶 *
+                            為必填。
                         </p>
                     </div>
 
-                    {/* Content */}
                     <div className="p-6 space-y-6">
                         <form
                             id={formId}
@@ -241,7 +213,6 @@ export default function TourHighlightForm({
                                     key={field.id}
                                     className="border rounded-lg p-4 space-y-4 relative"
                                 >
-                                    {/* 刪除按鈕 */}
                                     <div className="absolute right-2 top-2">
                                         {fields.length > 1 && (
                                             <Button
@@ -255,74 +226,7 @@ export default function TourHighlightForm({
                                         )}
                                     </div>
 
-                                    {/* 圖片上傳 */}
-                                    <FormField
-                                        control={control}
-                                        name={`highlights.${index}.imageUrl`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                    圖片
-                                                </FormLabel>
-                                                <label
-                                                    htmlFor={`upload-highlight-${index}`}
-                                                    className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
-                                                >
-                                                    <div className="absolute inset-0 z-10" />
-                                                    <div
-                                                        className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
-                                                            field.value
-                                                                ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
-                                                                : ''
-                                                        }`}
-                                                    >
-                                                        <svg
-                                                            className="h-7 w-7"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
-                                                            <path d="M12 12v9" />
-                                                            <path d="m16 16-4-4-4 4" />
-                                                        </svg>
-                                                        <p className="mt-2 text-sm text-slate-500">
-                                                            拖曳或點擊上傳
-                                                        </p>
-                                                    </div>
-                                                    {field.value ? (
-                                                        <Image
-                                                            src={field.value}
-                                                            alt="亮點圖片"
-                                                            fill
-                                                            className="rounded-xl object-contain bg-white"
-                                                        />
-                                                    ) : null}
-                                                </label>
-
-                                                <input
-                                                    id={`upload-highlight-${index}`}
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) =>
-                                                        handleFileInput(
-                                                            e,
-                                                            index
-                                                        )
-                                                    }
-                                                />
-
-                                                <p className="text-xs text-slate-500">
-                                                    支援單張圖片上傳（最大
-                                                    50MB）。
-                                                </p>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Layout */}
+                                    {/* 基本欄位 */}
                                     <FormField
                                         control={control}
                                         name={`highlights.${index}.layout`}
@@ -366,7 +270,6 @@ export default function TourHighlightForm({
                                         )}
                                     />
 
-                                    {/* Title */}
                                     <FormField
                                         control={control}
                                         name={`highlights.${index}.title`}
@@ -383,7 +286,6 @@ export default function TourHighlightForm({
                                         )}
                                     />
 
-                                    {/* Subtitle */}
                                     <FormField
                                         control={control}
                                         name={`highlights.${index}.subtitle`}
@@ -403,7 +305,6 @@ export default function TourHighlightForm({
                                         )}
                                     />
 
-                                    {/* Content */}
                                     <FormField
                                         control={control}
                                         name={`highlights.${index}.content`}
@@ -424,7 +325,6 @@ export default function TourHighlightForm({
                                         )}
                                     />
 
-                                    {/* Order */}
                                     <FormField
                                         control={control}
                                         name={`highlights.${index}.order`}
@@ -443,62 +343,193 @@ export default function TourHighlightForm({
                                             </FormItem>
                                         )}
                                     />
+
+                                    {/* 圖片設定 */}
+                                    <Accordion
+                                        type="single"
+                                        collapsible
+                                        defaultValue={`images-${index}`}
+                                    >
+                                        <AccordionItem
+                                            value={`images-${index}`}
+                                        >
+                                            <AccordionTrigger>
+                                                圖片設定
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                                <ImageFields
+                                                    nestIndex={index}
+                                                    control={control}
+                                                    handleFileInput={
+                                                        handleFileInput
+                                                    }
+                                                />
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
                                 </div>
                             ))}
 
-                            {/* 新增按鈕 (新增模式才顯示) */}
-                            {!isEdit && (
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() =>
-                                        append({
-                                            productId,
-                                            imageUrl: '',
-                                            layout: 1,
-                                            title: '',
-                                            subtitle: '',
-                                            content: '',
-                                            order: fields.length,
-                                        })
-                                    }
-                                    className="flex items-center gap-2"
-                                >
-                                    <Plus className="h-4 w-4" /> 新增亮點
-                                </Button>
-                            )}
-                        </form>
-                    </div>
-
-                    {/* Footer */}
-                    {/* <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
-                        <div className="flex items-center justify-end gap-3">
                             <Button
                                 type="button"
-                                variant="outline"
-                                onClick={() => router.back()}
-                                disabled={
-                                    isLoading || isPending || isSubmitting
+                                variant="secondary"
+                                onClick={() =>
+                                    append({
+                                        productId,
+                                        layout: 1,
+                                        title: '',
+                                        subtitle: '',
+                                        content: '',
+                                        order: fields.length,
+                                        imageUrls: [''],
+                                    })
                                 }
+                                className="flex items-center gap-2"
                             >
-                                取消
+                                <Plus className="h-4 w-4" /> 新增亮點
                             </Button>
-                            <Button
-                                type="submit"
-                                form={formId}
-                                disabled={
-                                    !isValid ||
-                                    isLoading ||
-                                    isPending ||
-                                    isSubmitting
-                                }
-                            >
-                                {isEdit ? '儲存變更' : '送出需求'}
-                            </Button>
-                        </div>
-                    </div> */}
+
+                            <FormError message={error} />
+                            <FormSuccess message={success} />
+
+                            <div className="flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => router.back()}
+                                    disabled={
+                                        isLoading || isPending || isSubmitting
+                                    }
+                                >
+                                    取消
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    form={formId}
+                                    disabled={isLoading || isPending || isSubmitting}
+                                >
+                                    儲存亮點
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </Form>
+    );
+}
+
+// === 子元件：ImageFields ===
+function ImageFields({
+    nestIndex,
+    control,
+    handleFileInput,
+}: {
+    nestIndex: number;
+    control: any;
+    handleFileInput: (
+        e: ChangeEvent<HTMLInputElement>,
+        highlightIndex: number,
+        imageIndex: number
+    ) => void;
+}) {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `highlights.${nestIndex}.imageUrls`,
+    });
+
+    // ✅ 確保至少有一筆
+    useEffect(() => {
+        if (fields.length === 0) {
+            append('');
+        }
+    }, [fields, append]);
+
+    return (
+        <div className="space-y-6">
+            {fields.map((field, imgIndex) => (
+                <div key={field.id} className="border rounded-md p-6 relative">
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-4 top-2"
+                        onClick={() => remove(imgIndex)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+
+                    <FormField
+                        control={control}
+                        name={`highlights.${nestIndex}.imageUrls.${imgIndex}`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
+                                    圖片
+                                </FormLabel>
+                                <label
+                                    htmlFor={`upload-highlight-${nestIndex}-${imgIndex}`}
+                                    className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
+                                >
+                                    <div className="absolute inset-0 z-10" />
+                                    <div
+                                        className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
+                                            field.value
+                                                ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
+                                                : ''
+                                        }`}
+                                    >
+                                        <svg
+                                            className="h-7 w-7"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+                                            <path d="M12 12v9" />
+                                            <path d="m16 16-4-4-4 4" />
+                                        </svg>
+                                        <p className="mt-2 text-sm text-slate-500">
+                                            拖曳或點擊上傳
+                                        </p>
+                                    </div>
+                                    {field.value ? (
+                                        <Image
+                                            src={field.value}
+                                            alt="亮點圖片"
+                                            fill
+                                            className="rounded-xl object-contain bg-white"
+                                        />
+                                    ) : null}
+                                </label>
+
+                                <input
+                                    id={`upload-highlight-${nestIndex}-${imgIndex}`}
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) =>
+                                        handleFileInput(e, nestIndex, imgIndex)
+                                    }
+                                />
+
+                                <p className="text-xs text-slate-500">
+                                    支援單張圖片上傳（最大 50MB）。
+                                </p>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            ))}
+
+            <Button
+                type="button"
+                variant="secondary"
+                onClick={() => append('')}
+            >
+                <Plus className="h-4 w-4" /> 新增圖片
+            </Button>
+        </div>
     );
 }

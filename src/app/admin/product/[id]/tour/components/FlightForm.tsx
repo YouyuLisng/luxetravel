@@ -36,7 +36,7 @@ import { useAirlines } from '@/features/airline/queries/airlineQueries';
 
 type Props = {
     productId: string;
-    initialData?: FlightFormValues['flights']; // 🚩 新增
+    initialData?: FlightFormValues['flights'];
 };
 
 export default function FlightForm({ productId, initialData }: Props) {
@@ -48,7 +48,6 @@ export default function FlightForm({ productId, initialData }: Props) {
     const { data: airports = [] } = useAirports();
     const { data: airlines = [] } = useAirlines();
 
-    // 🚩 如果沒有傳 initialData，顯示預設的兩筆空白航班
     const defaultFlights =
         initialData && initialData.length > 0
             ? initialData
@@ -116,7 +115,6 @@ export default function FlightForm({ productId, initialData }: Props) {
                 toast({ variant: 'destructive', title: res.error });
             } else {
                 toast({ title: res.success ?? '航班已更新' });
-                // 🚩 不再重抓 API，直接保留當前值
             }
         } catch (err: any) {
             toast({

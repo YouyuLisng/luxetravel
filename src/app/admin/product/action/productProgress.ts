@@ -23,8 +23,8 @@ export async function getProductProgress(
             flights: true,
             itineraries: true,
             highlights: true,
-            maps: true,
-            tour: true,
+            map: true, // ✅ 單數
+            tour: true, // ✅ Tours[]
         },
     });
 
@@ -39,7 +39,7 @@ export async function getProductProgress(
               ? '⚠️'
               : '⭕';
     const highlightStatus = product.highlights.length > 0 ? '✅' : '⭕';
-    const mapStatus = product.maps.length > 0 ? '✅' : '⭕';
+    const mapStatus = product.map ? '✅' : '⭕'; // ✅ 判斷單一物件
     const toursStatus = product.tour.length > 0 ? '✅' : '⭕';
 
     const statuses = [
@@ -82,8 +82,8 @@ export async function publishProduct(productId: string) {
             flights: true,
             itineraries: true,
             highlights: true,
-            maps: true,
-            tour: true,
+            map: true, // ✅
+            tour: true, // ✅
         },
     });
 
@@ -96,10 +96,10 @@ export async function publishProduct(productId: string) {
     if (product.itineraries.length !== product.days) {
         return { error: '行程表不完整' };
     }
-    if (product.highlights.length === 0 || product.maps.length === 0) {
+    if (!product.highlights.length || !product.map) {
         return { error: '亮點或地圖未設定' };
     }
-    if (product.tour.length === 0) {
+    if (!product.tour.length) {
         return { error: '尚未新增團次' };
     }
 

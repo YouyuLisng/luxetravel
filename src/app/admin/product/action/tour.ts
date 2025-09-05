@@ -1,119 +1,41 @@
 'use server';
 
 import { db } from '@/lib/db';
-import {
-    ToursCreateSchema,
-    ToursEditSchema,
-    type ToursCreateValues,
-    type ToursEditValues,
-} from '@/schemas/tours';
+import { z } from 'zod';
+import { TourSchema, type TourValues } from '@/schemas/tours';
 
-/** 建立 Tours */
-export async function createTours(values: ToursCreateValues) {
-    const parsed = ToursCreateSchema.safeParse(values);
+/** 取代 Tours (先刪除，再新增) */
+export async function replaceTours(productId: string, tours: TourValues[]) {
+    const parsed = z.array(TourSchema).safeParse(tours);
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
-    const {
-        productId,
-        code,
-        departDate,
-        returnDate,
-        adult,
-        childWithBed,
-        childNoBed,
-        infant,
-        deposit,
-        status,
-        note,
-        arrangement, // 👈 改正
-    } = parsed.data;
-
-    // 檢查產品是否存在
-    const productExists = await db.tourProduct.findUnique({
-        where: { id: productId },
-    });
-    if (!productExists) return { error: '找不到對應的產品' };
-
     try {
-        const tours = await db.tours.create({
-            data: {
-                productId,
-                code,
-                departDate,
-                returnDate,
-                adult,
-                childWithBed,
-                childNoBed,
-                infant,
-                deposit: deposit ?? null,
-                status,
-                note: note ?? null,
-                arrangement: arrangement ?? null, // 👈 改正
-            },
-        });
+        // 先刪除舊資料
+        await db.tours.deleteMany({ where: { productId } });
 
-        return { success: '新增成功', data: tours };
+        // 新增多筆資料
+        if (parsed.data.length > 0) {
+            await db.tours.createMany({
+                data: parsed.data.map((t) => ({
+                    productId,
+                    code: t.code,
+                    departDate: t.departDate,
+                    returnDate: t.returnDate,
+                    adult: t.adult,
+                    childWithBed: t.childWithBed,
+                    childNoBed: t.childNoBed,
+                    infant: t.infant,
+                    deposit: t.deposit ?? null,
+                    status: t.status,
+                    note: t.note ?? null,
+                    arrangement: t.arrangement ?? null,
+                })),
+            });
+        }
+
+        return { success: '團體已更新成功' };
     } catch (err) {
-        console.error('createTours error:', err);
-        return { error: '新增失敗' };
-    }
-}
-
-/** 編輯 Tours（依 id） */
-export async function editTours(id: string, values: ToursEditValues) {
-    if (!id) return { error: '無效的 ID' };
-
-    const parsed = ToursEditSchema.safeParse(values);
-    if (!parsed.success) return { error: '欄位格式錯誤' };
-
-    const exists = await db.tours.findUnique({ where: { id } });
-    if (!exists) return { error: '找不到梯次資料' };
-
-    const {
-        productId,
-        code,
-        departDate,
-        returnDate,
-        adult,
-        childWithBed,
-        childNoBed,
-        infant,
-        deposit,
-        status,
-        note,
-        arrangement, // 👈 改正
-    } = parsed.data;
-
-    // 如果更新了 productId，要檢查是否存在
-    if (productId) {
-        const productExists = await db.tourProduct.findUnique({
-            where: { id: productId },
-        });
-        if (!productExists) return { error: '找不到對應的產品' };
-    }
-
-    try {
-        const tours = await db.tours.update({
-            where: { id },
-            data: {
-                productId: productId ?? exists.productId,
-                code: code ?? exists.code,
-                departDate: departDate ?? exists.departDate,
-                returnDate: returnDate ?? exists.returnDate,
-                adult: adult ?? exists.adult,
-                childWithBed: childWithBed ?? exists.childWithBed,
-                childNoBed: childNoBed ?? exists.childNoBed,
-                infant: infant ?? exists.infant,
-                deposit: deposit ?? exists.deposit,
-                status: status ?? exists.status,
-                note: note ?? exists.note,
-                arrangement: arrangement ?? exists.arrangement, // 👈 改正
-            },
-        });
-
-        return { success: '更新成功', data: tours };
-    } catch (err) {
-        console.error('editTours error:', err);
-        return { error: '更新失敗' };
+        console.error('replaceTours error:', err);
+        return { error: '團體更新失敗' };
     }
 }

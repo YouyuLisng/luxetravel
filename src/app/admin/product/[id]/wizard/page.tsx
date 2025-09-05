@@ -21,7 +21,7 @@ export default async function Page({ params }: Props) {
             tour: true,
             flights: true,
             highlights: true,
-            maps: true,
+            map: true,
             itineraries: {
                 include: {
                     routes: true,
@@ -34,6 +34,7 @@ export default async function Page({ params }: Props) {
             },
         },
     });
+    
     return (
         <ProductWizard productId={id} tourProduct={tourProduct} data={data} />
     );

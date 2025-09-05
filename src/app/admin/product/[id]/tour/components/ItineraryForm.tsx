@@ -112,6 +112,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
         { value: 'OUTSIDE', label: '下車參觀' },
         { value: 'PHOTO', label: '拍照打卡' },
         { value: 'PASSBY', label: '車覽' },
+        { value: 'FEATURED', label: '精選' },
     ];
 
     return (
@@ -229,7 +230,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                         </div>
 
                         {/* 備註 + 精選 */}
-                        <div className="grid grid-cols-2 gap-6 items-center">
+                        <div className="grid grid-cols-1 gap-6 items-center">
                             <FormField
                                 control={control}
                                 name={`itineraries.${index}.note`}
@@ -238,7 +239,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                                         <FormLabel>備註</FormLabel>
                                         <FormControl>
                                             <TextareaInput
-                                                rows={2}
+                                                rows={4}
                                                 {...field}
                                                 value={field.value ?? ''}
                                             />
@@ -247,7 +248,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
+                            {/* <FormField
                                 control={control}
                                 name={`itineraries.${index}.featured`}
                                 render={({ field }) => (
@@ -261,7 +262,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                                         <FormLabel>精選</FormLabel>
                                     </FormItem>
                                 )}
-                            />
+                            /> */}
                         </div>
 
                         {/* 路線 (Accordion) */}
@@ -302,7 +303,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                         type="submit"
                         disabled={isSubmitting || isLoading || isPending}
                     >
-                        儲存
+                        儲存每日行程
                     </Button>
                 </div>
             </form>
