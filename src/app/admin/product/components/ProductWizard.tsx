@@ -110,11 +110,11 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                         <TabsTrigger key={step.id} value={step.id}>
                             <div className="flex items-center space-x-1">
                                 <span>{step.label}</span>
-                                <span>
+                                {/* <span>
                                     {progress[
                                         step.id as keyof ProductProgress
                                     ] ?? '⭕'}
-                                </span>
+                                </span> */}
                             </div>
                         </TabsTrigger>
                     ))}
