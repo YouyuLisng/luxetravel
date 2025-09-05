@@ -8,7 +8,7 @@ export async function GET() {
             include: {
                 tour: true,
                 flights: true,
-                maps: true,
+                map: true,
                 highlights: true,
                 itineraries: true,
             },
