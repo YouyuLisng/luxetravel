@@ -1,12 +1,19 @@
-import { useTourProducts } from '../queries/tourProductQueries';
+'use client';
 
-export default function useTourProductRows() {
-    const { data, isLoading, isError, refetch } = useTourProducts();
+import { useQuery } from '@tanstack/react-query';
+import { tourProductsQuery } from '@/features/product/queries/tourProductQueries';
+
+export default function useTourProductRows(page: number, pageSize: number) {
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        tourProductsQuery(page, pageSize)
+    );
 
     return {
-        rows: data ?? [],
+        rows: data?.rows ?? [],
+        pagination: data?.pagination,
         isLoading,
         isError,
+        error,
         refetch,
     };
 }

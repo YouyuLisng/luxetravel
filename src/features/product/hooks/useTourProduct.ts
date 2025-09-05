@@ -1,12 +1,10 @@
-import { useTourProduct } from '../queries/tourProductQueries';
+'use client';
 
-export default function useTourProductData(id: string) {
-    const { data, isLoading, isError, refetch } = useTourProduct(id);
+import { useQuery } from '@tanstack/react-query';
+import { tourProductQuery } from '@/features/product/queries/tourProductQueries';
 
-    return {
-        data,
-        isLoading,
-        isError,
-        refetch,
-    };
+/** 取得單筆 TourProduct */
+export default function useTourProduct(id: string, enabled = true) {
+    const q = tourProductQuery(id);
+    return useQuery({ ...q, enabled: enabled && !!id });
 }

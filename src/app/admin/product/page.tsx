@@ -11,7 +11,11 @@ import {
 } from '@/app/admin/product/action/product';
 
 export default function TourProductTable() {
-    const { rows, isLoading, isError, refetch } = useTourProductRows();
+    const [page, setPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState(10);
+
+    const { rows, pagination, isLoading, isError, refetch } =
+        useTourProductRows(page, pageSize);
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;
@@ -49,6 +53,9 @@ export default function TourProductTable() {
             getEditHref={(id) => `/admin/product/${id}/wizard`}
             addButtonLabel="新增行程產品"
             addButtonHref="/admin/product/new"
+            pagination={pagination}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
         />
     );
 }

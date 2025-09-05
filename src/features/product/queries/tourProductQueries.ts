@@ -1,68 +1,94 @@
+import axios from '@/lib/axios';
 import { useQuery } from '@tanstack/react-query';
-import { queryOptions } from '@tanstack/react-query';
+import { z } from 'zod';
 
-export const KEYS = {
-    all: ['tourProduct'] as const,
-    list: () => [...KEYS.all, 'list'] as const,
-    detail: (id: string) => [...KEYS.all, 'detail', id] as const,
-};
-
-export type TourProductEntity = {
-    id: string;
-    code: string;
-    namePrefix: string | null;
-    name: string;
-    description: string | null;
-    days: number;
-    nights: number;
-    departAirport: string;
-    arriveCountry: string;
-    arriveCity: string;
-    arriveAirport: string;
-    category: string;
-    priceMin: number;
-    priceMax: number | null;
-    tags: string[];
-    note: string | null;
-    status: number;
-    staff: string | null;
-    reminder: string | null;
-    policy: string | null;
-    createdAt: string;
-    updatedAt: string;
-};
-
-/** 單筆查詢 */
-export const tourProductQuery = (id: string) =>
-    queryOptions({
-        queryKey: KEYS.detail(id),
-        queryFn: async (): Promise<TourProductEntity> => {
-            const res = await fetch(`/api/admin/product/${id}`, {
-                cache: 'no-store',
-            });
-            if (!res.ok) throw new Error('取得產品失敗');
-            const { data } = await res.json();
-            return data as TourProductEntity;
-        },
-    });
-
-/** 全部查詢 */
-export const tourProductsQuery = queryOptions({
-    queryKey: KEYS.list(),
-    queryFn: async (): Promise<TourProductEntity[]> => {
-        const res = await fetch(`/api/admin/product`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('取得產品列表失敗');
-        const { data } = await res.json();
-        return data as TourProductEntity[];
-    },
+// === TourProduct Schema ===
+export const tourProductSchema = z.object({
+    id: z.string(),
+    code: z.string(),
+    namePrefix: z.string().nullable(),
+    name: z.string(),
+    mainImageUrl: z.string(),
+    summary: z.string().nullable(),
+    description: z.string().nullable(),
+    days: z.number(),
+    nights: z.number(),
+    departAirport: z.string(),
+    arriveCountry: z.string(),
+    arriveCity: z.string(),
+    arriveAirport: z.string(),
+    category: z.string(),
+    priceMin: z.number(),
+    priceMax: z.number().nullable(),
+    tags: z.array(z.string()),
+    note: z.string().nullable(),
+    status: z.number(),
+    staff: z.string().nullable(),
+    reminder: z.string().nullable(),
+    policy: z.string().nullable(),
+    categoryId: z.string(),
+    subCategoryId: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
 });
 
-/** hook：取得全部 */
+// === Pagination Schema ===
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
+
+// === List Response Schema ===
+export const listResponseSchema = z.object({
+    rows: tourProductSchema.array(),
+    pagination: paginationSchema,
+});
+
+export type TourProductEntity = z.infer<typeof tourProductSchema>;
+
+// === Query Keys ===
+export const KEYS = {
+    list: (page: number, pageSize: number) =>
+        ['tourProducts', page, pageSize] as const,
+    detail: (id: string) => ['tourProducts', id] as const,
+};
+
+// === Queries ===
+export const tourProductsQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/product', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
+
+/** 抓全部 TourProduct (不分頁，適合 dropdown 選單) */
 export function useTourProducts() {
-    return useQuery(tourProductsQuery);
+    return useQuery({
+        queryKey: ['tourProducts', 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/product', {
+                params: { page: 1, pageSize: 999 },
+            });
+            return listResponseSchema.parse(res.data).rows;
+        },
+        staleTime: 1000 * 60 * 10,
+    });
 }
 
-/** hook：取得單筆 */
-export function useTourProduct(id: string) {
-    return useQuery(tourProductQuery(id));
-}
+/** 抓單一 TourProduct */
+export const tourProductQuery = (id: string) => ({
+    queryKey: KEYS.detail(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/product/${id}`);
+        return tourProductSchema.parse(res.data); 
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+});
