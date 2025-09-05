@@ -205,8 +205,8 @@ export async function deleteTourProduct(id: string) {
     const exists = await db.tourProduct.findUnique({
         where: { id },
         include: {
-            maps: true,
-            highlights: true,
+            map: true, // 👈 單數，一對一
+            highlights: true, // 👈 一對多
         },
     });
     if (!exists) return { error: '找不到產品' };
@@ -214,10 +214,22 @@ export async function deleteTourProduct(id: string) {
     try {
         const imageUrls: string[] = [];
         if (exists.mainImageUrl) imageUrls.push(exists.mainImageUrl);
-        for (const m of exists.maps) if (m.imageUrl) imageUrls.push(m.imageUrl);
-        for (const h of exists.highlights)
-            if (h.imageUrl) imageUrls.push(h.imageUrl);
 
+        // map (單一物件)
+        if (exists.map?.imageUrl) {
+            imageUrls.push(exists.map.imageUrl);
+        }
+
+        // highlights (多筆，每筆是 imageUrls: string[])
+        for (const h of exists.highlights) {
+            if (h.imageUrls) {
+                for (const url of h.imageUrls) {
+                    if (url) imageUrls.push(url);
+                }
+            }
+        }
+
+        // 刪除 blob
         for (const url of imageUrls) {
             try {
                 await deleteFromVercelBlob(url);
@@ -226,6 +238,7 @@ export async function deleteTourProduct(id: string) {
             }
         }
 
+        // 刪除關聯資料 & 產品
         await db.$transaction([
             db.itinerary.deleteMany({ where: { productId: id } }),
             db.tours.deleteMany({ where: { productId: id } }),

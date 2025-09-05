@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 interface Props {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
 }
 
 /** 取得單一 TourProduct */
@@ -20,6 +18,22 @@ export async function GET(_req: NextRequest, { params }: Props) {
 
         const data = await db.tourProduct.findUnique({
             where: { id },
+            include: {
+                tour: true, 
+                flights: true, 
+                map: true, 
+                highlights: true, 
+                itineraries: {
+                    include: {
+                        routes: true, 
+                        attractions: {
+                            include: {
+                                attraction: true, 
+                            },
+                        },
+                    },
+                },
+            },
         });
 
         if (!data) {

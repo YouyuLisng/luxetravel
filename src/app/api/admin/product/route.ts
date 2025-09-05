@@ -10,7 +10,16 @@ export async function GET() {
                 flights: true,
                 map: true,
                 highlights: true,
-                itineraries: true,
+                itineraries: {
+                    include: {
+                        routes: true,
+                        attractions: {
+                            include: {
+                                attraction: true,
+                            },
+                        },
+                    },
+                },
             },
             orderBy: { createdAt: 'desc' },
         });
