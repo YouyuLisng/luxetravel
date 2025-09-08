@@ -38,6 +38,22 @@ import {
 import { replaceItineraries } from '@/app/admin/product/action/itinerary';
 import { useAttractions } from '@/features/attraction/hooks/useAttraction';
 
+import { X, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import {
     Select,
     SelectContent,
@@ -45,8 +61,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-
-import { X } from 'lucide-react';
 
 interface Props {
     productId: string;
@@ -76,7 +90,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
 
     const { control } = form;
     const { fields } = useFieldArray({ control, name: 'itineraries' });
-    const { isValid, isSubmitting } = form.formState;
+    const { isSubmitting } = form.formState;
     const formId = 'itinerary-form';
 
     const onSubmit: SubmitHandler<ItineraryFormValues> = (values) => {
@@ -229,41 +243,24 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                             />
                         </div>
 
-                        {/* 備註 + 精選 */}
-                        <div className="grid grid-cols-1 gap-6 items-center">
-                            <FormField
-                                control={control}
-                                name={`itineraries.${index}.note`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>備註</FormLabel>
-                                        <FormControl>
-                                            <TextareaInput
-                                                rows={4}
-                                                {...field}
-                                                value={field.value ?? ''}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {/* <FormField
-                                control={control}
-                                name={`itineraries.${index}.featured`}
-                                render={({ field }) => (
-                                    <FormItem className="flex items-center space-x-2 mt-8">
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={(checked) =>
-                                                field.onChange(!!checked)
-                                            }
+                        {/* 備註 */}
+                        <FormField
+                            control={control}
+                            name={`itineraries.${index}.note`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>備註</FormLabel>
+                                    <FormControl>
+                                        <TextareaInput
+                                            rows={4}
+                                            {...field}
+                                            value={field.value ?? ''}
                                         />
-                                        <FormLabel>精選</FormLabel>
-                                    </FormItem>
-                                )}
-                            /> */}
-                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         {/* 路線 (Accordion) */}
                         <Accordion type="single" collapsible>
@@ -385,7 +382,7 @@ function ItineraryRoutesField({
     );
 }
 
-/** 子元件：景點 */
+/** 子元件：景點 (Combobox) */
 function ItineraryAttractionsField({
     control,
     index,
@@ -401,6 +398,7 @@ function ItineraryAttractionsField({
         control,
         name: `itineraries.${index}.attractions`,
     });
+
     return (
         <div className="space-y-2">
             {fields.map((field, aIndex) => (
@@ -408,33 +406,78 @@ function ItineraryAttractionsField({
                     key={field.id}
                     className="relative border rounded-md p-3 grid grid-cols-2 gap-2 items-end"
                 >
-                    {/* 景點選擇 */}
                     <FormField
                         control={control}
                         name={`itineraries.${index}.attractions.${aIndex}.attractionId`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>景點</FormLabel>
-                                <Select
-                                    value={field.value ?? ''}
-                                    onValueChange={(val) => field.onChange(val)}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="請選擇" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {attractions.map((a: any) => (
-                                            <SelectItem key={a.id} value={a.id}>
-                                                {a.nameZh}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )}
+                        render={({ field }) => {
+                            const selected = attractions.find(
+                                (a) => a.id === field.value
+                            );
+                            return (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>景點</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    className="justify-between"
+                                                >
+                                                    {selected
+                                                        ? `${selected.nameZh} (${selected.nameEn})`
+                                                        : '請選擇景點...'}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="p-0">
+                                            <Command>
+                                                <CommandInput
+                                                    placeholder="搜尋景點..."
+                                                    className="h-9"
+                                                />
+                                                <CommandList>
+                                                    <CommandEmpty>
+                                                        找不到景點
+                                                    </CommandEmpty>
+                                                    <CommandGroup>
+                                                        {attractions.map(
+                                                            (a) => (
+                                                                <CommandItem
+                                                                    key={a.id}
+                                                                    value={`${a.nameZh} ${a.nameEn}`}
+                                                                    onSelect={() =>
+                                                                        field.onChange(
+                                                                            a.id
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {a.nameZh} (
+                                                                    {a.nameEn})
+                                                                    <Check
+                                                                        className={cn(
+                                                                            'ml-auto h-4 w-4',
+                                                                            a.id ===
+                                                                                field.value
+                                                                                ? 'opacity-100'
+                                                                                : 'opacity-0'
+                                                                        )}
+                                                                    />
+                                                                </CommandItem>
+                                                            )
+                                                        )}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            );
+                        }}
                     />
+
                     {/* 參觀方式 */}
                     <FormField
                         control={control}
@@ -466,6 +509,7 @@ function ItineraryAttractionsField({
                         )}
                     />
 
+                    {/* 刪除按鈕 */}
                     <Button
                         type="button"
                         variant="ghost"
@@ -477,6 +521,7 @@ function ItineraryAttractionsField({
                     </Button>
                 </div>
             ))}
+
             <Button
                 type="button"
                 onClick={() =>
