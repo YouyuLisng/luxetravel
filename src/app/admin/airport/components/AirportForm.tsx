@@ -84,7 +84,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
         (async () => {
             try {
                 setLoadingRegions(true);
-                const res = await fetch('/api/admin/regions', {
+                const res = await fetch('/api/admin/regions?page=1&pageSize=9999', {
                     cache: 'no-store',
                 });
                 const json = await res.json();
@@ -108,7 +108,7 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
         (async () => {
             try {
                 setLoadingCountries(true);
-                const res = await fetch('/api/admin/countries', {
+                const res = await fetch('/api/admin/countries?page=1&pageSize=9999', {
                     cache: 'no-store',
                 });
                 const json = await res.json();

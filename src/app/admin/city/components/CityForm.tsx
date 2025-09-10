@@ -83,7 +83,7 @@ export default function CityForm({ mode = 'create', initialData }: Props) {
         },
     });
 
-    const { rows: countries } = useCountry();
+    const { rows: countries } = useCountry(1, 9999);
     const { isValid, isSubmitting } = form.formState;
 
     const headingTitle = isEdit ? '編輯城市' : '新增城市';
