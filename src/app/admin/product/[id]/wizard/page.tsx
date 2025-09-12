@@ -37,7 +37,6 @@ export default async function Page({ params }: Props) {
             },
         },
     });
-    console.log(data)
     return (
         <ProductWizard productId={id} tourProduct={tourProduct} data={data} />
     );

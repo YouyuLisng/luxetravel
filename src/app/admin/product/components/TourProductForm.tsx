@@ -47,7 +47,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/product/queries/tourProductQueries';
 
 import CreatableMultiSelect from '@/components/CreatableMultiSelect';
-import { useLexicons } from '@/features/lexicon/queries/lexiconQueries';
 import { useAirports } from '@/features/airport/queries/airportQueries';
 import { useCategories } from '@/features/category/queries/categoryQueries';
 import { useSubCategories } from '@/features/categorysub/queries/subCategoryQueries';
