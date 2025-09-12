@@ -36,6 +36,7 @@ import {
     createTestimonial,
     editTestimonial,
 } from '@/app/admin/testimonial/action/testimonial';
+import { TextareaInput } from '@/components/TextareaInput';
 
 const LIST_PATH = '/admin/testimonial';
 
@@ -311,13 +312,10 @@ export default function TestimonialForm({
                                                 內容
                                             </FormLabel>
                                             <FormControl>
-                                                <Input
+                                                <TextareaInput
+                                                    rows={4}
                                                     {...field}
-                                                    placeholder="請輸入評價內容"
-                                                    disabled={
-                                                        isPending ||
-                                                        isSubmitting
-                                                    }
+                                                    value={field.value ?? ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />

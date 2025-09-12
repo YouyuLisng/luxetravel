@@ -50,6 +50,16 @@ export async function POST(request: Request) {
     }
 }
 
+function formatTitle(title: string) {
+    const chars = Array.from(title);
+    return [chars.slice(0, 5).join(''), chars.slice(5).join('')];
+}
+
+function formatSubtitle(subtitle: string) {
+    const chars = Array.from(subtitle);
+    return [chars.slice(0, 12).join(''), chars.slice(12).join('')];
+}
+
 // GET /api/admin/banner?page=&pageSize=
 export async function GET(req: Request) {
     try {
@@ -69,9 +79,24 @@ export async function GET(req: Request) {
             }),
         ]);
 
+        const formattedRows = rows.map((banner) => {
+            const [titleLine1, titleLine2] = formatTitle(banner.title);
+            const [subtitleLine1, subtitleLine2] = banner.subtitle
+                ? formatSubtitle(banner.subtitle)
+                : ['', ''];
+
+            return {
+                ...banner,
+                titleLine1,
+                titleLine2,
+                subtitleLine1,
+                subtitleLine2,
+            };
+        });
+
         return NextResponse.json(
             {
-                rows,
+                rows: formattedRows,
                 pagination: {
                     page,
                     pageSize,

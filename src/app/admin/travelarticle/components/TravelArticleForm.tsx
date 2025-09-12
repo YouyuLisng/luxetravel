@@ -85,11 +85,11 @@ export default function TravelArticleForm({
         (async () => {
             try {
                 setLoadingOptions(true);
-                const res = await fetch('/api/admin/article-country', {
+                const res = await fetch('/api/admin/article-country?page=1&pageSize=9999', {
                     cache: 'no-store',
                 });
                 const json = await res.json();
-                const list = Array.isArray(json?.data) ? json.data : [];
+                const list = Array.isArray(json?.rows) ? json.rows : [];
                 const opts: CountryOption[] = list.map((c: any) => ({
                     value: c.id,
                     label: c.nameZh || c.name || c.code || c.id,

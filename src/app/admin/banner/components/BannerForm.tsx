@@ -228,15 +228,23 @@ export default function BannerForm({ initialData, method = 'POST' }: Props) {
                                                 標題
                                             </FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="例：夏季精選優惠"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
+                                                <div>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="例：夏季精選優惠"
+                                                        maxLength={10} // ✅ 前端輸入限制
+                                                        disabled={
+                                                            isPending ||
+                                                            isLoading ||
+                                                            isSubmitting
+                                                        }
+                                                    />
+                                                    <p className="text-xs text-gray-400 mt-1 text-right">
+                                                        {field.value?.length ??
+                                                            0}{' '}
+                                                        / 10
+                                                    </p>
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -253,22 +261,33 @@ export default function BannerForm({ initialData, method = 'POST' }: Props) {
                                                 副標題（選填）
                                             </FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ||
-                                                                null
-                                                        )
-                                                    }
-                                                    placeholder="例：日本自由行限時折扣"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
+                                                <div>
+                                                    <Input
+                                                        {...field}
+                                                        value={
+                                                            field.value ?? ''
+                                                        }
+                                                        onChange={(e) =>
+                                                            field.onChange(
+                                                                e.target
+                                                                    .value ||
+                                                                    null
+                                                            )
+                                                        }
+                                                        placeholder="例：日本自由行限時折扣"
+                                                        maxLength={30} // ✅ 前端輸入限制
+                                                        disabled={
+                                                            isPending ||
+                                                            isLoading ||
+                                                            isSubmitting
+                                                        }
+                                                    />
+                                                    <p className="text-xs text-gray-400 mt-1 text-right">
+                                                        {field.value?.length ??
+                                                            0}{' '}
+                                                        / 30
+                                                    </p>
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

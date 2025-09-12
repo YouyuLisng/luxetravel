@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useTransition, useCallback, ChangeEvent } from 'react';
+import {
+    useState,
+    useTransition,
+    useCallback,
+    ChangeEvent,
+    useEffect,
+} from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
@@ -33,20 +39,13 @@ import { KEYS } from '@/features/attraction/queries/attractionQueries';
 
 import { useCities } from '@/features/city/queries/cityQueries';
 import useCountry from '@/features/country/hooks/useCountry';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { TextareaInput } from '@/components/TextareaInput';
 import { useRegions } from '@/features/region/queries/regionQueries';
-/* ========== Zod Schema：符合 Prisma/Server 行為 ========== */
+import { Combobox } from '@/components/combobox';
+
+/* ========== Schema ========== */
 const FormSchema = z.object({
-    code: z.string().optional().nullable(), // 選填
+    code: z.string().optional().nullable(),
     nameZh: z.string().min(1, '請輸入中文名稱'),
     nameEn: z.string().min(1, '請輸入英文名稱'),
     content: z.string().min(1, '請輸入內容介紹'),
@@ -86,6 +85,7 @@ export default function AttractionForm({
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry(1, 9999);
     const { data: regions = [] } = useRegions();
+
     const form = useForm<AttractionFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
@@ -104,11 +104,20 @@ export default function AttractionForm({
     });
 
     const { isValid, isSubmitting } = form.formState;
+    const selectedCountry = form.watch('country');
+
+    const filteredCities = cities.filter(
+        (c: any) =>
+            c.countryNameZh === selectedCountry || c.country === selectedCountry
+    );
+
+    useEffect(() => {
+        form.setValue('city', '');
+    }, [selectedCountry, form]);
 
     const headingTitle = isEdit ? '編輯景點' : '新增景點';
     const formId = 'attraction-form';
 
-    // 圖片上傳
     const handleImageUpload = useCallback(
         async (file: File) => {
             setIsLoading(true);
@@ -148,54 +157,16 @@ export default function AttractionForm({
     const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         if (file.size / 1024 / 1024 > 50) {
             toast({
                 variant: 'destructive',
                 title: '檔案過大',
-                description: '上限 50MB，請重新選擇',
+                description: '上限 50MB',
                 duration: 1800,
             });
             return;
         }
-
-        const img = new window.Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-            const { naturalWidth, naturalHeight } = img;
-
-            if (naturalWidth < 500 || naturalHeight < 300) {
-                toast({
-                    variant: 'destructive',
-                    title: '圖片尺寸過小',
-                    description: `需至少 500x300，實際為 ${naturalWidth}x${naturalHeight}`,
-                    duration: 2000,
-                });
-                return;
-            }
-
-            if (naturalWidth < naturalHeight) {
-                toast({
-                    variant: 'destructive',
-                    title: '圖片比例不符',
-                    description: `寬必須大於或等於高，目前為 ${naturalWidth}x${naturalHeight}`,
-                    duration: 2000,
-                });
-                return;
-            }
-
-            handleImageUpload(file);
-        };
-    };
-
-    // tags：用 CreatableMultiSelect，多選字串
-    type Option = { label: string; value: string };
-    const tagOptions: Option[] = (initialData?.tags ?? []).map((t) => ({
-        label: t,
-        value: t,
-    }));
-    const handleTagsChange = (vals: string[]) => {
-        form.setValue('tags', vals, { shouldValidate: true });
+        handleImageUpload(file);
     };
 
     const onSubmit: SubmitHandler<AttractionFormValues> = (values) => {
@@ -216,44 +187,19 @@ export default function AttractionForm({
                         hide();
                         return;
                     }
-
-                    res = await editAttraction(id, {
-                        code: values.code ?? null, // 允許清空
-                        nameZh: values.nameZh,
-                        nameEn: values.nameEn,
-                        content: values.content,
-                        region: values.region,
-                        country: values.country,
-                        city: values.city ?? null,
-                        tags: values.tags ?? [],
-                        imageUrl: values.imageUrl ?? null,
-                        enabled: values.enabled ?? true,
-                    } as any);
-
+                    res = await editAttraction(id, values as any);
                     if (!res?.error) {
                         await Promise.all([
                             qc.invalidateQueries({ queryKey: ['attractions'] }),
-                            qc.invalidateQueries({
-                                queryKey: KEYS.detail(id!),
-                            }),
+                            qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                     }
                 } else {
-                    res = await createAttraction({
-                        code: values.code ?? null,
-                        nameZh: values.nameZh,
-                        nameEn: values.nameEn,
-                        content: values.content,
-                        region: values.region,
-                        country: values.country,
-                        city: values.city ?? null,
-                        tags: values.tags ?? [],
-                        imageUrl: values.imageUrl ?? null,
-                        enabled: values.enabled ?? true,
-                    } as any);
-
+                    res = await createAttraction(values as any);
                     if (!res?.error) {
-                        await qc.invalidateQueries({ queryKey: ['attractions'] });
+                        await qc.invalidateQueries({
+                            queryKey: ['attractions'],
+                        });
                     }
                 }
 
@@ -267,13 +213,7 @@ export default function AttractionForm({
                     router.refresh();
                 }
             } catch (e: any) {
-                setError(
-                    e?.response?.data?.message ||
-                    e?.message ||
-                    (isEdit
-                        ? '更新失敗，請稍後再試'
-                        : '新增失敗，請稍後再試')
-                );
+                setError(e?.message ?? '操作失敗');
             } finally {
                 setIsLoading(false);
                 hide();
@@ -285,7 +225,6 @@ export default function AttractionForm({
         <Form {...form}>
             <div className="mx-auto w-full">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
                             {headingTitle}
@@ -295,7 +234,6 @@ export default function AttractionForm({
                         </p>
                     </div>
 
-                    {/* Content */}
                     <div className="p-6">
                         <form
                             id={formId}
@@ -303,38 +241,6 @@ export default function AttractionForm({
                             className="space-y-8"
                         >
                             <div className="grid grid-cols-1 gap-6">
-                                {/* 代碼（選填） */}
-                                {/* <FormField
-                                    control={form.control}
-                                    name="code"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                景點代碼（選填）
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    name={field.name}
-                                                    ref={field.ref}
-                                                    onBlur={field.onBlur}
-                                                    value={field.value ?? ''} // 避免 null
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value
-                                                        )
-                                                    } // 明確帶 onChange
-                                                    placeholder="例：PARIS01"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                /> */}
                                 {/* 中文名稱 */}
                                 <FormField
                                     control={form.control}
@@ -397,13 +303,8 @@ export default function AttractionForm({
                                             <FormControl>
                                                 <TextareaInput
                                                     {...field}
-                                                    className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    placeholder="請輸入景點介紹內容"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
+                                                    className="min-h-[120px]"
+                                                    placeholder="請輸入景點介紹"
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -411,143 +312,99 @@ export default function AttractionForm({
                                     )}
                                 />
 
-                                {/* 地區 */}
+                                {/* 地區 Combobox */}
                                 <FormField
                                     control={form.control}
                                     name="region"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>抵達地區</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達地區" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {regions.map(
-                                                            (c: any) => (
-                                                                <SelectItem
-                                                                    key={c.id}
-                                                                    value={
-                                                                        c.nameZh
-                                                                    }
-                                                                >
-                                                                    {c.nameZh} (
-                                                                    {c.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={regions.map(
+                                                        (r: any) => ({
+                                                            value: r.nameZh,
+                                                            label: `${r.nameZh} (${r.code})`,
+                                                        })
+                                                    )}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder="選擇抵達地區"
+                                                    searchPlaceholder="搜尋地區..."
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                {/* 國家 */}
+
+                                {/* 國家 Combobox */}
                                 <FormField
                                     control={form.control}
                                     name="country"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>抵達國家</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達國家" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {countries.map(
-                                                            (c: any) => (
-                                                                <SelectItem
-                                                                    key={c.id}
-                                                                    value={
-                                                                        c.nameZh
-                                                                    }
-                                                                >
-                                                                    {c.nameZh} (
-                                                                    {c.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={[...countries]
+                                                        .sort(
+                                                            (a: any, b: any) =>
+                                                                a.nameEn.localeCompare(
+                                                                    b.nameEn,
+                                                                    'en'
+                                                                )
+                                                        )
+                                                        .map((c: any) => ({
+                                                            value: c.nameZh,
+                                                            label: `${c.nameZh} (${c.code})`,
+                                                        }))}
+                                                    value={field.value ?? ''}
+                                                    onChange={(val) => {
+                                                        field.onChange(val);
+                                                        form.setValue(
+                                                            'city',
+                                                            ''
+                                                        );
+                                                    }}
+                                                    placeholder="選擇抵達國家"
+                                                    searchPlaceholder="搜尋國家..."
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                {/* 城市（選填） */}
+
+                                {/* 城市 Combobox */}
                                 <FormField
                                     control={form.control}
                                     name="city"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>抵達城市</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達城市" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {cities.map(
-                                                            (c: any) => (
-                                                                <SelectItem
-                                                                    key={c.id}
-                                                                    value={
-                                                                        c.nameZh
-                                                                    }
-                                                                >
-                                                                    {c.nameZh} (
-                                                                    {c.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {/* Tags（多選字串） */}
-                                {/* <FormField
-                                    control={form.control}
-                                    name="tags"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                標籤（可複選）
-                                            </FormLabel>
                                             <FormControl>
-                                                <CreatableMultiSelect
-                                                    value={(
-                                                        field.value ?? []
-                                                    ).map((t) => String(t))}
-                                                    onChange={handleTagsChange}
-                                                    options={tagOptions}
-                                                    placeholder="輸入後按 Enter 新增標籤"
+                                                <Combobox
+                                                    options={filteredCities.map(
+                                                        (c: any) => ({
+                                                            value: c.nameZh,
+                                                            label: `${c.nameZh} (${c.code})`,
+                                                        })
+                                                    )}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder={
+                                                        selectedCountry
+                                                            ? '選擇抵達城市'
+                                                            : '請先選擇國家'
+                                                    }
+                                                    searchPlaceholder="搜尋城市..."
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
-                                /> */}
+                                />
 
                                 {/* 啟用開關 */}
                                 <FormField
@@ -559,15 +416,8 @@ export default function AttractionForm({
                                             <div>
                                                 <Switch
                                                     checked={!!field.value}
-                                                    onCheckedChange={(v) =>
-                                                        field.onChange(
-                                                            Boolean(v)
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
+                                                    onCheckedChange={
+                                                        field.onChange
                                                     }
                                                 />
                                             </div>
@@ -577,7 +427,7 @@ export default function AttractionForm({
                                 />
                             </div>
 
-                            {/* 圖片上傳（選填） */}
+                            {/* 圖片上傳 */}
                             <div className="space-y-2">
                                 <FormField
                                     control={form.control}
@@ -585,34 +435,10 @@ export default function AttractionForm({
                                     render={() => (
                                         <FormItem>
                                             <FormLabel>圖片（選填）</FormLabel>
-
                                             <label
                                                 htmlFor="upload-attraction"
                                                 className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
                                             >
-                                                <div className="absolute inset-0 z-10" />
-                                                <div
-                                                    className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${imgPreview
-                                                        ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
-                                                        : ''
-                                                        }`}
-                                                >
-                                                    <svg
-                                                        className="h-7 w-7"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="2"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
-                                                        <path d="M12 12v9" />
-                                                        <path d="m16 16-4-4-4 4" />
-                                                    </svg>
-                                                    <p className="mt-2 text-sm text-slate-500">
-                                                        拖曳或點擊上傳
-                                                    </p>
-                                                </div>
-
                                                 {imgPreview ? (
                                                     <Image
                                                         src={imgPreview}
@@ -620,19 +446,18 @@ export default function AttractionForm({
                                                         fill
                                                         className="rounded-xl object-contain bg-white"
                                                     />
-                                                ) : null}
+                                                ) : (
+                                                    <div className="text-slate-500">
+                                                        拖曳或點擊上傳
+                                                    </div>
+                                                )}
                                             </label>
-
                                             <input
                                                 id="upload-attraction"
                                                 type="file"
                                                 className="hidden"
                                                 onChange={handleFileInput}
                                             />
-
-                                            <p className="text-xs text-slate-500">
-                                                支援單張圖片上傳（最大 50MB）。
-                                            </p>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -644,28 +469,19 @@ export default function AttractionForm({
                         </form>
                     </div>
 
-                    {/* Footer */}
-                    <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
-                        <div className="flex items-center justify-end gap-3">
+                    <div className="border-t border-slate-100 bg-slate-50/60 p-4">
+                        <div className="flex justify-end gap-3">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => router.back()}
-                                disabled={
-                                    isLoading || isPending || isSubmitting
-                                }
                             >
                                 取消
                             </Button>
                             <Button
                                 type="submit"
                                 form={formId}
-                                disabled={
-                                    !isValid ||
-                                    isLoading ||
-                                    isPending ||
-                                    isSubmitting
-                                }
+                                disabled={!isValid || isSubmitting}
                             >
                                 {isEdit ? '儲存變更' : '送出需求'}
                             </Button>

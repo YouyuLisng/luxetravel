@@ -512,7 +512,8 @@ function generateColumns<T extends Record<string, any>>(
             key === 'country' ||
             key === 'region' ||
             key === 'category' ||
-            key === 'categoryName'
+            key === 'categoryName' ||
+            key === 'city'
         ) {
             generated.push({
                 accessorKey: key,
@@ -593,6 +594,18 @@ function generateColumns<T extends Record<string, any>>(
                         </Badge>
                     );
                 },
+            } as ColumnDef<T>);
+            continue;
+        }
+        if (key === 'content') {
+            generated.push({
+                accessorKey: key,
+                header: () => L(key, '內容'),
+                cell: ({ row }) => (
+                    <span className="max-w-[600px] line-clamp-2">
+                        {String((row.original as any)[key] ?? '')}
+                    </span>
+                ),
             } as ColumnDef<T>);
             continue;
         }

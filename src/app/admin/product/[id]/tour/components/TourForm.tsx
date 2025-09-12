@@ -32,28 +32,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-import { TourSchema, type TourValues } from '@/schemas/tours';
+import {
+    TourFormSchema,
+    type TourFormValues,
+    type TourValues,
+} from '@/schemas/tours';
 import { replaceTours } from '@/app/admin/product/action/tour';
-
-import { z } from 'zod';
-
-export const TourFormSchema = TourSchema.omit({
-    departDate: true,
-    returnDate: true,
-    code: true,
-}).extend({
-    dates: z.array(z.date()).min(1, '請至少選擇一個出發日期'),
-});
-
-export type TourFormValues = z.infer<typeof TourFormSchema>;
-
-type Props = {
-    productId: string;
-    productCode: string;
-    productDays: number;
-    initialData?: TourValues[];
-    initialDates?: Date[]; // 👈 新增，用來顯示已上架的日期
-};
 
 export default function TourForm({
     productId,
@@ -61,7 +45,13 @@ export default function TourForm({
     productDays,
     initialData = [],
     initialDates = [],
-}: Props) {
+}: {
+    productId: string;
+    productCode: string;
+    productDays: number;
+    initialData?: TourValues[];
+    initialDates?: Date[];
+}) {
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
@@ -69,13 +59,8 @@ export default function TourForm({
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
     const [isPending, startTransition] = useTransition();
-
     const defaultTour = initialData[0] ?? {
         productId,
-        adult: 0,
-        childWithBed: 0,
-        childNoBed: 0,
-        infant: 0,
         deposit: '',
         status: 1,
         note: '',
@@ -85,15 +70,49 @@ export default function TourForm({
     const form = useForm<TourFormValues>({
         resolver: zodResolver(TourFormSchema),
         mode: 'onChange',
-        defaultValues: {
-            ...defaultTour,
-            dates: initialDates, // 👈 預設勾選已有日期
-        },
+        defaultValues:
+            initialData.length > 0
+                ? {
+                      productId,
+                      dates: initialData.map((t) => new Date(t.departDate)),
+                      prices: initialData.map((t) =>
+                          'prices' in t
+                              ? {
+                                    adult: t.prices.adult,
+                                    childWithBed: t.prices.childWithBed,
+                                    childNoBed: t.prices.childNoBed,
+                                    infant: t.prices.infant,
+                                }
+                              : {
+                                    adult: (t as any).adult ?? 0,
+                                    childWithBed: (t as any).childWithBed ?? 0,
+                                    childNoBed: (t as any).childNoBed ?? 0,
+                                    infant: (t as any).infant ?? 0,
+                                }
+                      ),
+                      deposit: initialData[0]?.deposit ?? '',
+                      status: initialData[0]?.status ?? 1,
+                      note: initialData[0]?.note ?? '',
+                      arrangement: initialData[0]?.arrangement ?? '',
+                  }
+                : {
+                      productId,
+                      dates: initialDates,
+                      prices: initialDates.map(() => ({
+                          adult: 0,
+                          childWithBed: 0,
+                          childNoBed: 0,
+                          infant: 0,
+                      })),
+                      deposit: '',
+                      status: 1,
+                      note: '',
+                      arrangement: '',
+                  },
     });
-
     const { isSubmitting } = form.formState;
 
-    // === 自動生成代碼 ===
+    // === 生成代碼 ===
     const generateCode = (productCode: string, date: Date, index: number) => {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -122,10 +141,12 @@ export default function TourForm({
                         code: generateCode(productCode, departDate, idx),
                         departDate,
                         returnDate,
-                        adult: values.adult,
-                        childWithBed: values.childWithBed,
-                        childNoBed: values.childNoBed,
-                        infant: values.infant,
+                        prices: {
+                            adult: values.prices[idx]?.adult ?? 0,
+                            childWithBed: values.prices[idx]?.childWithBed ?? 0,
+                            childNoBed: values.prices[idx]?.childNoBed ?? 0,
+                            infant: values.prices[idx]?.infant ?? 0,
+                        },
                         deposit: values.deposit ?? null,
                         status: values.status,
                         note: values.note ?? null,
@@ -161,15 +182,15 @@ export default function TourForm({
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            梯次設定
+                            團體設定
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            選擇多個日期，系統會自動建立梯次代碼與回程日。
+                            選擇多個日期，系統會自動建立團體代碼與回程日，並可設定每個日期的價格。
                         </p>
                     </div>
 
                     <div className="p-6 space-y-6">
-                        {/* 多日期選擇 */}
+                        {/* 日期選擇 */}
                         <FormField
                             control={form.control}
                             name="dates"
@@ -182,110 +203,165 @@ export default function TourForm({
                                         mode="multiple"
                                         locale={zhTW}
                                         selected={field.value}
-                                        onSelect={(dates) =>
-                                            field.onChange(dates ?? [])
-                                        }
-                                        numberOfMonths={2} // 👈 雙月份
-                                        pagedNavigation // 👈 讓翻頁一次翻兩個月
+                                        onSelect={(dates) => {
+                                            field.onChange(dates ?? []);
+                                            form.setValue(
+                                                'prices',
+                                                (dates ?? []).map(() => ({
+                                                    adult: 0,
+                                                    childWithBed: 0,
+                                                    childNoBed: 0,
+                                                    infant: 0,
+                                                }))
+                                            );
+                                        }}
+                                        numberOfMonths={2}
+                                        pagedNavigation
                                         className="rounded-md"
                                     />
-
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
-                        {/* 人數設定 */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="adult"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>大人</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? 0}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        Number(e.target.value)
-                                                    )
+                        {/* 表格輸入價格 */}
+                        {form.watch('dates')?.length > 0 && (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full border border-slate-200 text-sm">
+                                    <thead className="bg-slate-100">
+                                        <tr>
+                                            <th className="px-4 py-2 border">
+                                                出發日期
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                大人價
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                兒童佔床價
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                兒童不佔床價
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                嬰兒價
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {form
+                                            .watch('dates')
+                                            .map(
+                                                (date: Date, index: number) => {
+                                                    const y =
+                                                        date.getFullYear();
+                                                    const m = String(
+                                                        date.getMonth() + 1
+                                                    ).padStart(2, '0');
+                                                    const d = String(
+                                                        date.getDate()
+                                                    ).padStart(2, '0');
+                                                    const dateStr = `${y}/${m}/${d}`;
+
+                                                    return (
+                                                        <tr
+                                                            key={index}
+                                                            className="text-center"
+                                                        >
+                                                            <td className="px-4 py-2 border">
+                                                                {dateStr}
+                                                            </td>
+                                                            <td className="px-4 py-2 border">
+                                                                <Input
+                                                                    type="text"
+                                                                    {...form.register(
+                                                                        `prices.${index}.adult`,
+                                                                        {
+                                                                            setValueAs:
+                                                                                (
+                                                                                    v
+                                                                                ) =>
+                                                                                    v ===
+                                                                                    ''
+                                                                                        ? 0
+                                                                                        : Number(
+                                                                                              v
+                                                                                          ),
+                                                                        }
+                                                                    )}
+                                                                    className="w-24 text-right"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-2 border">
+                                                                <Input
+                                                                    type="text"
+                                                                    {...form.register(
+                                                                        `prices.${index}.childWithBed`,
+                                                                        {
+                                                                            setValueAs:
+                                                                                (
+                                                                                    v
+                                                                                ) =>
+                                                                                    v ===
+                                                                                    ''
+                                                                                        ? 0
+                                                                                        : Number(
+                                                                                              v
+                                                                                          ),
+                                                                        }
+                                                                    )}
+                                                                    className="w-24 text-right"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-2 border">
+                                                                <Input
+                                                                    type="text"
+                                                                    {...form.register(
+                                                                        `prices.${index}.childNoBed`,
+                                                                        {
+                                                                            setValueAs:
+                                                                                (
+                                                                                    v
+                                                                                ) =>
+                                                                                    v ===
+                                                                                    ''
+                                                                                        ? 0
+                                                                                        : Number(
+                                                                                              v
+                                                                                          ),
+                                                                        }
+                                                                    )}
+                                                                    className="w-24 text-right"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-2 border">
+                                                                <Input
+                                                                    type="text"
+                                                                    {...form.register(
+                                                                        `prices.${index}.infant`,
+                                                                        {
+                                                                            setValueAs:
+                                                                                (
+                                                                                    v
+                                                                                ) =>
+                                                                                    v ===
+                                                                                    ''
+                                                                                        ? 0
+                                                                                        : Number(
+                                                                                              v
+                                                                                          ),
+                                                                        }
+                                                                    )}
+                                                                    className="w-24 text-right"
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
                                                 }
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="childWithBed"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>兒童佔床</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? 0}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        Number(e.target.value)
-                                                    )
-                                                }
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="childNoBed"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>兒童不佔床</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? 0}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        Number(e.target.value)
-                                                    )
-                                                }
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="infant"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>嬰兒</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? 0}
-                                                onChange={(e) =>
-                                                    field.onChange(
-                                                        Number(e.target.value)
-                                                    )
-                                                }
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                                            )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                         {/* 訂金 */}
                         <FormField
