@@ -107,7 +107,7 @@ export default function TourForm({
                                 }))
                               : [
                                     {
-                                        date: new Date(), // 預設今天
+                                        date: new Date(),
                                         prices: {
                                             adult: '',
                                             childWithBed: '',
@@ -246,6 +246,7 @@ export default function TourForm({
                                         numberOfMonths={2}
                                         pagedNavigation
                                         className="rounded-md"
+                                        disabled={{ before: new Date() }}
                                     />
                                     <FormMessage />
                                 </FormItem>
