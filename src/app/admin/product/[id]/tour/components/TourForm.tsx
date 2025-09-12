@@ -21,13 +21,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
-
 import {
     Select,
     SelectContent,
     SelectGroup,
     SelectItem,
-    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -59,14 +57,8 @@ export default function TourForm({
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
     const [isPending, startTransition] = useTransition();
-    const defaultTour = initialData[0] ?? {
-        productId,
-        deposit: '',
-        status: 1,
-        note: '',
-        arrangement: '',
-    };
 
+    // === 初始化 ===
     const form = useForm<TourFormValues>({
         resolver: zodResolver(TourFormSchema),
         mode: 'onChange',
@@ -74,42 +66,62 @@ export default function TourForm({
             initialData.length > 0
                 ? {
                       productId,
-                      dates: initialData.map((t) => new Date(t.departDate)),
-                      prices: initialData.map((t) =>
-                          'prices' in t
-                              ? {
-                                    adult: t.prices.adult,
-                                    childWithBed: t.prices.childWithBed,
-                                    childNoBed: t.prices.childNoBed,
-                                    infant: t.prices.infant,
-                                }
-                              : {
-                                    adult: (t as any).adult ?? 0,
-                                    childWithBed: (t as any).childWithBed ?? 0,
-                                    childNoBed: (t as any).childNoBed ?? 0,
-                                    infant: (t as any).infant ?? 0,
-                                }
-                      ),
-                      deposit: initialData[0]?.deposit ?? '',
-                      status: initialData[0]?.status ?? 1,
-                      note: initialData[0]?.note ?? '',
-                      arrangement: initialData[0]?.arrangement ?? '',
+                      tours: initialData.map((t) => ({
+                          date: new Date(t.departDate),
+                          prices:
+                              'prices' in t
+                                  ? {
+                                        adult: t.prices.adult ?? '',
+                                        childWithBed:
+                                            t.prices.childWithBed ?? '',
+                                        childNoBed: t.prices.childNoBed ?? '',
+                                        infant: t.prices.infant ?? '',
+                                    }
+                                  : {
+                                        adult: (t as any).adult ?? '',
+                                        childWithBed:
+                                            (t as any).childWithBed ?? '',
+                                        childNoBed: (t as any).childNoBed ?? '',
+                                        infant: (t as any).infant ?? '',
+                                    },
+                          deposit: t.deposit ?? '',
+                          status: t.status ?? 1,
+                          note: t.note ?? '',
+                      })),
                   }
                 : {
                       productId,
-                      dates: initialDates,
-                      prices: initialDates.map(() => ({
-                          adult: 0,
-                          childWithBed: 0,
-                          childNoBed: 0,
-                          infant: 0,
-                      })),
-                      deposit: '',
-                      status: 1,
-                      note: '',
-                      arrangement: '',
+                      tours:
+                          initialDates.length > 0
+                              ? initialDates.map((d) => ({
+                                    date: d,
+                                    prices: {
+                                        adult: '',
+                                        childWithBed: '',
+                                        childNoBed: '',
+                                        infant: '',
+                                    },
+                                    deposit: '',
+                                    status: 1,
+                                    note: '',
+                                }))
+                              : [
+                                    {
+                                        date: new Date(), // 預設今天
+                                        prices: {
+                                            adult: '',
+                                            childWithBed: '',
+                                            childNoBed: '',
+                                            infant: '',
+                                        },
+                                        deposit: '',
+                                        status: 1,
+                                        note: '',
+                                    },
+                                ],
                   },
     });
+
     const { isSubmitting } = form.formState;
 
     // === 生成代碼 ===
@@ -129,8 +141,8 @@ export default function TourForm({
             setIsLoading(true);
             show();
             try {
-                const tours: TourValues[] = values.dates.map((d, idx) => {
-                    const departDate = new Date(d);
+                const tours: TourValues[] = values.tours.map((tour, idx) => {
+                    const departDate = new Date(tour.date);
                     const returnDate = new Date(departDate);
                     returnDate.setDate(
                         returnDate.getDate() + (productDays - 1)
@@ -142,15 +154,14 @@ export default function TourForm({
                         departDate,
                         returnDate,
                         prices: {
-                            adult: values.prices[idx]?.adult ?? 0,
-                            childWithBed: values.prices[idx]?.childWithBed ?? 0,
-                            childNoBed: values.prices[idx]?.childNoBed ?? 0,
-                            infant: values.prices[idx]?.infant ?? 0,
+                            adult: tour.prices.adult ?? '',
+                            childWithBed: tour.prices.childWithBed ?? '',
+                            childNoBed: tour.prices.childNoBed ?? '',
+                            infant: tour.prices.infant ?? '',
                         },
-                        deposit: values.deposit ?? null,
-                        status: values.status,
-                        note: values.note ?? null,
-                        arrangement: values.arrangement ?? null,
+                        deposit: tour.deposit ?? null,
+                        status: tour.status,
+                        note: tour.note ?? null,
                     };
                 });
 
@@ -185,7 +196,7 @@ export default function TourForm({
                             團體設定
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            選擇多個日期，系統會自動建立團體代碼與回程日，並可設定每個日期的價格。
+                            選擇多個日期，系統會自動建立團體代碼與回程日，並可設定每個日期的價格、訂金、狀態與備註。
                         </p>
                     </div>
 
@@ -193,8 +204,8 @@ export default function TourForm({
                         {/* 日期選擇 */}
                         <FormField
                             control={form.control}
-                            name="dates"
-                            render={({ field }) => (
+                            name="tours"
+                            render={() => (
                                 <FormItem>
                                     <FormLabel className="required">
                                         出發日期（可多選）
@@ -202,18 +213,35 @@ export default function TourForm({
                                     <Calendar
                                         mode="multiple"
                                         locale={zhTW}
-                                        selected={field.value}
+                                        selected={form
+                                            .watch('tours')
+                                            .map((t) => t.date)}
                                         onSelect={(dates) => {
-                                            field.onChange(dates ?? []);
-                                            form.setValue(
-                                                'prices',
-                                                (dates ?? []).map(() => ({
-                                                    adult: 0,
-                                                    childWithBed: 0,
-                                                    childNoBed: 0,
-                                                    infant: 0,
-                                                }))
-                                            );
+                                            const newTours =
+                                                (dates ?? []).map((d, idx) => ({
+                                                    date: d,
+                                                    prices: form.watch(
+                                                        `tours.${idx}.prices`
+                                                    ) ?? {
+                                                        adult: '',
+                                                        childWithBed: '',
+                                                        childNoBed: '',
+                                                        infant: '',
+                                                    },
+                                                    deposit:
+                                                        form.watch(
+                                                            `tours.${idx}.deposit`
+                                                        ) ?? '',
+                                                    status:
+                                                        form.watch(
+                                                            `tours.${idx}.status`
+                                                        ) ?? 1,
+                                                    note:
+                                                        form.watch(
+                                                            `tours.${idx}.note`
+                                                        ) ?? '',
+                                                })) ?? [];
+                                            form.setValue('tours', newTours);
                                         }}
                                         numberOfMonths={2}
                                         pagedNavigation
@@ -224,8 +252,8 @@ export default function TourForm({
                             )}
                         />
 
-                        {/* 表格輸入價格 */}
-                        {form.watch('dates')?.length > 0 && (
+                        {/* 表格 */}
+                        {form.watch('tours')?.length > 0 && (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full border border-slate-200 text-sm">
                                     <thead className="bg-slate-100">
@@ -245,220 +273,137 @@ export default function TourForm({
                                             <th className="px-4 py-2 border">
                                                 嬰兒價
                                             </th>
+                                            <th className="px-4 py-2 border">
+                                                訂金
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                狀態
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                備註
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {form
-                                            .watch('dates')
-                                            .map(
-                                                (date: Date, index: number) => {
-                                                    const y =
-                                                        date.getFullYear();
-                                                    const m = String(
-                                                        date.getMonth() + 1
-                                                    ).padStart(2, '0');
-                                                    const d = String(
-                                                        date.getDate()
-                                                    ).padStart(2, '0');
-                                                    const dateStr = `${y}/${m}/${d}`;
+                                            .watch('tours')
+                                            .map((tour, index) => {
+                                                const date = tour.date;
+                                                const y = date.getFullYear();
+                                                const m = String(
+                                                    date.getMonth() + 1
+                                                ).padStart(2, '0');
+                                                const d = String(
+                                                    date.getDate()
+                                                ).padStart(2, '0');
+                                                const dateStr = `${y}/${m}/${d}`;
 
-                                                    return (
-                                                        <tr
-                                                            key={index}
-                                                            className="text-center"
-                                                        >
-                                                            <td className="px-4 py-2 border">
-                                                                {dateStr}
-                                                            </td>
-                                                            <td className="px-4 py-2 border">
-                                                                <Input
-                                                                    type="text"
-                                                                    {...form.register(
-                                                                        `prices.${index}.adult`,
-                                                                        {
-                                                                            setValueAs:
-                                                                                (
-                                                                                    v
-                                                                                ) =>
-                                                                                    v ===
-                                                                                    ''
-                                                                                        ? 0
-                                                                                        : Number(
-                                                                                              v
-                                                                                          ),
-                                                                        }
-                                                                    )}
-                                                                    className="w-24 text-right"
-                                                                />
-                                                            </td>
-                                                            <td className="px-4 py-2 border">
-                                                                <Input
-                                                                    type="text"
-                                                                    {...form.register(
-                                                                        `prices.${index}.childWithBed`,
-                                                                        {
-                                                                            setValueAs:
-                                                                                (
-                                                                                    v
-                                                                                ) =>
-                                                                                    v ===
-                                                                                    ''
-                                                                                        ? 0
-                                                                                        : Number(
-                                                                                              v
-                                                                                          ),
-                                                                        }
-                                                                    )}
-                                                                    className="w-24 text-right"
-                                                                />
-                                                            </td>
-                                                            <td className="px-4 py-2 border">
-                                                                <Input
-                                                                    type="text"
-                                                                    {...form.register(
-                                                                        `prices.${index}.childNoBed`,
-                                                                        {
-                                                                            setValueAs:
-                                                                                (
-                                                                                    v
-                                                                                ) =>
-                                                                                    v ===
-                                                                                    ''
-                                                                                        ? 0
-                                                                                        : Number(
-                                                                                              v
-                                                                                          ),
-                                                                        }
-                                                                    )}
-                                                                    className="w-24 text-right"
-                                                                />
-                                                            </td>
-                                                            <td className="px-4 py-2 border">
-                                                                <Input
-                                                                    type="text"
-                                                                    {...form.register(
-                                                                        `prices.${index}.infant`,
-                                                                        {
-                                                                            setValueAs:
-                                                                                (
-                                                                                    v
-                                                                                ) =>
-                                                                                    v ===
-                                                                                    ''
-                                                                                        ? 0
-                                                                                        : Number(
-                                                                                              v
-                                                                                          ),
-                                                                        }
-                                                                    )}
-                                                                    className="w-24 text-right"
-                                                                />
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                }
-                                            )}
+                                                return (
+                                                    <tr
+                                                        key={index}
+                                                        className="text-center"
+                                                    >
+                                                        <td className="px-4 py-2 border">
+                                                            {dateStr}
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Input
+                                                                type="text"
+                                                                {...form.register(
+                                                                    `tours.${index}.prices.adult`
+                                                                )}
+                                                                className="text-right"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Input
+                                                                type="text"
+                                                                {...form.register(
+                                                                    `tours.${index}.prices.childWithBed`
+                                                                )}
+                                                                className="text-right"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Input
+                                                                type="text"
+                                                                {...form.register(
+                                                                    `tours.${index}.prices.childNoBed`
+                                                                )}
+                                                                className="text-right"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Input
+                                                                type="text"
+                                                                {...form.register(
+                                                                    `tours.${index}.prices.infant`
+                                                                )}
+                                                                className="text-right"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Input
+                                                                type="text"
+                                                                {...form.register(
+                                                                    `tours.${index}.deposit`
+                                                                )}
+                                                                className="text-right"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <Select
+                                                                onValueChange={(
+                                                                    val
+                                                                ) =>
+                                                                    form.setValue(
+                                                                        `tours.${index}.status`,
+                                                                        Number(
+                                                                            val
+                                                                        )
+                                                                    )
+                                                                }
+                                                                value={String(
+                                                                    tour.status
+                                                                )}
+                                                            >
+                                                                <SelectTrigger className="w-28">
+                                                                    <SelectValue placeholder="狀態" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectGroup>
+                                                                        <SelectItem value="1">
+                                                                            熱銷中
+                                                                        </SelectItem>
+                                                                        <SelectItem value="2">
+                                                                            已成團
+                                                                        </SelectItem>
+                                                                        <SelectItem value="3">
+                                                                            已滿團
+                                                                        </SelectItem>
+                                                                        <SelectItem value="4">
+                                                                            取消
+                                                                        </SelectItem>
+                                                                    </SelectGroup>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <TextareaInput
+                                                                rows={2}
+                                                                {...form.register(
+                                                                    `tours.${index}.note`
+                                                                )}
+                                                                className="w-80 resize-none"
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </tbody>
                                 </table>
                             </div>
                         )}
-
-                        {/* 訂金 */}
-                        <FormField
-                            control={form.control}
-                            name="deposit"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>訂金</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            {...field}
-                                            value={field.value ?? ''}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* 狀態 */}
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>狀態</FormLabel>
-                                    <Select
-                                        value={String(field.value ?? 1)}
-                                        onValueChange={(val) =>
-                                            field.onChange(Number(val))
-                                        }
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="請選擇狀態" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                <SelectLabel>狀態</SelectLabel>
-                                                <SelectItem value="1">
-                                                    熱銷中
-                                                </SelectItem>
-                                                <SelectItem value="2">
-                                                    已成團
-                                                </SelectItem>
-                                                <SelectItem value="3">
-                                                    已滿團
-                                                </SelectItem>
-                                                <SelectItem value="4">
-                                                    取消
-                                                </SelectItem>
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* 備註 */}
-                        <FormField
-                            control={form.control}
-                            name="note"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>備註</FormLabel>
-                                    <FormControl>
-                                        <TextareaInput
-                                            rows={3}
-                                            {...field}
-                                            value={field.value ?? ''}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* 行程安排 */}
-                        <FormField
-                            control={form.control}
-                            name="arrangement"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>行程安排</FormLabel>
-                                    <FormControl>
-                                        <TextareaInput
-                                            rows={3}
-                                            {...field}
-                                            value={field.value ?? ''}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
 
                         <FormError message={error} />
                         <FormSuccess message={success} />

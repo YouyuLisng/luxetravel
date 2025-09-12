@@ -506,14 +506,13 @@ model Tours {
   code         String /// 團體代碼
   departDate   DateTime /// 出發日期
   returnDate   DateTime /// 回程日期
-  adult        Int /// 大人人數
-  childWithBed Int /// 佔床兒童人數
-  childNoBed   Int /// 不佔床兒童人數
-  infant       Int /// 嬰兒人數
+  adult        String /// 大人價錢
+  childWithBed String /// 佔床兒童價錢
+  childNoBed   String /// 不佔床兒童價錢
+  infant       String /// 嬰兒價錢
   deposit      String? /// 訂金
   status       Int /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
   note         String? /// 備註
-  arrangement  String? /// 貼心安排
 
   product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 

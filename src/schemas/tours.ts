@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const PriceSchema = z.object({
-    adult: z.number().int().min(0),
-    childWithBed: z.number().int().min(0),
-    childNoBed: z.number().int().min(0),
-    infant: z.number().int().min(0),
+    adult: z.string().optional().nullable(),
+    childWithBed: z.string().optional().nullable(),
+    childNoBed: z.string().optional().nullable(),
+    infant: z.string().optional().nullable(),
 });
 
 export const TourSchema = z.object({
@@ -16,19 +16,23 @@ export const TourSchema = z.object({
     deposit: z.string().optional().nullable(),
     status: z.number().int().min(1).max(4),
     note: z.string().optional().nullable(),
-    arrangement: z.string().optional().nullable(),
 });
 
 export type TourValues = z.infer<typeof TourSchema>;
 
-// 👉 表單用 schema（多日期 + 價格陣列）
-export const TourFormSchema = TourSchema.omit({
-    departDate: true,
-    returnDate: true,
-    code: true,
-}).extend({
-    dates: z.array(z.date()).min(1, '請至少選擇一個出發日期'),
-    prices: z.array(PriceSchema),
+// 👉 表單 Schema
+export const TourFormSchema = z.object({
+    productId: z.string().min(1),
+    tours: z
+        .array(
+            z.object({
+                date: z.date(),
+                prices: PriceSchema,
+                deposit: z.string().optional().nullable(),
+                status: z.number().int().min(1).max(4),
+                note: z.string().optional().nullable(),
+            })
+        )
 });
 
 export type TourFormValues = z.infer<typeof TourFormSchema>;
