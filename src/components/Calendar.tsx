@@ -10,7 +10,7 @@ export type CalendarEvent = {
     id: string;
     title: string;
     start: string | Date;
-    price?: number; 
+    price?: string ; 
 };
 
 type Props = {
