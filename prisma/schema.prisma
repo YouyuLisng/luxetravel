@@ -480,6 +480,7 @@ model TourProduct {
   priceMin      Int /// 起價（最低價格）
   priceMax      Int? /// 最高價格
   tags          String[] @default([]) /// 標籤（自由輸入）
+  countries     String[] @default([]) /// 國家代碼陣列（例如：["JP", "KR", "TH"]）
   note          String? /// 備註
   status        Int      @default(1) /// 狀態 (1: 上架, 2: 下架, 3: 草稿)
   staff         String? /// 上架人員 ID

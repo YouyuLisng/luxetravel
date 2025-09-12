@@ -9,7 +9,7 @@ import {
 } from '@/schemas/tourProduct';
 import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
-/** 建立 TourProduct，並依據 days 自動建立 Itinerary */
+/** 建立 TourProduct */
 export async function createTourProduct(values: TourProductCreateValues) {
     const parsed = TourProductCreateSchema.safeParse(values);
     if (!parsed.success) return { error: '欄位格式錯誤' };
@@ -31,6 +31,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
         priceMin,
         priceMax,
         tags,
+        countries,   // ⬅️ 新增
         note,
         status,
         staff,
@@ -59,6 +60,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
+                countries: countries ?? [], // ⬅️ 新增
                 note: note || null,
                 status,
                 staff: staff || null,
@@ -83,7 +85,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
     }
 }
 
-/** 編輯 TourProduct（依 id） */
+/** 編輯 TourProduct */
 export async function editTourProduct(
     id: string,
     values: TourProductEditValues
@@ -113,6 +115,7 @@ export async function editTourProduct(
         priceMin,
         priceMax,
         tags,
+        countries,   // ⬅️ 新增
         note,
         status,
         staff,
@@ -154,6 +157,7 @@ export async function editTourProduct(
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
+                countries: countries ?? [], // ⬅️ 新增
                 note: note || null,
                 status,
                 staff: staff || null,
@@ -164,7 +168,7 @@ export async function editTourProduct(
             },
         });
 
-        // 3️⃣ 同步 itinerary
+        // itinerary 同步邏輯維持不變
         const existingItineraries = await db.itinerary.findMany({
             where: { productId: id },
             orderBy: { day: 'asc' },
@@ -195,6 +199,7 @@ export async function editTourProduct(
         return { error: '行程更新失敗' };
     }
 }
+
 
 /** 刪除 TourProduct（依 id，同時刪關聯資料 & blob 圖片） */
 export async function deleteTourProduct(id: string) {

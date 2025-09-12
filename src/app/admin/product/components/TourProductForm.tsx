@@ -114,6 +114,7 @@ export default function TourProductForm({
             priceMin: initialData?.priceMin ?? 0,
             priceMax: initialData?.priceMax ?? null,
             tags: initialData?.tags ?? [],
+            countries: initialData?.countries ?? [],
             note: initialData?.note ?? '',
             status: initialData?.status ?? 1,
             staff: initialData?.staff ?? '',
@@ -832,6 +833,36 @@ export default function TourProductForm({
                                                 }
                                                 options={[]}
                                                 placeholder="輸入後按 Enter 新增標籤"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="countries"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>參訪國家</FormLabel>
+                                        <FormControl>
+                                            <CreatableMultiSelect
+                                                value={field.value ?? []}
+                                                onChange={(vals) =>
+                                                    form.setValue(
+                                                        'countries',
+                                                        vals,
+                                                        { shouldValidate: true }
+                                                    )
+                                                }
+                                                options={countries.map(
+                                                    (c: any) => ({
+                                                        label: c.nameZh,
+                                                        value: c.code,
+                                                    })
+                                                )}
+                                                placeholder="選擇或輸入國家"
+                                                creatable={false}
                                             />
                                         </FormControl>
                                         <FormMessage />
