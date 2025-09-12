@@ -243,7 +243,7 @@ export default function TourForm({
                                                 })) ?? [];
                                             form.setValue('tours', newTours);
                                         }}
-                                        numberOfMonths={2}
+                                        numberOfMonths={6}
                                         pagedNavigation
                                         className="rounded-md"
                                         disabled={{ before: new Date() }}
