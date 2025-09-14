@@ -6,7 +6,12 @@ export const CountryShowcaseCreateSchema = z.object({
     subtitle: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
     linkText: z.string().optional().nullable(),
-    linkUrl: z.string().url('連結格式不正確').optional().nullable(),
+    linkUrl: z
+        .string()
+        .url('連結格式不正確')
+        .or(z.literal(''))
+        .optional()
+        .nullable(),
     order: z.number().int().nonnegative().default(0),
 });
 

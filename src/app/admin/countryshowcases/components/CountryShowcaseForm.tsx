@@ -118,10 +118,13 @@ export default function CountryShowcaseForm({
                 if (!res.ok) throw new Error('上傳失敗');
                 const { url } = await res.json();
 
+                // 強制更新 RHF 狀態，確保 dirty/valid 被觸發
                 form.setValue('imageUrl', url, {
                     shouldValidate: true,
                     shouldDirty: true,
                 });
+                await form.trigger('imageUrl'); // 👈 這行很重要
+
                 const previewUrl = URL.createObjectURL(file);
                 setImgPreview(previewUrl);
 
@@ -520,14 +523,15 @@ export default function CountryShowcaseForm({
                                 type="submit"
                                 form={formId}
                                 disabled={
-                                    !isValid ||
                                     isLoading ||
                                     isPending ||
-                                    isSubmitting
+                                    isSubmitting ||
+                                    !form.getValues('imageUrl')
                                 }
                             >
                                 {isEdit ? '儲存變更' : '送出需求'}
                             </Button>
+
                         </div>
                     </div>
                 </div>
