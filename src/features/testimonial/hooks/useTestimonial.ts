@@ -1,4 +1,3 @@
-// src/features/testimonial/hooks/useTestimonial.ts
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,9 +23,10 @@ type ServerPayload = {
     nickname?: string | null;
     stars?: number | null; // 1~5
     linkUrl?: string | null;
+    imageUrl?: string | null; // ⬅️ 新增
 };
 
-/** 轉換前端 DTO -> 後端 payload（修正 mode / 預設 order / 正規化可選欄位） */
+/** 轉換前端 DTO -> 後端 payload */
 function toServerPayload(input: TestimonialDTO): ServerPayload {
     const modeUpper = String(input.mode ?? '').toUpperCase();
     const mode: ServerMode = modeUpper === 'MARKETING' ? 'MARKETING' : 'REAL';
@@ -41,6 +41,7 @@ function toServerPayload(input: TestimonialDTO): ServerPayload {
                 ? Math.min(5, Math.max(1, input.stars))
                 : null,
         linkUrl: input.linkUrl ?? null,
+        imageUrl: input.imageUrl ?? null,
     };
 }
 

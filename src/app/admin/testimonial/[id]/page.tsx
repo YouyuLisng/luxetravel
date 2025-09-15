@@ -1,17 +1,7 @@
-// app/(admin)/admin/testimonial/[id]/page.tsx
+import TestimonialForm from '@/app/admin/testimonial/components/TestimonialForm';
 import type { Metadata } from 'next';
-import {
-    HydrationBoundary,
-    dehydrate,
-    QueryClient,
-} from '@tanstack/react-query';
-
-import {
-    testimonialQuery,
-    type TestimonialEntity,
-} from '@/features/testimonial/queries/testimonialQueries';
-
-import TestimonialForm from '../components/TestimonialForm';
+import { db } from '@/lib/db';
+import { notFound } from 'next/navigation';
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -25,30 +15,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
     const { id } = await params;
 
-    const queryClient = new QueryClient();
-    const query = testimonialQuery(id);
+    const data = await db.testimonial.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            mode: true,
+            nickname: true,
+            stars: true,
+            content: true,
+            linkUrl: true,
+            imageUrl: true,
+            order: true,
+        },
+    });
 
-    // 預取單筆 Testimonial
-    await queryClient.prefetchQuery(query);
+    if (!data) return notFound();
 
-    // 取得預取資料
-    const data = queryClient.getQueryData<TestimonialEntity>(query.queryKey);
+    const initialData = {
+        id: data.id,
+        mode: data.mode,
+        nickname: data.nickname ?? '',
+        stars: data.stars ?? null,
+        content: data.content ?? '',
+        linkUrl: data.linkUrl ?? '',
+        imageUrl: data.imageUrl ?? '',
+        order: typeof data.order === 'number' ? data.order : 0,
+    };
 
-    const initialData = data
-        ? {
-              id: data.id,
-              mode: data.mode,
-              nickname: data.nickname ?? null,
-              stars: data.stars ?? null,
-              content: data.content,
-              linkUrl: data.linkUrl ?? null,
-              order: typeof data.order === 'number' ? data.order : 0,
-          }
-        : undefined;
-
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <TestimonialForm initialData={initialData} method="PUT" />
-        </HydrationBoundary>
-    );
+    return <TestimonialForm initialData={initialData} method="PUT" />;
 }

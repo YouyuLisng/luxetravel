@@ -1,7 +1,7 @@
 // app/(admin)/admin/testimonial/components/TestimonialForm.tsx
 'use client';
 
-import React, { useTransition, useState } from 'react';
+import React, { useTransition, useState, useCallback, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
-
+import Image from 'next/image';
 import {
     Select,
     SelectTrigger,
@@ -44,25 +44,17 @@ const LIST_PATH = '/admin/testimonial';
 const FormSchema = z.object({
     mode: z.enum(['REAL', 'MARKETING'], { required_error: '請選擇來源類型' }),
     nickname: z.string().trim().optional().nullable(),
-    // 允許空值；若有值須為 1~5 的整數
-    stars: z
-        .preprocess(
-            (v) =>
-                v === '' || v === null || v === undefined ? null : Number(v),
-            z
-                .number()
-                .int()
-                .min(1, '最少 1 顆星')
-                .max(5, '最多 5 顆星')
-                .nullable()
-        )
-        .optional(),
+    stars: z.preprocess(
+        (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
+        z.number().int().min(1, '最少 1 顆星').max(5, '最多 5 顆星').nullable()
+    ).optional(),
     content: z.string().trim().min(1, '請輸入內容'),
     linkUrl: z.string().trim().url('請輸入正確的網址').optional().nullable(),
     order: z.preprocess(
         (v) => (v === '' || v === null || v === undefined ? 0 : Number(v)),
         z.number().int().min(0, '排序不可小於 0')
     ),
+    imageUrl: z.string().url('請上傳正確的圖片網址').optional().nullable(),
 });
 
 type TestimonialFormValues = z.infer<typeof FormSchema>;
@@ -77,18 +69,19 @@ export default function TestimonialForm({
     method = 'POST',
 }: Props) {
     const isEdit = method === 'PUT' || Boolean(initialData?.id);
-
+    console.log(initialData)
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
 
+    const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
     const [isPending, startTransition] = useTransition();
 
     const form = useForm<TestimonialFormValues>({
-        // 關鍵：避免 z.preprocess 造成的泛型不相容編譯錯誤
         resolver: zodResolver(FormSchema) as any,
         mode: 'onChange',
         defaultValues: {
@@ -118,8 +111,60 @@ export default function TestimonialForm({
             nickname: v.nickname ? v.nickname : null,
             stars: v.stars ?? null,
             linkUrl: v.linkUrl ? v.linkUrl : null,
+            imageUrl: v.imageUrl ? v.imageUrl : null,
         };
     }
+
+    const handleImageUpload = useCallback(
+        async (file: File) => {
+            setIsLoading(true);
+            show();
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'content-type': file.type },
+                    body: file,
+                });
+                if (!res.ok) throw new Error('上傳失敗');
+                const { url } = await res.json();
+
+                form.setValue('imageUrl', url, { shouldValidate: true });
+                const previewUrl = URL.createObjectURL(file);
+                setImgPreview(previewUrl);
+
+                toast({
+                    title: '上傳成功',
+                    description: '已更新圖片預覽',
+                    duration: 1500,
+                });
+            } catch (err: any) {
+                toast({
+                    variant: 'destructive',
+                    title: err?.message ?? '上傳失敗',
+                    duration: 1800,
+                });
+            } finally {
+                setIsLoading(false);
+                hide();
+            }
+        },
+        [form, show, hide, toast]
+    );
+
+    const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size / 1024 / 1024 > 50) {
+            toast({
+                variant: 'destructive',
+                title: '檔案過大',
+                description: '上限 50MB，請重新選擇',
+                duration: 1800,
+            });
+            return;
+        }
+        handleImageUpload(file);
+    };
 
     const onSubmit: SubmitHandler<TestimonialFormValues> = (values) => {
         setError(undefined);
@@ -385,7 +430,69 @@ export default function TestimonialForm({
                                     )}
                                 />
                             </div>
+                            {/* 圖片上傳 */}
+                            <div className="space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="imageUrl"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
+                                                圖片
+                                            </FormLabel>
 
+                                            <label
+                                                htmlFor="upload-banner"
+                                                className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
+                                            >
+                                                <div className="absolute inset-0 z-10" />
+                                                <div
+                                                    className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
+                                                        imgPreview
+                                                            ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <svg
+                                                        className="h-7 w-7"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+                                                        <path d="M12 12v9" />
+                                                        <path d="m16 16-4-4-4 4" />
+                                                    </svg>
+                                                    <p className="mt-2 text-sm text-slate-500">
+                                                        拖曳或點擊上傳
+                                                    </p>
+                                                </div>
+
+                                                {imgPreview ? (
+                                                    <Image
+                                                        src={imgPreview}
+                                                        alt="預覽圖片"
+                                                        fill
+                                                        className="rounded-xl object-contain bg-white"
+                                                    />
+                                                ) : null}
+                                            </label>
+
+                                            <input
+                                                id="upload-banner"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={handleFileInput}
+                                            />
+                                            <p className="text-xs text-slate-500">
+                                                支援單張圖片上傳（最大 50MB）。
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormError message={error} />
                             <FormSuccess message={success} />
                         </form>

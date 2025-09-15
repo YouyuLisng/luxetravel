@@ -9,11 +9,13 @@ export type FeedbackMode = z.infer<typeof FeedbackModeZod>;
 /** 後端回傳的實體 */
 export const testimonialSchema = z.object({
     id: z.string(),
-    mode: FeedbackModeZod, // ← 改成 enum
+    mode: FeedbackModeZod,
     nickname: z.string().nullish(),
     stars: z.number().int().min(1).max(5).nullish(),
     content: z.string(),
     linkUrl: z.string().url().nullish(),
+    imageUrl: z.string().url().nullish(),
+    color: z.string().nullish(),
     order: z.number().int(),
     createdAt: z.string(),
     updatedAt: z.string(),
@@ -22,12 +24,14 @@ export type TestimonialEntity = z.infer<typeof testimonialSchema>;
 
 /** 建立/更新 DTO（給 UI 與 server actions 共用） */
 export type TestimonialDTO = {
-    mode: FeedbackMode; // ← 改掉 string
+    mode: FeedbackMode;
     content: string;
-    order?: number; // 可不帶，後端預設 0
+    order?: number;
     nickname?: string | null;
-    stars?: number | null; // 1~5
+    stars?: number | null;
     linkUrl?: string | null;
+    imageUrl?: string | null; 
+    color?: string | null;
 };
 
 export const KEYS = {

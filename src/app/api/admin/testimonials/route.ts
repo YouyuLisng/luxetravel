@@ -2,10 +2,27 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { FeedbackMode } from '@prisma/client';
 
+// 固定的 8 個顏色 (可以自己換成你需要的色碼)
+const COLORS = [
+    '#F87171', // 紅
+    '#FBBF24', // 黃
+    '#34D399', // 綠
+    '#60A5FA', // 藍
+    '#A78BFA', // 紫
+    '#F472B6', // 粉
+    '#F59E0B', // 橙
+    '#10B981', // 青
+];
+
+function getRandomColor() {
+    return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { mode, nickname, stars, content, linkUrl, order } = body; // 加入 order
+        const { mode, nickname, stars, content, linkUrl, order, imageUrl } =
+            body; // ⬅️ 加入 imageUrl
 
         if (!mode || !content) {
             return NextResponse.json(
@@ -28,7 +45,8 @@ export async function POST(request: Request) {
                 stars,
                 content,
                 linkUrl,
-                order: typeof order === 'number' ? order : 0, // 預設 0
+                imageUrl: imageUrl ?? null, // ⬅️ 存圖片
+                order: typeof order === 'number' ? order : 0,
             },
         });
 
@@ -36,7 +54,7 @@ export async function POST(request: Request) {
             {
                 status: true,
                 message: `Testimonial 建立成功`,
-                data: testimonial,
+                data: { ...testimonial, color: getRandomColor() }, // ⬅️ 加隨機顏色
             },
             { status: 201 }
         );
@@ -66,16 +84,18 @@ export async function GET(request: Request) {
 
         const testimonials = await db.testimonial.findMany({
             where: mode ? { mode: mode as FeedbackMode } : undefined,
-            orderBy: [
-                { order: 'asc' },      
-                { createdAt: 'desc' } 
-            ],
+            orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
         });
+
+        const testimonialsWithColor = testimonials.map((t) => ({
+            ...t,
+            color: getRandomColor(),
+        }));
 
         return NextResponse.json({
             status: true,
             message: `成功取得${mode ? `「${mode}」` : '所有'}旅客回饋`,
-            data: testimonials,
+            data: testimonialsWithColor,
         });
     } catch (error) {
         console.error('Error fetching testimonials:', error);

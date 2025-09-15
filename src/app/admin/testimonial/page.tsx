@@ -20,12 +20,15 @@ export default function Page() {
         <>
             <DataTable
                 data={rows}
-                visibleKeys={['nickname', 'stars', 'content', 'linkUrl']}
+                visibleKeys={['imageUrl','nickname', 'stars', 'content', 'linkUrl', 'color', 'order']}
                 columnLabels={{
+                    imageUrl: '圖片',
                     nickname: '暱稱',
                     stars:    '評價',
                     content:  '內容',
                     linkUrl:  '連結',
+                    color: '顏色',
+                    order: '排序',
                     actions:  '操作',
                 }}
                 onDelete={async (id) => {

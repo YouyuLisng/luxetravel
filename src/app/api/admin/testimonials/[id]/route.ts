@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { FeedbackMode } from '@prisma/client';
 import type { NextRequest } from 'next/server';
+import { deleteFromVercelBlob } from '@/lib/vercel-blob'; // ⬅️ 加入
 
 interface Props {
     params: Promise<{
@@ -9,6 +10,7 @@ interface Props {
     }>;
 }
 
+/* ------------------------- 取得單筆 ------------------------- */
 export async function GET(_request: NextRequest, { params }: Props) {
     const { id } = await params;
 
@@ -40,6 +42,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
     }
 }
 
+/* ------------------------- 更新 ------------------------- */
 export async function PUT(request: NextRequest, { params }: Props) {
     const { id } = await params;
 
@@ -48,7 +51,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 
     const body = await request.json();
-    const { mode, nickname, stars, content, linkUrl, order } = body; // ← 加入 order
+    const { mode, nickname, stars, content, linkUrl, order, imageUrl } = body;
 
     if (!mode || !content) {
         return NextResponse.json(
@@ -65,21 +68,41 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 
     try {
+        const exists = await db.testimonial.findUnique({ where: { id } });
+        if (!exists) {
+            return NextResponse.json(
+                { error: '找不到 Testimonial' },
+                { status: 404 }
+            );
+        }
+
+        // 如果有新圖，刪除舊圖
+        if (imageUrl && exists.imageUrl && imageUrl !== exists.imageUrl) {
+            try {
+                await deleteFromVercelBlob(exists.imageUrl);
+            } catch (err) {
+                console.warn('刪除舊圖片失敗:', exists.imageUrl, err);
+            }
+        }
+
         const updatedTestimonial = await db.testimonial.update({
             where: { id },
             data: {
                 mode: mode as FeedbackMode,
-                nickname,
-                stars,
+                nickname: nickname?.trim() || null,
+                stars: stars ?? null,
                 content,
-                linkUrl,
-                order: typeof order === 'number' ? order : undefined, // ← 只有有帶數字才更新
+                linkUrl: linkUrl?.trim() || null,
+                order: typeof order === 'number' ? order : 0,
+                imageUrl: imageUrl?.trim() || null,
             },
         });
 
         return NextResponse.json({
             status: true,
-            message: `Testimonial「${updatedTestimonial.nickname || updatedTestimonial.id}」更新成功`,
+            message: `Testimonial「${
+                updatedTestimonial.nickname || updatedTestimonial.id
+            }」更新成功`,
             data: updatedTestimonial,
         });
     } catch (error) {
@@ -91,7 +114,8 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: Props) {
+/* ------------------------- 刪除 ------------------------- */
+export async function DELETE(_request: NextRequest, { params }: Props) {
     const { id } = await params;
 
     if (!id || typeof id !== 'string') {
@@ -99,6 +123,22 @@ export async function DELETE(request: NextRequest, { params }: Props) {
     }
 
     try {
+        const exists = await db.testimonial.findUnique({ where: { id } });
+        if (!exists) {
+            return NextResponse.json(
+                { error: '找不到 Testimonial' },
+                { status: 404 }
+            );
+        }
+
+        if (exists.imageUrl) {
+            try {
+                await deleteFromVercelBlob(exists.imageUrl);
+            } catch (err) {
+                console.warn('刪除圖片失敗:', exists.imageUrl, err);
+            }
+        }
+
         const deletedTestimonial = await db.testimonial.delete({
             where: { id },
         });

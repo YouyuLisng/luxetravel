@@ -232,9 +232,10 @@ model Testimonial {
   id       String       @id @default(auto()) @map("_id") @db.ObjectId
   mode     FeedbackMode
   nickname String?
-  stars    Int? // 1~5 顆星
+  stars    Int?
   content  String
   linkUrl  String?
+  imageUrl String?
   order    Int          @default(0)
 
   createdAt DateTime @default(now())
