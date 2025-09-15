@@ -11,14 +11,14 @@ interface Props {
 }
 
 const COLORS = [
-    '#F87171', // 紅
-    '#FBBF24', // 黃
-    '#34D399', // 綠
-    '#60A5FA', // 藍
-    '#A78BFA', // 紫
-    '#F472B6', // 粉
-    '#F59E0B', // 橙
-    '#10B981', // 青
+    '#F87171',
+    '#FBBF24',
+    '#34D399',
+    '#60A5FA',
+    '#A78BFA',
+    '#F472B6',
+    '#F59E0B',
+    '#10B981',
 ];
 
 function getRandomColor() {
