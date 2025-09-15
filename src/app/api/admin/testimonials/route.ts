@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { FeedbackMode } from '@prisma/client';
 
-// 固定的 8 個顏色 (可以自己換成你需要的色碼)
 const COLORS = [
     '#F87171', // 紅
     '#FBBF24', // 黃
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
                 stars,
                 content,
                 linkUrl,
-                imageUrl: imageUrl ?? null, // ⬅️ 存圖片
+                imageUrl: imageUrl ?? null,
                 order: typeof order === 'number' ? order : 0,
             },
         });
@@ -54,7 +53,7 @@ export async function POST(request: Request) {
             {
                 status: true,
                 message: `Testimonial 建立成功`,
-                data: { ...testimonial, color: getRandomColor() }, // ⬅️ 加隨機顏色
+                data: { ...testimonial, color: getRandomColor() },
             },
             { status: 201 }
         );

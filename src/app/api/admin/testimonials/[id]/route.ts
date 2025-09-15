@@ -10,6 +10,22 @@ interface Props {
     }>;
 }
 
+const COLORS = [
+    '#F87171', // 紅
+    '#FBBF24', // 黃
+    '#34D399', // 綠
+    '#60A5FA', // 藍
+    '#A78BFA', // 紫
+    '#F472B6', // 粉
+    '#F59E0B', // 橙
+    '#10B981', // 青
+];
+
+function getRandomColor() {
+    return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
+
 /* ------------------------- 取得單筆 ------------------------- */
 export async function GET(_request: NextRequest, { params }: Props) {
     const { id } = await params;
@@ -23,15 +39,18 @@ export async function GET(_request: NextRequest, { params }: Props) {
 
         if (!row) {
             return NextResponse.json(
-                { status: false, message: '找不到指定的 Testimonial' },
+                { status: false, message: '找不到指定的旅客回饋' },
                 { status: 404 }
             );
         }
 
         return NextResponse.json({
             status: true,
-            message: `已取得 Testimonial「${row.nickname || row.id}」`,
-            data: row,
+            message: `已取得旅客回饋「${row.nickname || row.id}」`,
+            data: {
+                ...row,
+                color: getRandomColor(),
+            },
         });
     } catch (error) {
         console.error('Error fetching testimonial:', error);
@@ -100,7 +119,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
         return NextResponse.json({
             status: true,
-            message: `Testimonial「${
+            message: `旅客回饋「${
                 updatedTestimonial.nickname || updatedTestimonial.id
             }」更新成功`,
             data: updatedTestimonial,
@@ -126,7 +145,7 @@ export async function DELETE(_request: NextRequest, { params }: Props) {
         const exists = await db.testimonial.findUnique({ where: { id } });
         if (!exists) {
             return NextResponse.json(
-                { error: '找不到 Testimonial' },
+                { error: '找不到旅客回饋' },
                 { status: 404 }
             );
         }
