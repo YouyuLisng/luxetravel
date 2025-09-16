@@ -54,6 +54,7 @@ import { useCities } from '@/features/city/queries/cityQueries';
 import useCountry from '@/features/country/hooks/useCountry';
 import { TextareaInput } from '@/components/TextareaInput';
 import { Combobox } from '@/components/combobox';
+import { useCountriesAll } from '@/features/country/queries/countryQueries';
 
 const LIST_PATH = '/admin/product';
 
@@ -129,14 +130,21 @@ export default function TourProductForm({
 
     const { data: airports = [] } = useAirports();
     const { data: cities = [] } = useCities();
-    const { rows: countries } = useCountry();
+    const { data: countries = [] } = useCountriesAll();
     const { data: categories = [] } = useCategories();
     const { data: subCategories = [] } = useSubCategories();
 
+    // 目前選到的國家代碼
     const selectedCountry = form.watch('arriveCountry');
+
+    // 找到國家的中文名稱
+    const selectedCountryName =
+        (countries ?? []).find((c: any) => c.code === selectedCountry)
+            ?.nameZh ?? '';
+
+    // 篩選出該國家底下的城市
     const filteredCities = (cities ?? []).filter(
-        (c: any) =>
-            c.country === selectedCountry || c.countryNameZh === selectedCountry
+        (c: any) => c.country === selectedCountryName
     );
 
     useEffect(() => {
