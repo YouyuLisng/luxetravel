@@ -1,5 +1,5 @@
 // app/api/users/route.ts
-import { db } from '@/lib/db'; // Prisma instance
+import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
