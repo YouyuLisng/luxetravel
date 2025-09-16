@@ -52,11 +52,9 @@ export const citiesQuery = (page: number, pageSize: number) => ({
 
 export function useCities() {
     return useQuery({
-        queryKey: ['cities', 'all'],
+        queryKey: ['all'],
         queryFn: async () => {
-            const res = await axios.get('/api/admin/city', {
-                params: { page: 1, pageSize: 999 },
-            });
+            const res = await axios.get('/api/admin/city/all');
             return listResponseSchema.parse(res.data).rows;
         },
         staleTime: 1000 * 60 * 10,

@@ -85,7 +85,8 @@ export default function AttractionForm({
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry(1, 9999);
     const { data: regions = [] } = useRegions();
-
+    console.log('cities:', cities);
+    console.log('countries:', countries);
     const form = useForm<AttractionFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
