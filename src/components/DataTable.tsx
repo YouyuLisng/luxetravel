@@ -653,6 +653,33 @@ function generateColumns<T extends Record<string, any>>(
             continue;
         }
 
+        if (key === 'mode') {
+            generated.push({
+                accessorKey: key,
+                header: () => L(key, 'Mode'),
+                enableSorting: false,
+                cell: ({ row }) => {
+                    const value = (row.original as any)[key];
+                    if (value === 'REAL') {
+                        return (
+                            <Badge variant="outline" className="px-1.5">
+                                評論
+                            </Badge>
+                        );
+                    }
+                    if (value === 'MARKETING') {
+                        return (
+                            <Badge variant="outline" className="px-1.5">
+                                行銷
+                            </Badge>
+                        );
+                    }
+                    return <span className="text-muted-foreground">—</span>;
+                },
+            } as ColumnDef<T>);
+            continue;
+        }
+
         const LINK_KEYS = ['linkUrl', 'url', 'href', 'website', 'link'];
         if (LINK_KEYS.includes(key)) {
             generated.push({
