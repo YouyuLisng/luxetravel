@@ -134,15 +134,9 @@ export default function TourProductForm({
     const { data: categories = [] } = useCategories();
     const { data: subCategories = [] } = useSubCategories();
 
-    // 目前選到的國家代碼
     const selectedCountry = form.watch('arriveCountry');
-
-    // 找到國家的中文名稱
     const selectedCountryName =
-        (countries ?? []).find((c: any) => c.code === selectedCountry)
-            ?.nameZh ?? '';
-
-    // 篩選出該國家底下的城市
+        (countries ?? []).find((c: any) => c.code === selectedCountry)  ?.nameZh ?? '';
     const filteredCities = (cities ?? []).filter(
         (c: any) => c.country === selectedCountryName
     );
