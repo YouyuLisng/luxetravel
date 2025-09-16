@@ -22,7 +22,7 @@ export default function useCountryRow(page = 1, pageSize = 10) {
 
   return {
     rows: tableRows,
-    pagination, // 👈 帶出分頁資訊
+    pagination,
     isLoading,
     isError,
     refetch,

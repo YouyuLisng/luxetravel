@@ -60,6 +60,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useAttractionsAll } from '@/features/attraction/queries/attractionQueries';
 
 interface Props {
     productId: string;
@@ -71,8 +72,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
 
-    const { data } = useAttractions(1, 999);
-    const attractions = data?.rows ?? [];
+    const { data: attractions = [] } = useAttractionsAll();
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);

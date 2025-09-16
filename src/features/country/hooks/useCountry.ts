@@ -1,12 +1,12 @@
 'use client';
 
-import { useCountries } from '@/features/country/queries/countryQueries';
+import { useQuery } from '@tanstack/react-query';
+import { countriesQuery } from '@/features/country/queries/countryQueries';
 
-/** Hook: 直接取分頁後的 Country 列表 */
+/** Hook: 分頁後的 Country 列表 */
 export default function useCountry(page = 1, pageSize = 10) {
-    const { data, isLoading, isError, error, refetch } = useCountries(
-        page,
-        pageSize
+    const { data, isLoading, isError, error, refetch } = useQuery(
+        countriesQuery(page, pageSize)
     );
 
     return {

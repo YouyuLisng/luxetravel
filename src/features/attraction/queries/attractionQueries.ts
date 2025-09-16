@@ -1,4 +1,5 @@
 import axios from '@/lib/axios';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
 // === Schema ===
@@ -53,6 +54,20 @@ export const attractionsQuery = (page: number, pageSize: number) => ({
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
 });
+
+export function useAttractionsAll() {
+    return useQuery({
+        queryKey: ['attractions', 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/attraction/all');
+            return listResponseSchema.parse({
+                rows: res.data.data,
+                pagination: res.data.pagination,
+            }).rows;
+        },
+        staleTime: 1000 * 60 * 10,
+    });
+}
 
 export const attractionQuery = (id: string) => ({
     queryKey: KEYS.detail(id),

@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/popover';
 
 export type Option = {
-    value: string;
-    label: string;
+    value: string; // 存入表單的值 (e.g. code)
+    label: string; // 顯示用文字 (可含中文/英文/代碼)
 };
 
 interface ComboboxProps {
@@ -70,13 +70,9 @@ export function Combobox({
                             {options.map((o) => (
                                 <CommandItem
                                     key={o.value}
-                                    value={o.value}
-                                    onSelect={(currentValue) => {
-                                        onChange(
-                                            currentValue === value
-                                                ? ''
-                                                : currentValue
-                                        );
+                                    value={o.label}
+                                    onSelect={() => {
+                                        onChange(o.value);
                                         setOpen(false);
                                     }}
                                 >

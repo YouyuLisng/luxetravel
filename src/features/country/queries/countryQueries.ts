@@ -1,62 +1,88 @@
 'use client';
 
+import axios from '@/lib/axios';
+import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 
+// === Schema ===
+export const countrySchema = z.object({
+    id: z.string(),
+    code: z.string(),
+    nameZh: z.string(),
+    nameEn: z.string(),
+    imageUrl: z.string().nullable(),
+    enabled: z.boolean(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+});
+
+export type CountryEntity = z.infer<typeof countrySchema>;
+
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
+
+// === Response Schema (符合 API) ===
+export const apiResponseSchema = z.object({
+    data: countrySchema.array(),
+    pagination: paginationSchema,
+});
+
+export const listResponseSchema = z.object({
+    rows: countrySchema.array(),
+    pagination: paginationSchema,
+});
+
+// === Query Keys ===
 export const KEYS = {
-  all: ['countries'] as const,
-  list: (page: number, pageSize: number) =>
-    [...KEYS.all, 'list', page, pageSize] as const,
-  detail: (id: string) => [...KEYS.all, 'detail', id] as const,
+    all: ['countries'] as const,
+    list: (page: number, pageSize: number) =>
+        [...KEYS.all, 'list', page, pageSize] as const,
+    detail: (id: string) => [...KEYS.all, 'detail', id] as const,
 };
 
-export type CountriesResponse = {
-  rows: any[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    pageCount: number;
-  };
-};
+// === Queries ===
+/** 分頁查詢 Country */
+export const countriesQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/countries', {
+            params: { page, pageSize },
+        });
+        const parsed = apiResponseSchema.parse(res.data);
+        return {
+            rows: parsed.data,
+            pagination: parsed.pagination,
+        };
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
 
-/** 抓分頁 Country */
-export async function fetchCountries(
-  page = 1,
-  pageSize = 10
-): Promise<CountriesResponse> {
-  const res = await fetch(
-    `/api/admin/countries?page=${page}&pageSize=${pageSize}`
-  );
-  if (!res.ok) throw new Error('無法取得 Country 列表');
-  const json = await res.json();
-  return {
-    rows: json.data ?? [],
-    pagination: json.pagination,
-  };
+/** 抓全部 Country（無分頁） */
+export function useCountriesAll() {
+    return useQuery({
+        queryKey: [...KEYS.all, 'all'],
+        queryFn: async () => {
+            const res = await axios.get('/api/admin/countries/all');
+            const parsed = apiResponseSchema.parse(res.data);
+            return parsed.data;
+        },
+        staleTime: 1000 * 60 * 10,
+    });
 }
 
 /** 抓單一 Country */
-export async function fetchCountry(id: string) {
-  const res = await fetch(`/api/admin/countries/${id}`);
-  if (!res.ok) throw new Error('無法取得 Country 資料');
-  const json = await res.json();
-  return json.data;
-}
-
-/** Hook: 分頁 Country */
-export function useCountries(page = 1, pageSize = 10) {
-  return useQuery<CountriesResponse>({
-    queryKey: KEYS.list(page, pageSize),
-    queryFn: () => fetchCountries(page, pageSize),
-    placeholderData: (prev) => prev, // 👈 React Query v5 用法
-  });
-}
-
-/** Hook: 單一 Country */
-export function useCountryDetail(id: string) {
-  return useQuery({
+export const countryQuery = (id: string) => ({
     queryKey: KEYS.detail(id),
-    queryFn: () => fetchCountry(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/countries/${id}`);
+        // 單筆回傳結構推測是 { data: {...} }
+        return countrySchema.parse(res.data.data);
+    },
     enabled: !!id,
-  });
-}
+    staleTime: 1000 * 60 * 5,
+});

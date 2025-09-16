@@ -33,6 +33,7 @@ import {
 
 import { useAirports } from '@/features/airport/queries/airportQueries';
 import { useAirlines } from '@/features/airline/queries/airlineQueries';
+import { Combobox } from '@/components/combobox';
 
 type Props = {
     productId: string;
@@ -150,120 +151,97 @@ export default function FlightForm({ productId, initialData }: Props) {
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel className="required">出發機場</FormLabel>
-                        <Select
-                            value={field.value ?? ''}
-                            onValueChange={(val) => {
-                                field.onChange(val);
-                                const selected = airports.find(
-                                    (a) => a.code === val
-                                );
-                                if (selected) {
-                                    form.setValue(
-                                        `flights.${index}.departName`,
-                                        selected.nameZh
+                        <FormControl>
+                            <Combobox
+                                options={(airports ?? []).map((a: any) => ({
+                                    value: a.code,
+                                    label: `${a.nameZh} ${a.nameEn ?? ''} (${a.code})`,
+                                }))}
+                                value={field.value ?? ''}
+                                onChange={(val) => {
+                                    field.onChange(val);
+                                    const selected = airports.find(
+                                        (a) => a.code === val
                                     );
-                                }
-                            }}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="選擇出發機場" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {airports.map((a) => (
-                                        <SelectItem key={a.id} value={a.code}>
-                                            {a.nameZh} ({a.code})
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                                    if (selected) {
+                                        form.setValue(
+                                            `flights.${index}.departName`,
+                                            selected.nameZh
+                                        );
+                                    }
+                                }}
+                                placeholder="選擇出發機場"
+                                searchPlaceholder="搜尋機場..."
+                            />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
             />
 
-            {/* 抵達機場 */}
             <FormField
                 control={control}
                 name={`flights.${index}.arriveAirport`}
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel className="required">抵達機場</FormLabel>
-                        <Select
-                            value={field.value ?? ''}
-                            onValueChange={(val) => {
-                                field.onChange(val);
-                                const selected = airports.find(
-                                    (a) => a.code === val
-                                );
-                                if (selected) {
-                                    form.setValue(
-                                        `flights.${index}.arriveName`,
-                                        selected.nameZh
+                        <FormControl>
+                            <Combobox
+                                options={(airports ?? []).map((a: any) => ({
+                                    value: a.code,
+                                    label: `${a.nameZh} ${a.nameEn ?? ''} (${a.code})`,
+                                }))}
+                                value={field.value ?? ''}
+                                onChange={(val) => {
+                                    field.onChange(val);
+                                    const selected = airports.find(
+                                        (a) => a.code === val
                                     );
-                                }
-                            }}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="選擇抵達機場" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {airports.map((a) => (
-                                        <SelectItem key={a.id} value={a.code}>
-                                            {a.nameZh} ({a.code})
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                                    if (selected) {
+                                        form.setValue(
+                                            `flights.${index}.arriveName`,
+                                            selected.nameZh
+                                        );
+                                    }
+                                }}
+                                placeholder="選擇抵達機場"
+                                searchPlaceholder="搜尋機場..."
+                            />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
             />
 
-            {/* 航空公司 */}
             <FormField
                 control={control}
                 name={`flights.${index}.airlineCode`}
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>航空公司</FormLabel>
-                        <Select
-                            value={field.value ?? ''}
-                            onValueChange={(val) => {
-                                field.onChange(val);
-                                const selected = airlines.find(
-                                    (al) => al.code === val
-                                );
-                                if (selected) {
-                                    form.setValue(
-                                        `flights.${index}.airlineName`,
-                                        selected.nameZh
+                        <FormControl>
+                            <Combobox
+                                options={(airlines ?? []).map((al: any) => ({
+                                    value: al.code,
+                                    label: `${al.nameZh} ${al.nameEn ?? ''} (${al.code})`,
+                                }))}
+                                value={field.value ?? ''}
+                                onChange={(val) => {
+                                    field.onChange(val);
+                                    const selected = airlines.find(
+                                        (al) => al.code === val
                                     );
-                                }
-                            }}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="選擇航空公司" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {airlines.map((al) => (
-                                        <SelectItem key={al.id} value={al.code}>
-                                            {al.nameZh} ({al.code})
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                                    if (selected) {
+                                        form.setValue(
+                                            `flights.${index}.airlineName`,
+                                            selected.nameZh
+                                        );
+                                    }
+                                }}
+                                placeholder="選擇航空公司"
+                                searchPlaceholder="搜尋航空公司..."
+                            />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}

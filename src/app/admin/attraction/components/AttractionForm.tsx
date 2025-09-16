@@ -38,10 +38,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/attraction/queries/attractionQueries';
 
 import { useCities } from '@/features/city/queries/cityQueries';
-import useCountry from '@/features/country/hooks/useCountry';
 import { TextareaInput } from '@/components/TextareaInput';
 import { useRegions } from '@/features/region/queries/regionQueries';
 import { Combobox } from '@/components/combobox';
+import { useCountriesAll } from '@/features/country/queries/countryQueries';
 
 /* ========== Schema ========== */
 const FormSchema = z.object({
@@ -83,10 +83,8 @@ export default function AttractionForm({
     const [success, setSuccess] = useState<string>();
 
     const { data: cities = [] } = useCities();
-    const { rows: countries } = useCountry(1, 9999);
+    const { data: countries } = useCountriesAll();
     const { data: regions = [] } = useRegions();
-    console.log('cities:', cities);
-    console.log('countries:', countries);
     const form = useForm<AttractionFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
@@ -348,7 +346,7 @@ export default function AttractionForm({
                                             <FormLabel>抵達國家</FormLabel>
                                             <FormControl>
                                                 <Combobox
-                                                    options={[...countries]
+                                                    options={[...(countries ?? [])]
                                                         .sort(
                                                             (a: any, b: any) =>
                                                                 a.nameEn.localeCompare(

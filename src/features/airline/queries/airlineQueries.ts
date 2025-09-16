@@ -52,9 +52,7 @@ export function useAirlines() {
     return useQuery({
         queryKey: ['airlines', 'all'],
         queryFn: async () => {
-            const res = await axios.get('/api/admin/airline', {
-                params: { page: 1, pageSize: 999 },
-            });
+            const res = await axios.get('/api/admin/airline/all');
             return listResponseSchema.parse(res.data).rows;
         },
         staleTime: 1000 * 60 * 10,

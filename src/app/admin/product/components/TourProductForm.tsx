@@ -53,6 +53,7 @@ import { useSubCategories } from '@/features/categorysub/queries/subCategoryQuer
 import { useCities } from '@/features/city/queries/cityQueries';
 import useCountry from '@/features/country/hooks/useCountry';
 import { TextareaInput } from '@/components/TextareaInput';
+import { Combobox } from '@/components/combobox';
 
 const LIST_PATH = '/admin/product';
 
@@ -126,14 +127,17 @@ export default function TourProductForm({
     });
     const { isValid, isSubmitting } = form.formState;
 
-    // const { data: notes = [] } = useLexicons({ type: '備註' });
-    // const { data: reminders = [] } = useLexicons({ type: '貼心提醒' });
-    // const { data: policys = [] } = useLexicons({ type: '參團須知' });
     const { data: airports = [] } = useAirports();
     const { data: cities = [] } = useCities();
     const { rows: countries } = useCountry();
     const { data: categories = [] } = useCategories();
     const { data: subCategories = [] } = useSubCategories();
+
+    const selectedCountry = form.watch('arriveCountry');
+    const filteredCities = (cities ?? []).filter(
+        (c: any) =>
+            c.country === selectedCountry || c.countryNameZh === selectedCountry
+    );
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -677,99 +681,20 @@ export default function TourProductForm({
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>出發機場</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇出發機場" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {airports.map((a) => (
-                                                            <SelectItem
-                                                                key={a.id}
-                                                                value={a.code}
-                                                            >
-                                                                {a.nameZh} (
-                                                                {a.code})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="arriveAirport"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>抵達機場</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達機場" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {airports.map((a) => (
-                                                            <SelectItem
-                                                                key={a.id}
-                                                                value={a.code}
-                                                            >
-                                                                {a.nameZh} (
-                                                                {a.code})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="arriveCountry"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>抵達國家</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達國家" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {countries.map(
-                                                            (c: any) => (
-                                                                <SelectItem
-                                                                    key={c.id}
-                                                                    value={
-                                                                        c.code
-                                                                    }
-                                                                >
-                                                                    {c.nameZh} (
-                                                                    {c.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={(
+                                                        airports ?? []
+                                                    ).map((a: any) => ({
+                                                        value: a.code,
+                                                        label: `${a.nameZh} (${a.code})`,
+                                                    }))}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder="選擇出發機場"
+                                                    searchPlaceholder="搜尋機場..."
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -777,37 +702,89 @@ export default function TourProductForm({
 
                                 <FormField
                                     control={form.control}
+                                    name="arriveAirport"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>抵達機場</FormLabel>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={(
+                                                        airports ?? []
+                                                    ).map((a: any) => ({
+                                                        value: a.code, // ✅ 存代碼
+                                                        label: `${a.nameZh} ${a.nameEn ?? ''} (${a.code})`, // ✅ 顯示中文+英文+代碼
+                                                    }))}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder="選擇抵達機場"
+                                                    searchPlaceholder="搜尋機場..."
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="arriveCountry"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>抵達國家</FormLabel>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={(countries ?? [])
+                                                        .sort(
+                                                            (a: any, b: any) =>
+                                                                a.nameEn.localeCompare(
+                                                                    b.nameEn,
+                                                                    'en'
+                                                                )
+                                                        )
+                                                        .map((c: any) => ({
+                                                            value: c.code,
+                                                            label: `${c.nameZh} ${c.nameEn} (${c.code})`,
+                                                        }))}
+                                                    value={field.value ?? ''}
+                                                    onChange={(val) => {
+                                                        field.onChange(val);
+                                                        form.setValue(
+                                                            'arriveCity',
+                                                            ''
+                                                        ); // ✅ 切換國家時清空城市
+                                                    }}
+                                                    placeholder="選擇抵達國家"
+                                                    searchPlaceholder="搜尋國家..."
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
                                     name="arriveCity"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>抵達城市</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={field.onChange}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="選擇抵達城市" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {cities.map(
-                                                            (c: any) => (
-                                                                <SelectItem
-                                                                    key={c.id}
-                                                                    value={
-                                                                        c.code
-                                                                    }
-                                                                >
-                                                                    {c.nameZh} (
-                                                                    {c.code})
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={filteredCities.map(
+                                                        (c: any) => ({
+                                                            value: c.code,
+                                                            label: `${c.nameZh} ${c.nameEn ?? ''} (${c.code})`,
+                                                        })
+                                                    )}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder={
+                                                        selectedCountry
+                                                            ? '選擇抵達城市'
+                                                            : '請先選擇國家'
+                                                    }
+                                                    searchPlaceholder="搜尋城市..."
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}

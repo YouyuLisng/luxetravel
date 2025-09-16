@@ -67,14 +67,16 @@ export const airportsQuery = (page: number, pageSize: number) => ({
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
 });
+
 export function useAirports() {
     return useQuery({
         queryKey: ['airports', 'all'],
         queryFn: async () => {
-            const res = await axios.get('/api/admin/airports', {
-                params: { page: 1, pageSize: 999 },
-            });
-            return listResponseSchema.parse(res.data).rows;
+            const res = await axios.get('/api/admin/airports/all');
+            return listResponseSchema.parse({
+                rows: res.data.data,
+                pagination: res.data.pagination,
+            }).rows;
         },
         staleTime: 1000 * 60 * 10,
     });
