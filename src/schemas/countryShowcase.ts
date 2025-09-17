@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const CountryShowcaseCreateSchema = z.object({
     imageUrl: z.string().min(1, '請上傳圖片'),
+    imageUrl1: z.string().optional().nullable(),
+    imageUrl2: z.string().optional().nullable(),
     title: z.string().min(1, '請輸入標題'),
     subtitle: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
@@ -15,7 +17,7 @@ export const CountryShowcaseCreateSchema = z.object({
     order: z.number().int().nonnegative().default(0),
 });
 
-export const CountryShowcaseEditSchema = CountryShowcaseCreateSchema; // 若編輯與新增欄位相同
+export const CountryShowcaseEditSchema = CountryShowcaseCreateSchema;
 
 export type CountryShowcaseCreateValues = z.infer<
     typeof CountryShowcaseCreateSchema

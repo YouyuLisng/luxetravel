@@ -30,7 +30,6 @@ import FormSuccess from '@/components/auth/FormSuccess';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/countryShowcase/queries/countryShowcaseQueries';
 
-// ⬇️ CountryShowcase 的 schema 與 actions
 import {
     CountryShowcaseCreateSchema,
     type CountryShowcaseCreateValues,
@@ -42,7 +41,6 @@ import {
 
 const LIST_PATH = '/admin/countryshowcases';
 
-// ✅ 統一表單型別（避免 union 造成 resolver/Control 不相容）
 type CountryShowcaseFormValues = CountryShowcaseCreateValues;
 
 interface Props {
@@ -60,6 +58,12 @@ export default function CountryShowcaseForm({
     const qc = useQueryClient();
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
+    const [imgPreview1, setImgPreview1] = useState(
+        initialData?.imageUrl1 ?? ''
+    );
+    const [imgPreview2, setImgPreview2] = useState(
+        initialData?.imageUrl2 ?? ''
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string>();
@@ -73,7 +77,7 @@ export default function CountryShowcaseForm({
 
     const form = useForm<CountryShowcaseFormValues>({
         resolver: zodResolver(CountryShowcaseCreateSchema) as any,
-        mode: 'onChange', // ✅ 開啟即時驗證，才能用 isValid 控制送出按鈕
+        mode: 'onChange',
         defaultValues: {
             title: initialData?.title ?? '',
             subtitle: (initialData?.subtitle as string | null) ?? null,
@@ -81,6 +85,8 @@ export default function CountryShowcaseForm({
             linkText: (initialData?.linkText as string | null) ?? null,
             linkUrl: (initialData?.linkUrl as string | null) ?? null,
             imageUrl: initialData?.imageUrl ?? '',
+            imageUrl1: initialData?.imageUrl1 ?? null,
+            imageUrl2: initialData?.imageUrl2 ?? null,
             order:
                 typeof initialData?.order === 'number'
                     ? (initialData.order as number)
@@ -88,9 +94,8 @@ export default function CountryShowcaseForm({
         },
     });
 
-    const { isValid, isSubmitting } = form.formState;
+    const { isSubmitting } = form.formState;
 
-    // 將空字串正規化為 null
     function normalize(
         values: CountryShowcaseFormValues
     ): CountryShowcaseFormValues {
@@ -106,7 +111,10 @@ export default function CountryShowcaseForm({
     }
 
     const handleImageUpload = useCallback(
-        async (file: File) => {
+        async (
+            file: File,
+            fieldName: 'imageUrl' | 'imageUrl1' | 'imageUrl2'
+        ) => {
             setIsLoading(true);
             show();
             try {
@@ -118,15 +126,16 @@ export default function CountryShowcaseForm({
                 if (!res.ok) throw new Error('上傳失敗');
                 const { url } = await res.json();
 
-                // 強制更新 RHF 狀態，確保 dirty/valid 被觸發
-                form.setValue('imageUrl', url, {
+                form.setValue(fieldName, url, {
                     shouldValidate: true,
                     shouldDirty: true,
                 });
-                await form.trigger('imageUrl'); // 👈 這行很重要
+                await form.trigger(fieldName);
 
                 const previewUrl = URL.createObjectURL(file);
-                setImgPreview(previewUrl);
+                if (fieldName === 'imageUrl') setImgPreview(previewUrl);
+                if (fieldName === 'imageUrl1') setImgPreview1(previewUrl);
+                if (fieldName === 'imageUrl2') setImgPreview2(previewUrl);
 
                 toast({
                     title: '上傳成功',
@@ -147,7 +156,10 @@ export default function CountryShowcaseForm({
         [form, show, hide, toast]
     );
 
-    const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const handleFileInput = (
+        e: ChangeEvent<HTMLInputElement>,
+        field: 'imageUrl' | 'imageUrl1' | 'imageUrl2'
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
         if (file.size / 1024 / 1024 > 50) {
@@ -159,7 +171,7 @@ export default function CountryShowcaseForm({
             });
             return;
         }
-        handleImageUpload(file);
+        handleImageUpload(file, field);
     };
 
     const onSubmit: SubmitHandler<CountryShowcaseFormValues> = (values) => {
@@ -177,14 +189,13 @@ export default function CountryShowcaseForm({
                     hide();
                     toast({
                         variant: 'destructive',
-                        title: '請先上傳圖片',
+                        title: '請先上傳主圖片',
                         duration: 1600,
                     });
                     return;
                 }
 
                 let res: { error?: string; success?: string } | undefined;
-
                 if (isEdit) {
                     const id = initialData?.id;
                     if (!id) {
@@ -205,7 +216,6 @@ export default function CountryShowcaseForm({
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
 
-                    // 失效快取（列表＋可選的單筆）
                     await qc.invalidateQueries({
                         queryKey: ['country-showcases'],
                     });
@@ -215,7 +225,6 @@ export default function CountryShowcaseForm({
                         });
                     }
 
-                    // 統一回列表頁
                     router.replace(LIST_PATH);
                 }
             } catch (err: any) {
@@ -233,7 +242,6 @@ export default function CountryShowcaseForm({
         <Form {...form}>
             <div className="mx-auto w-full">
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
                             {headingTitle}
@@ -243,7 +251,6 @@ export default function CountryShowcaseForm({
                         </p>
                     </div>
 
-                    {/* Content */}
                     <div className="p-6">
                         <form
                             id={formId}
@@ -251,15 +258,13 @@ export default function CountryShowcaseForm({
                             className="space-y-8"
                         >
                             <div className="grid grid-cols-1 gap-6">
-                                {/* 編號 / 排序 */}
+                                {/* 排序 */}
                                 <FormField
                                     control={form.control}
                                     name="order"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                編號
-                                            </FormLabel>
+                                            <FormLabel>編號</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
@@ -271,76 +276,46 @@ export default function CountryShowcaseForm({
                                                             )
                                                         )
                                                     }
-                                                    placeholder="0"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
                                 {/* 標題 */}
                                 <FormField
                                     control={form.control}
                                     name="title"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                國家名稱
-                                            </FormLabel>
+                                            <FormLabel>國家名稱</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     {...field}
                                                     placeholder="例：日本賞楓特輯"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
-                                {/* 英文名稱 / 副標題 */}
+                                {/* 副標題 */}
                                 <FormField
                                     control={form.control}
                                     name="subtitle"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                國家英文名稱
-                                            </FormLabel>
+                                            <FormLabel>國家英文名稱</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     {...field}
                                                     value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ||
-                                                                null
-                                                        )
-                                                    }
-                                                    placeholder="例：JAPAN"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
                                 {/* 描述 */}
                                 <FormField
                                     control={form.control}
@@ -352,25 +327,13 @@ export default function CountryShowcaseForm({
                                                 <Input
                                                     {...field}
                                                     value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ||
-                                                                null
-                                                        )
-                                                    }
-                                                    placeholder="例：精選 10 大必去城市與路線"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                {/* 連結文字（選填） */}
+                                {/* 連結文字 */}
                                 <FormField
                                     control={form.control}
                                     name="linkText"
@@ -383,26 +346,13 @@ export default function CountryShowcaseForm({
                                                 <Input
                                                     {...field}
                                                     value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ||
-                                                                null
-                                                        )
-                                                    }
-                                                    placeholder="例：查看更多"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
-                                {/* 連結網址（選填） */}
+                                {/* 連結網址 */}
                                 <FormField
                                     control={form.control}
                                     name="linkUrl"
@@ -415,18 +365,6 @@ export default function CountryShowcaseForm({
                                                 <Input
                                                     {...field}
                                                     value={field.value ?? ''}
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value ||
-                                                                null
-                                                        )
-                                                    }
-                                                    placeholder="https://example.com"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -434,71 +372,115 @@ export default function CountryShowcaseForm({
                                     )}
                                 />
 
-                                {/* 圖片上傳 */}
-                                <div className="space-y-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="imageUrl"
-                                        render={() => (
-                                            <FormItem>
-                                                <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                    圖片
-                                                </FormLabel>
-
-                                                <label
-                                                    htmlFor="upload-country-showcase"
-                                                    className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
-                                                >
-                                                    <div className="absolute inset-0 z-10" />
-                                                    <div
-                                                        className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
-                                                            imgPreview
-                                                                ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
-                                                                : ''
-                                                        }`}
-                                                    >
-                                                        <svg
-                                                            className="h-7 w-7"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
-                                                            <path d="M12 12v9" />
-                                                            <path d="m16 16-4-4-4 4" />
-                                                        </svg>
-                                                        <p className="mt-2 text-sm text-slate-500">
-                                                            拖曳或點擊上傳
-                                                        </p>
-                                                    </div>
-
-                                                    {imgPreview ? (
-                                                        <Image
-                                                            src={imgPreview}
-                                                            alt="預覽圖片"
-                                                            fill
-                                                            className="rounded-xl object-contain bg-white"
-                                                        />
-                                                    ) : null}
-                                                </label>
-
-                                                <input
-                                                    id="upload-country-showcase"
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={handleFileInput}
-                                                />
-
-                                                <p className="text-xs text-slate-500">
-                                                    支援單張圖片上傳（最大
-                                                    50MB）。
-                                                </p>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                {/* 主圖片 */}
+                                <FormField
+                                    control={form.control}
+                                    name="imageUrl"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>主圖片 *</FormLabel>
+                                            <label
+                                                htmlFor="upload-country-showcase-main"
+                                                className="group relative flex h-64 w-full cursor-pointer items-center justify-center border rounded-xl"
+                                            >
+                                                {imgPreview && (
+                                                    <Image
+                                                        src={imgPreview}
+                                                        alt="主圖"
+                                                        fill
+                                                        className="rounded-xl object-contain bg-white"
+                                                    />
+                                                )}
+                                            </label>
+                                            <input
+                                                id="upload-country-showcase-main"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) =>
+                                                    handleFileInput(
+                                                        e,
+                                                        'imageUrl'
+                                                    )
+                                                }
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                {/* 圖片1 */}
+                                <FormField
+                                    control={form.control}
+                                    name="imageUrl1"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                圖片 1（選填）
+                                            </FormLabel>
+                                            <label
+                                                htmlFor="upload-country-showcase-1"
+                                                className="group relative flex h-64 w-full cursor-pointer items-center justify-center border rounded-xl"
+                                            >
+                                                {imgPreview1 && (
+                                                    <Image
+                                                        src={imgPreview1}
+                                                        alt="圖片1"
+                                                        fill
+                                                        className="rounded-xl object-contain bg-white"
+                                                    />
+                                                )}
+                                            </label>
+                                            <input
+                                                id="upload-country-showcase-1"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) =>
+                                                    handleFileInput(
+                                                        e,
+                                                        'imageUrl1'
+                                                    )
+                                                }
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                {/* 圖片2 */}
+                                <FormField
+                                    control={form.control}
+                                    name="imageUrl2"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                圖片 2（選填）
+                                            </FormLabel>
+                                            <label
+                                                htmlFor="upload-country-showcase-2"
+                                                className="group relative flex h-64 w-full cursor-pointer items-center justify-center border rounded-xl"
+                                            >
+                                                {imgPreview2 && (
+                                                    <Image
+                                                        src={imgPreview2}
+                                                        alt="圖片2"
+                                                        fill
+                                                        className="rounded-xl object-contain bg-white"
+                                                    />
+                                                )}
+                                            </label>
+                                            <input
+                                                id="upload-country-showcase-2"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) =>
+                                                    handleFileInput(
+                                                        e,
+                                                        'imageUrl2'
+                                                    )
+                                                }
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
 
                             <FormError message={error} />
@@ -506,33 +488,26 @@ export default function CountryShowcaseForm({
                         </form>
                     </div>
 
-                    {/* Footer */}
-                    <div className="rounded-b-2xl border-t border-slate-100 bg-slate-50/60 p-4">
-                        <div className="flex items-center justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => router.back()}
-                                disabled={
-                                    isLoading || isPending || isSubmitting
-                                }
-                            >
-                                取消
-                            </Button>
-                            <Button
-                                type="submit"
-                                form={formId}
-                                disabled={
-                                    isLoading ||
-                                    isPending ||
-                                    isSubmitting ||
-                                    !form.getValues('imageUrl')
-                                }
-                            >
-                                {isEdit ? '儲存變更' : '送出需求'}
-                            </Button>
-
-                        </div>
+                    <div className="rounded-b-2xl border-t bg-slate-50/60 p-4 flex justify-end gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.back()}
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            type="submit"
+                            form={formId}
+                            disabled={
+                                isLoading ||
+                                isPending ||
+                                isSubmitting ||
+                                !form.getValues('imageUrl')
+                            }
+                        >
+                            {isEdit ? '儲存變更' : '送出需求'}
+                        </Button>
                     </div>
                 </div>
             </div>

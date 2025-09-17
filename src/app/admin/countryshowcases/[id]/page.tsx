@@ -20,9 +20,12 @@ export default async function Page({ params }: Props) {
         select: {
             id: true,
             imageUrl: true,
+            imageUrl1: true,
+            imageUrl2: true,
             title: true,
             subtitle: true,
             description: true,
+            linkText: true,
             linkUrl: true,
             order: true,
         },
@@ -33,9 +36,12 @@ export default async function Page({ params }: Props) {
     const initialData = {
         id: data.id,
         imageUrl: data.imageUrl ?? '',
+        imageUrl1: data.imageUrl1 ?? null,
+        imageUrl2: data.imageUrl2 ?? null,
         title: data.title ?? '',
         subtitle: data.subtitle ?? '',
         description: data.description ?? '',
+        linkText: data.linkText ?? '',
         linkUrl: data.linkUrl ?? '',
         order: data.order ?? 0,
     };

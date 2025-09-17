@@ -8,6 +8,7 @@ interface Props {
     }>;
 }
 
+/** 取得單筆 CountryShowcase */
 export async function GET(request: NextRequest, { params }: Props) {
     const { id } = await params;
 
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest, { params }: Props) {
     }
 }
 
+/** 更新單筆 CountryShowcase */
 export async function PUT(request: NextRequest, { params }: Props) {
     const { id } = await params;
 
@@ -46,11 +48,21 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 
     const body = await request.json();
-    const { imageUrl, title, subtitle, description, linkUrl, order } = body;
+    const {
+        imageUrl,
+        imageUrl1,
+        imageUrl2,
+        title,
+        subtitle,
+        description,
+        linkText,
+        linkUrl,
+        order,
+    } = body;
 
-    if (!imageUrl || !title || !description) {
+    if (!imageUrl || !title) {
         return NextResponse.json(
-            { error: '缺少必要欄位（imageUrl, title, description）' },
+            { error: '缺少必要欄位（imageUrl, title）' },
             { status: 400 }
         );
     }
@@ -60,10 +72,13 @@ export async function PUT(request: NextRequest, { params }: Props) {
             where: { id },
             data: {
                 imageUrl,
+                imageUrl1: imageUrl1 || null,
+                imageUrl2: imageUrl2 || null,
                 title,
-                subtitle,
-                description,
-                linkUrl,
+                subtitle: subtitle || null,
+                description: description || null,
+                linkText: linkText || null,
+                linkUrl: linkUrl || null,
                 order: order ?? 0,
             },
         });
@@ -82,6 +97,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 }
 
+/** 刪除單筆 CountryShowcase */
 export async function DELETE(request: NextRequest, { params }: Props) {
     const { id } = await params;
 

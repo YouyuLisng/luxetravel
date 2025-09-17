@@ -17,12 +17,23 @@ export async function createCountryShowcase(
     const parsed = CountryShowcaseCreateSchema.safeParse(values);
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
-    const { imageUrl, title, subtitle, description, linkText, linkUrl, order } =
-        parsed.data;
+    const {
+        imageUrl,
+        imageUrl1,
+        imageUrl2,
+        title,
+        subtitle,
+        description,
+        linkText,
+        linkUrl,
+        order,
+    } = parsed.data;
 
     const data = await db.countryShowcase.create({
         data: {
             imageUrl,
+            imageUrl1: imageUrl1 || null,
+            imageUrl2: imageUrl2 || null,
             title,
             subtitle: subtitle || null,
             description: description || null,
@@ -48,19 +59,30 @@ export async function editCountryShowcase(
     const exists = await db.countryShowcase.findUnique({ where: { id } });
     if (!exists) return { error: '找不到 CountryShowcase' };
 
-    const { imageUrl, title, subtitle, description, linkText, linkUrl, order } =
-        parsed.data;
+    const {
+        imageUrl,
+        imageUrl1,
+        imageUrl2,
+        title,
+        subtitle,
+        description,
+        linkText,
+        linkUrl,
+        order,
+    } = parsed.data;
 
-    // ⚡ 如果換圖，刪掉舊 blob
-    if (
-        imageUrl !== undefined &&
-        exists.imageUrl &&
-        exists.imageUrl !== imageUrl
-    ) {
-        try {
-            await deleteFromVercelBlob(exists.imageUrl);
-        } catch (err) {
-            console.error('刪除舊 Blob 圖片失敗:', err);
+    // ⚡ 只檢查圖片欄位
+    const imageFields = ['imageUrl', 'imageUrl1', 'imageUrl2'] as const;
+
+    for (const field of imageFields) {
+        const newValue = parsed.data[field];
+        const oldValue = exists[field] as string | null;
+        if (newValue !== undefined && oldValue && oldValue !== newValue) {
+            try {
+                await deleteFromVercelBlob(oldValue);
+            } catch (err) {
+                console.error(`刪除舊 Blob 圖片失敗 (${field}):`, err);
+            }
         }
     }
 
@@ -68,6 +90,8 @@ export async function editCountryShowcase(
         where: { id },
         data: {
             imageUrl,
+            imageUrl1: imageUrl1 || null,
+            imageUrl2: imageUrl2 || null,
             title,
             subtitle: subtitle || null,
             description: description || null,
@@ -86,16 +110,18 @@ export async function deleteCountryShowcase(id: string) {
 
     const exists = await db.countryShowcase.findUnique({
         where: { id },
-        select: { id: true, imageUrl: true },
+        select: { id: true, imageUrl: true, imageUrl1: true, imageUrl2: true },
     });
     if (!exists) return { error: '找不到 CountryShowcase' };
 
-    // ⚡ 刪除舊圖片
-    if (exists.imageUrl) {
-        try {
-            await deleteFromVercelBlob(exists.imageUrl);
-        } catch (err) {
-            console.error('刪除 Blob 圖片失敗:', err);
+    // ⚡ 刪除舊圖片 (最多 3 張)
+    for (const field of ['imageUrl', 'imageUrl1', 'imageUrl2'] as const) {
+        if (exists[field]) {
+            try {
+                await deleteFromVercelBlob(exists[field]!);
+            } catch (err) {
+                console.error(`刪除 Blob 圖片失敗 (${field}):`, err);
+            }
         }
     }
 
@@ -106,8 +132,8 @@ export async function deleteCountryShowcase(id: string) {
 /* ------------------------- 拖曳排序 Server Actions ------------------------- */
 
 const ReorderSchema = z.object({
-    ids: z.array(z.string().min(1)).nonempty(), /// 拖曳後完整順序
-    startFrom: z.number().int().min(0).optional(), /// 起始排序值（預設 1）
+    ids: z.array(z.string().min(1)).nonempty(),
+    startFrom: z.number().int().min(0).optional(),
 });
 
 /** 重排 CountryShowcase */
@@ -138,14 +164,12 @@ export async function reorderCountryShowcases(
 
     try {
         await db.$transaction([
-            // 暫存位移避免 unique(order) 衝突
             ...ids.map((id, i) =>
                 db.countryShowcase.update({
                     where: { id },
                     data: { order: startFrom + i + 1_000_000 },
                 })
             ),
-            // 最終順序
             ...ids.map((id, i) =>
                 db.countryShowcase.update({
                     where: { id },
@@ -161,7 +185,6 @@ export async function reorderCountryShowcases(
     }
 }
 
-/** 便捷函式：直接丟 ids（可選 startFrom） */
 export async function reorderCountryShowcasesByIds(
     ids: string[],
     startFrom?: number

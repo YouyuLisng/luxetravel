@@ -132,6 +132,8 @@ model Banner {
 model CountryShowcase {
   id          String  @id @default(auto()) @map("_id") @db.ObjectId
   imageUrl    String
+  imageUrl1   String?
+  imageUrl2   String?
   title       String
   subtitle    String?
   description String?

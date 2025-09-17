@@ -4,11 +4,21 @@ import { db } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { imageUrl, title, subtitle, description, linkUrl, order } = body;
+        const {
+            imageUrl,
+            imageUrl1,
+            imageUrl2,
+            title,
+            subtitle,
+            description,
+            linkText,
+            linkUrl,
+            order,
+        } = body;
 
-        if (!imageUrl || !title || !description) {
+        if (!imageUrl || !title) {
             return NextResponse.json(
-                { error: '缺少必要欄位（imageUrl, title, description）' },
+                { error: '缺少必要欄位（imageUrl, title）' },
                 { status: 400 }
             );
         }
@@ -16,10 +26,13 @@ export async function POST(request: Request) {
         const item = await db.countryShowcase.create({
             data: {
                 imageUrl,
+                imageUrl1: imageUrl1 || null,
+                imageUrl2: imageUrl2 || null,
                 title,
-                subtitle,
-                description,
-                linkUrl,
+                subtitle: subtitle || null,
+                description: description || null,
+                linkText: linkText || null,
+                linkUrl: linkUrl || null,
                 order: order ?? 0,
             },
         });
@@ -56,6 +69,20 @@ export async function GET(req: Request) {
                 orderBy: { order: 'asc' },
                 skip: (page - 1) * pageSize,
                 take: pageSize,
+                select: {
+                    id: true,
+                    imageUrl: true,
+                    imageUrl1: true,
+                    imageUrl2: true,
+                    title: true,
+                    subtitle: true,
+                    description: true,
+                    linkText: true,
+                    linkUrl: true,
+                    order: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
             }),
         ]);
 
