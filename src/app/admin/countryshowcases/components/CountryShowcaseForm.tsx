@@ -7,7 +7,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -39,8 +39,6 @@ import {
     editCountryShowcase,
 } from '@/app/admin/countryshowcases/action/countryShowcase';
 
-const LIST_PATH = '/admin/countryshowcases';
-
 type CountryShowcaseFormValues = CountryShowcaseCreateValues;
 
 interface Props {
@@ -56,6 +54,12 @@ export default function CountryShowcaseForm({
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/countryshowcases?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [imgPreview1, setImgPreview1] = useState(

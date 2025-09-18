@@ -4,7 +4,7 @@ import { ChangeEvent, useCallback, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
     Form,
@@ -34,14 +34,12 @@ import {
 } from '@/app/admin/advantage/action/travelAdvantage';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useToast } from '@/hooks/use-toast';
-import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 /* ========================= 常數 ========================= */
 const LIST_PATH = '/admin/advantage';
 const FIXED_MODULE_ID = '68b04a89eb0b7404083d887a';
 
-/* ========================= Client 端統一 Schema =========================
-   避免 zodResolver 收到 union 與 default(0) 的輸入型別不一致問題。 */
+/* ========================= Client 端統一 Schema ========================= */
 const ClientSchema = z.object({
     imageUrl: z.string().min(1, '請上傳或貼上圖片 URL'),
     title: z.string().min(1, '標題必填'),
@@ -64,11 +62,16 @@ export default function TravelAdvantageForm({
     const isEdit = mode === 'edit';
     const router = useRouter();
     const qc = useQueryClient();
-
+    const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
+
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/advantage?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();

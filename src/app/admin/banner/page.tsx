@@ -1,19 +1,41 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import GlobalLoading from '@/components/GlobalLoading';
 import { DataTable } from '@/components/DataTable';
 import { deleteBanner } from '@/app/admin/banner/action/banner';
 import useBannerRow from '@/features/banner/hooks/useBannerRows';
 
 export default function Page() {
-    const [page, setPage] = React.useState(1);
-    const [pageSize, setPageSize] = React.useState(10);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    // 從 URL 初始化 page/pageSize
+    const [page, setPage] = React.useState(
+        Number(searchParams.get('page')) || 1
+    );
+    const [pageSize, setPageSize] = React.useState(
+        Number(searchParams.get('pageSize')) || 50
+    );
 
     const { rows, pagination, isLoading, isError, refetch } = useBannerRow(
         page,
         pageSize
     );
+
+    // ⚡ 同步狀態到 URL
+    React.useEffect(() => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pageSize', String(pageSize));
+        router.replace(`?${params.toString()}`);
+    }, [page, pageSize, router]);
+
+    // 組合當前 query 參數
+    const currentQuery = searchParams.toString()
+        ? `?${searchParams.toString()}`
+        : '';
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;
@@ -47,9 +69,9 @@ export default function Page() {
                 return res;
             }}
             onRefresh={refetch}
-            getEditHref={(id) => `/admin/banner/${id}`}
+            getEditHref={(id) => `/admin/banner/${id}${currentQuery}`}
             addButtonLabel="新增首頁輪播大圖"
-            addButtonHref="/admin/banner/new"
+            addButtonHref={`/admin/banner/new${currentQuery}`}
         />
     );
 }

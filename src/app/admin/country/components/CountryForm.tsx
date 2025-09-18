@@ -6,7 +6,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -36,8 +36,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/country/queries/countryQueries';
 import { Switch } from '@/components/ui/switch';
 
-const LIST_PATH = '/admin/country';
-
 // ✅ 統一表單型別（避免 union 造成 resolver/Control 不相容）
 type CountryFormValues = CountryCreateValues;
 
@@ -51,6 +49,12 @@ export default function CountryForm({ initialData, method = 'POST' }: Props) {
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/country?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);
@@ -173,7 +177,7 @@ export default function CountryForm({ initialData, method = 'POST' }: Props) {
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
 
-                    await qc.invalidateQueries({ queryKey:['list'] });
+                    await qc.invalidateQueries({ queryKey: ['list'] });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),

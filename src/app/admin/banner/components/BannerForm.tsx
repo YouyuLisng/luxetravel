@@ -6,7 +6,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -32,8 +32,6 @@ import { createBanner, editBanner } from '@/app/admin/banner/action/banner';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/banner/queries/bannerQueries';
 
-const LIST_PATH = '/admin/banner';
-
 // ✅ 統一表單型別（避免 union 造成 resolver/Control 不相容）
 type BannerFormValues = BannerCreateValues;
 
@@ -47,6 +45,12 @@ export default function BannerForm({ initialData, method = 'POST' }: Props) {
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+    
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/banner?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);

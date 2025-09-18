@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,14 +52,18 @@ interface Props {
     initialData?: Partial<LexiconFormValues> & { id?: string };
 }
 
-const LIST_PATH = '/admin/dictionary';
-
 export default function LexiconForm({ mode = 'create', initialData }: Props) {
     const isEdit = mode === 'edit';
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/dictionary?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);

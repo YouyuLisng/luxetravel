@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback, ChangeEvent } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -55,14 +55,18 @@ interface Props {
     initialData?: Partial<CityFormValues> & { id?: string };
 }
 
-const LIST_PATH = '/admin/city';
-
 export default function CityForm({ mode = 'create', initialData }: Props) {
     const isEdit = mode === 'edit';
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/city?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);

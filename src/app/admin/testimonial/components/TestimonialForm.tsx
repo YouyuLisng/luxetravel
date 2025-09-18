@@ -1,8 +1,13 @@
 // app/(admin)/admin/testimonial/components/TestimonialForm.tsx
 'use client';
 
-import React, { useTransition, useState, useCallback, ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {
+    useTransition,
+    useState,
+    useCallback,
+    ChangeEvent,
+} from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,16 +43,22 @@ import {
 } from '@/app/admin/testimonial/action/testimonial';
 import { TextareaInput } from '@/components/TextareaInput';
 
-const LIST_PATH = '/admin/testimonial';
-
 /* -------------------- Zod form schema (client) -------------------- */
 const FormSchema = z.object({
     mode: z.enum(['REAL', 'MARKETING'], { required_error: '請選擇來源類型' }),
     nickname: z.string().trim().optional().nullable(),
-    stars: z.preprocess(
-        (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
-        z.number().int().min(1, '最少 1 顆星').max(5, '最多 5 顆星').nullable()
-    ).optional(),
+    stars: z
+        .preprocess(
+            (v) =>
+                v === '' || v === null || v === undefined ? null : Number(v),
+            z
+                .number()
+                .int()
+                .min(1, '最少 1 顆星')
+                .max(5, '最多 5 顆星')
+                .nullable()
+        )
+        .optional(),
     content: z.string().trim().min(1, '請輸入內容'),
     linkUrl: z.string().trim().url('請輸入正確的網址').optional().nullable(),
     order: z.preprocess(
@@ -69,11 +80,17 @@ export default function TestimonialForm({
     method = 'POST',
 }: Props) {
     const isEdit = method === 'PUT' || Boolean(initialData?.id);
-    console.log(initialData)
+    console.log(initialData);
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/testimonial?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);
@@ -198,7 +215,7 @@ export default function TestimonialForm({
                     );
 
                     // 失效快取 → 返回列表
-                    await qc.invalidateQueries({ queryKey: KEYS.list() });
+                    await qc.invalidateQueries({ queryKey: ['testimonials'] });
                     if (isEdit && initialData?.id) {
                         await qc.invalidateQueries({
                             queryKey: KEYS.detail(initialData.id),

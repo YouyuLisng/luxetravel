@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import GlobalLoading from '@/components/GlobalLoading';
 import { DataTable } from '@/components/DataTable';
 import {
@@ -10,11 +11,29 @@ import {
 import useCountryShowcaseRow from '@/features/countryShowcase/hooks/useCountryShowcaseRow';
 
 export default function Page() {
-    const [page, setPage] = React.useState(1);
-    const [pageSize, setPageSize] = React.useState(10);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const [page, setPage] = React.useState(
+        Number(searchParams.get('page')) || 1
+    );
+    const [pageSize, setPageSize] = React.useState(
+        Number(searchParams.get('pageSize')) || 50
+    );
 
     const { rows, pagination, isLoading, isError, refetch } =
         useCountryShowcaseRow(page, pageSize);
+
+    React.useEffect(() => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pageSize', String(pageSize));
+        router.replace(`?${params.toString()}`);
+    }, [page, pageSize, router]);
+
+    const currentQuery = searchParams.toString()
+        ? `?${searchParams.toString()}`
+        : '';
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;
@@ -55,9 +74,9 @@ export default function Page() {
                 return res;
             }}
             onRefresh={refetch}
-            getEditHref={(id) => `/admin/countryshowcases/${id}`}
+            getEditHref={(id) => `/admin/countryshowcases/${id}${currentQuery}`}
             addButtonLabel="新增經典行程卡片"
-            addButtonHref="/admin/countryshowcases/new"
+            addButtonHref={`/admin/countryshowcases/new${currentQuery}`}
         />
     );
 }

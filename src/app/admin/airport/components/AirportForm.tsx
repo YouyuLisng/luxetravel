@@ -10,7 +10,7 @@ import {
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -57,14 +57,18 @@ interface Props {
     initialData?: Partial<AirportFormValues> & { id?: string };
 }
 
-const LIST_PATH = '/admin/airport';
-
 export default function AirportForm({ mode = 'create', initialData }: Props) {
     const isEdit = mode === 'edit';
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/airport?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
@@ -84,9 +88,12 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
         (async () => {
             try {
                 setLoadingRegions(true);
-                const res = await fetch('/api/admin/regions?page=1&pageSize=9999', {
-                    cache: 'no-store',
-                });
+                const res = await fetch(
+                    '/api/admin/regions?page=1&pageSize=9999',
+                    {
+                        cache: 'no-store',
+                    }
+                );
                 const json = await res.json();
                 const list = Array.isArray(json?.rows) ? json.rows : [];
                 const opts: Option[] = list.map((r: any) => ({
@@ -108,9 +115,12 @@ export default function AirportForm({ mode = 'create', initialData }: Props) {
         (async () => {
             try {
                 setLoadingCountries(true);
-                const res = await fetch('/api/admin/countries?page=1&pageSize=9999', {
-                    cache: 'no-store',
-                });
+                const res = await fetch(
+                    '/api/admin/countries?page=1&pageSize=9999',
+                    {
+                        cache: 'no-store',
+                    }
+                );
                 const json = await res.json();
                 const list = Array.isArray(json?.data) ? json.data : [];
                 const opts: Option[] = list.map((c: any) => ({

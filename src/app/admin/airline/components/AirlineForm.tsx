@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback, ChangeEvent } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -26,7 +26,7 @@ import { useLoadingStore } from '@/stores/useLoadingStore';
 
 import { createAirline, editAirline } from '@/app/admin/airline/action/airline';
 import { useQueryClient } from '@tanstack/react-query';
-import { KEYS } from '@/features/airline/queries/airlineQueries'; 
+import { KEYS } from '@/features/airline/queries/airlineQueries';
 
 // ======== 表單 Schema（Airline 僅需基本欄位）========
 const FormSchema = z.object({
@@ -45,15 +45,17 @@ interface Props {
     initialData?: Partial<AirlineFormValues> & { id?: string };
 }
 
-const LIST_PATH = '/admin/airline';
-
 export default function AirlineForm({ mode = 'create', initialData }: Props) {
     const isEdit = mode === 'edit';
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
-    const qc = useQueryClient(); // ✅ React Query 客戶端
-
+    const qc = useQueryClient();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/airline?page=${page}&pageSize=${pageSize}&q=${q}`;
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
@@ -132,7 +134,7 @@ export default function AirlineForm({ mode = 'create', initialData }: Props) {
     const onSubmit: SubmitHandler<AirlineFormValues> = (values) => {
         setError(undefined);
         setSuccess(undefined);
-        
+
         startTransition(async () => {
             setIsLoading(true);
             show();

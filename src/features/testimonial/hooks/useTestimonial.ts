@@ -23,7 +23,8 @@ type ServerPayload = {
     nickname?: string | null;
     stars?: number | null; // 1~5
     linkUrl?: string | null;
-    imageUrl?: string | null; // ⬅️ 新增
+    imageUrl?: string | null;
+    color?: string | null;
 };
 
 /** 轉換前端 DTO -> 後端 payload */
@@ -42,14 +43,15 @@ function toServerPayload(input: TestimonialDTO): ServerPayload {
                 : null,
         linkUrl: input.linkUrl ?? null,
         imageUrl: input.imageUrl ?? null,
+        color: input.color ?? null,
     };
 }
 
 /* ============== Queries ============== */
 
-/** 取得全部 */
-export function useTestimonialsQuery() {
-    return useQuery(testimonialsQuery());
+/** 分頁取得全部 */
+export function useTestimonialsQuery(page: number, pageSize: number) {
+    return useQuery(testimonialsQuery(page, pageSize));
 }
 
 /** 取得單筆 */
@@ -69,7 +71,7 @@ export function useCreateTestimonialMutation() {
             return res.data;
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: KEYS.list() });
+            qc.invalidateQueries({ queryKey: ['testimonials'] });
         },
     });
 }
@@ -90,7 +92,7 @@ export function useEditTestimonialMutation() {
             return res.data;
         },
         onSuccess: (_data, vars) => {
-            qc.invalidateQueries({ queryKey: KEYS.list() });
+            qc.invalidateQueries({ queryKey: ['testimonials'] });
             qc.invalidateQueries({ queryKey: KEYS.detail(vars.id) });
         },
     });
@@ -106,7 +108,7 @@ export function useDeleteTestimonialMutation() {
             return true;
         },
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: KEYS.list() });
+            qc.invalidateQueries({ queryKey: ['testimonials'] });
         },
     });
 }

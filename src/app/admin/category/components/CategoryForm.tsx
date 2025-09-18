@@ -7,7 +7,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -29,12 +29,16 @@ import { Switch } from '@/components/ui/switch';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
 
-import { CategoryCreateSchema, type CategoryCreateValues } from '@/schemas/category';
-import { createCategory, editCategory } from '@/app/admin/category/action/category';
+import {
+    CategoryCreateSchema,
+    type CategoryCreateValues,
+} from '@/schemas/category';
+import {
+    createCategory,
+    editCategory,
+} from '@/app/admin/category/action/category';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/category/queries/categoryQueries';
-
-const LIST_PATH = '/admin/category';
 
 // 統一前端表單型別（避免 union 造成 resolver/Control 不相容）
 type CategoryFormValues = CategoryCreateValues;
@@ -49,6 +53,12 @@ export default function CategoryForm({ initialData, method = 'POST' }: Props) {
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/category?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);

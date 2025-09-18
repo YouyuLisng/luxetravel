@@ -6,7 +6,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -47,8 +47,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { KEYS as SubCategoryKEYS } from '@/features/categorysub/queries/subCategoryQueries';
 import { useCategories } from '@/features/category/queries/categoryQueries';
 
-const LIST_PATH = '/admin/categorysub';
-
 type SubCategoryFormValues = SubCategoryCreateValues;
 
 interface Props {
@@ -64,6 +62,12 @@ export default function SubCategoryForm({
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/categorysub?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);

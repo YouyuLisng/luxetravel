@@ -1,21 +1,39 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import GlobalLoading from '@/components/GlobalLoading';
 import { DataTable } from '@/components/DataTable';
 import { deleteAttraction } from '@/app/admin/attraction/action/attraction';
 import useAttractionRow from '@/features/attraction/hooks/useAttractionRow';
 
 export default function Page() {
-    const [page, setPage] = React.useState(1);
-    const [pageSize, setPageSize] = React.useState(10);
-    const [keyword, setKeyword] = React.useState('');
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    // 從 URL 初始化 page/pageSize/keyword
+    const [page, setPage] = React.useState(
+        Number(searchParams.get('page')) || 1
+    );
+    const [pageSize, setPageSize] = React.useState(
+        Number(searchParams.get('pageSize')) || 50
+    );
+    const [keyword, setKeyword] = React.useState(searchParams.get('q') || '');
 
     const { rows, pagination, isLoading, isError, refetch } = useAttractionRow(
         page,
         pageSize,
         keyword
     );
+
+    // ⚡ 同步狀態到 URL
+    React.useEffect(() => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pageSize', String(pageSize));
+        if (keyword) params.set('q', keyword);
+        router.replace(`?${params.toString()}`);
+    }, [page, pageSize, keyword, router]);
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;

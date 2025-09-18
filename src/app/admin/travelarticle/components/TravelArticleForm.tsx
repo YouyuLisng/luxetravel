@@ -10,7 +10,7 @@ import {
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -68,7 +68,13 @@ export default function TravelArticleForm({
     const router = useRouter();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
-    const qc = useQueryClient(); // ✅ 用於快取失效
+    const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/travelarticle?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
@@ -85,9 +91,12 @@ export default function TravelArticleForm({
         (async () => {
             try {
                 setLoadingOptions(true);
-                const res = await fetch('/api/admin/article-country?page=1&pageSize=9999', {
-                    cache: 'no-store',
-                });
+                const res = await fetch(
+                    '/api/admin/article-country?page=1&pageSize=9999',
+                    {
+                        cache: 'no-store',
+                    }
+                );
                 const json = await res.json();
                 const list = Array.isArray(json?.rows) ? json.rows : [];
                 const opts: CountryOption[] = list.map((c: any) => ({
@@ -233,7 +242,9 @@ export default function TravelArticleForm({
                     if (!res?.error) {
                         // ✅ 失效列表 + 明細，回列表會自動 refetch
                         await Promise.all([
-                            qc.invalidateQueries({ queryKey: ['travel-articles'] }),
+                            qc.invalidateQueries({
+                                queryKey: ['travel-articles'],
+                            }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                     }
@@ -258,9 +269,7 @@ export default function TravelArticleForm({
                     setSuccess(
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
-                    // 成功才導回列表
-                    router.replace('/admin/travelarticle');
-                    router.refresh(); // 可選，確保路由層同步刷新
+                    router.replace(LIST_PATH);
                 }
             } catch (e: any) {
                 setError(

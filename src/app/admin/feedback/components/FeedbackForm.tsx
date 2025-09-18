@@ -11,7 +11,7 @@ import {
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -74,6 +74,12 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/feedback?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
@@ -268,8 +274,7 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                     setSuccess(
                         res?.success ?? (isEdit ? '更新成功' : '新增成功')
                     );
-                    router.replace('/admin/feedback');
-                    router.refresh();
+                    router.replace(LIST_PATH);
                 }
             } catch (e: any) {
                 setError(

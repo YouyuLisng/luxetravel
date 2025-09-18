@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback, ChangeEvent } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 
 import {
@@ -66,9 +66,15 @@ export default function AttractionForm({
 }: Props) {
     const isEdit = mode === 'edit';
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const { show, hide } = useLoadingStore();
     const qc = useQueryClient();
+
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/attraction?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
@@ -90,7 +96,7 @@ export default function AttractionForm({
             content: initialData?.content ?? '',
             region: initialData?.region ?? '',
             country: initialData?.country ?? '',
-            city: initialData?.city ?? '', // 編輯時會自動帶出
+            city: initialData?.city ?? '',
             tags: initialData?.tags ?? [],
             imageUrl: initialData?.imageUrl ?? null,
             enabled: initialData?.enabled ?? true,

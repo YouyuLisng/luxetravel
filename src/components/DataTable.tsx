@@ -54,7 +54,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { z } from 'zod';
-import { useDebounce } from 'use-debounce';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -91,7 +90,6 @@ import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { IconSearch } from '@tabler/icons-react';
-import { useEffect } from 'react';
 /* ========================= Schema ========================= */
 export const schema = z.object({
     id: z.union([z.string(), z.number()]),
@@ -886,6 +884,7 @@ export function DataTable({
     onReorder,
     onRefresh,
     getEditHref,
+    currentQuery = '',
     addButtonLabel = '新增',
     addButtonHref = '/admin/new',
     pagination: serverPagination,
@@ -901,6 +900,7 @@ export function DataTable({
     onReorder?: (ids: string[]) => Promise<any>;
     onRefresh?: () => Promise<any> | void;
     getEditHref?: (id: string | number) => string;
+    currentQuery?: string;
     addButtonLabel?: string;
     addButtonHref?: string;
     pagination?: {
@@ -939,10 +939,6 @@ export function DataTable({
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [pagination, setPagination] = React.useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
     const [search, setSearch] = React.useState(searchValue);
     React.useEffect(() => {
         setSearch(searchValue);
@@ -971,14 +967,17 @@ export function DataTable({
             generateColumns(data, {
                 visibleKeys,
                 columnLabels,
-                getEditHref,
+                getEditHref: (id) => {
+                    const base = getEditHref?.(id) ?? '';
+                    return currentQuery ? `${base}${currentQuery}` : base;
+                },
                 onDeleteClick: (id) => {
                     setDeleteId(id);
                     setDeleteOpen(true);
                 },
-                enableDrag, // 傳入是否渲染拖曳欄
+                enableDrag,
             }),
-        [data, visibleKeys, columnLabels, getEditHref, enableDrag]
+        [data, visibleKeys, columnLabels, getEditHref, currentQuery, enableDrag]
     );
     const table = useReactTable({
         data,
@@ -991,9 +990,9 @@ export function DataTable({
             pagination: serverPagination
                 ? {
                       pageIndex: serverPagination.page - 1,
-                      pageSize: serverPagination.pageSize,
+                      pageSize: 50,
                   }
-                : pagination,
+                : undefined,
         },
         manualPagination: !!serverPagination,
         pageCount: serverPagination?.pageCount,
@@ -1003,7 +1002,6 @@ export function DataTable({
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
-        onPaginationChange: serverPagination ? undefined : setPagination, // 如果是後端分頁，就交給外部控制
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -1299,20 +1297,7 @@ function PaginationBar({
         return (
             <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm">顯示筆數</span>
-                    <select
-                        value={pageSize}
-                        onChange={(e) =>
-                            onPageSizeChange?.(Number(e.target.value))
-                        }
-                        className="border rounded px-2 py-1 text-sm"
-                    >
-                        {[10, 20, 30, 40, 50].map((size) => (
-                            <option key={size} value={size}>
-                                {size}
-                            </option>
-                        ))}
-                    </select>
+                    <span className="text-sm">每頁固定顯示 50 筆</span>
                 </div>
 
                 <div className="flex items-center gap-2">

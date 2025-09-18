@@ -1,12 +1,11 @@
-import { queryOptions } from '@tanstack/react-query';
 import axios from '@/lib/axios';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
-/** 以 zod 定義 FeedbackMode 聯集字面型別 */
+/** === Schema === */
 export const FeedbackModeZod = z.enum(['REAL', 'MARKETING']);
 export type FeedbackMode = z.infer<typeof FeedbackModeZod>;
 
-/** 後端回傳的實體 */
 export const testimonialSchema = z.object({
     id: z.string(),
     mode: FeedbackModeZod,
@@ -20,9 +19,9 @@ export const testimonialSchema = z.object({
     createdAt: z.string(),
     updatedAt: z.string(),
 });
+
 export type TestimonialEntity = z.infer<typeof testimonialSchema>;
 
-/** 建立/更新 DTO（給 UI 與 server actions 共用） */
 export type TestimonialDTO = {
     mode: FeedbackMode;
     content: string;
@@ -33,29 +32,59 @@ export type TestimonialDTO = {
     imageUrl?: string | null; 
     color?: string | null;
 };
+/** === Pagination Schema === */
+export const paginationSchema = z.object({
+    page: z.number(),
+    pageSize: z.number(),
+    total: z.number(),
+    pageCount: z.number(),
+});
 
+/** === Response Schema === */
+export const listResponseSchema = z.object({
+    rows: testimonialSchema.array(),
+    pagination: paginationSchema,
+});
+
+/** === Query Keys === */
 export const KEYS = {
-    list: () => ['testimonial'] as const,
-    detail: (id: string) => ['testimonial', id] as const,
+    list: (page: number, pageSize: number) =>
+        ['testimonials', page, pageSize] as const,
+    detail: (id: string) => ['testimonials', id] as const,
 };
 
-export const testimonialsQuery = () =>
-    queryOptions({
-        queryKey: KEYS.list(),
-        queryFn: async () => {
-            const res = await axios.get('/api/admin/testimonials');
-            return testimonialSchema.array().parse(res.data?.data ?? []);
-        },
-        staleTime: 1000 * 60 * 5,
-    });
+/** === Queries === */
+export const testimonialsQuery = (page: number, pageSize: number) => ({
+    queryKey: KEYS.list(page, pageSize),
+    queryFn: async () => {
+        const res = await axios.get('/api/admin/testimonials', {
+            params: { page, pageSize },
+        });
+        return listResponseSchema.parse(res.data);
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+});
 
-export const testimonialQuery = (id: string) =>
-    queryOptions({
-        queryKey: KEYS.detail(id),
+export function useTestimonialsAll() {
+    return useQuery({
+        queryKey: ['testimonials', 'all'],
         queryFn: async () => {
-            const res = await axios.get(`/api/admin/testimonials/${id}`);
-            return testimonialSchema.parse(res.data?.data);
+            const res = await axios.get('/api/admin/testimonials', {
+                params: { page: 1, pageSize: 999 },
+            });
+            return listResponseSchema.parse(res.data).rows;
         },
-        enabled: !!id,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 10,
     });
+}
+
+export const testimonialQuery = (id: string) => ({
+    queryKey: KEYS.detail(id),
+    queryFn: async () => {
+        const res = await axios.get(`/api/admin/testimonials/${id}`);
+        return testimonialSchema.parse(res.data.data);
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+});

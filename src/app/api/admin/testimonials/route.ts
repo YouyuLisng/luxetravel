@@ -69,7 +69,9 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const mode = searchParams.get('mode'); // e.g. "REAL" or "MARKETING"
+        const mode = searchParams.get('mode');
+        const page = Number(searchParams.get('page')) || 1;
+        const pageSize = Number(searchParams.get('pageSize')) || 10;
 
         if (
             mode &&
@@ -81,9 +83,16 @@ export async function GET(request: Request) {
             );
         }
 
+        const where = mode ? { mode: mode as FeedbackMode } : {};
+
+        const total = await db.testimonial.count({ where });
+        const pageCount = Math.ceil(total / pageSize);
+
         const testimonials = await db.testimonial.findMany({
-            where: mode ? { mode: mode as FeedbackMode } : undefined,
+            where,
             orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+            skip: (page - 1) * pageSize,
+            take: pageSize,
         });
 
         const testimonialsWithColor = testimonials.map((t) => ({
@@ -94,7 +103,13 @@ export async function GET(request: Request) {
         return NextResponse.json({
             status: true,
             message: `成功取得${mode ? `「${mode}」` : '所有'}旅客回饋`,
-            data: testimonialsWithColor,
+            rows: testimonialsWithColor,
+            pagination: {
+                page,
+                pageSize,
+                total,
+                pageCount,
+            },
         });
     } catch (error) {
         console.error('Error fetching testimonials:', error);

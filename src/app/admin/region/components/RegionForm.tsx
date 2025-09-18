@@ -7,7 +7,7 @@ import React, {
     useState,
     useTransition,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -34,8 +34,6 @@ import { createRegion, editRegion } from '@/app/admin/region/action/region';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/region/queries/regionQueries';
 
-const LIST_PATH = '/admin/region';
-
 // 統一前端表單型別（避免 union 造成 resolver/Control 不相容）
 type RegionFormValues = RegionCreateValues;
 
@@ -49,6 +47,12 @@ export default function RegionForm({ initialData, method = 'POST' }: Props) {
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/region?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');
     const [isLoading, setIsLoading] = useState(false);

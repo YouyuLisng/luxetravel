@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/travelConcern/queries/travelConcernQuery';
 
@@ -40,8 +40,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-const LIST_PATH = '/admin/concern';
-
 type TravelConcernFormValues = {
     moduleId?: string; // 新增時實際會被固定值覆蓋
     number: string; // '01' ~ '05'（隱藏欄位，依 order 自動生成）
@@ -63,6 +61,12 @@ export default function TravelConcernForm({
     const isEdit = mode === 'edit';
     const router = useRouter();
     const qc = useQueryClient();
+
+    const searchParams = useSearchParams();
+    const page = searchParams.get('page') || '1';
+    const pageSize = searchParams.get('pageSize') || '50';
+    const q = searchParams.get('q') || '';
+    const LIST_PATH = `/admin/concern?page=${page}&pageSize=${pageSize}&q=${q}`;
 
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
@@ -137,7 +141,9 @@ export default function TravelConcernForm({
                         setSuccess(res?.success ?? '更新成功');
                         // 失效列表與這筆明細；返回列表自動重抓
                         await Promise.all([
-                            await qc.invalidateQueries({ queryKey: ['concerns'] }),
+                            await qc.invalidateQueries({
+                                queryKey: ['concerns'],
+                            }),
                             qc.invalidateQueries({ queryKey: KEYS.detail(id) }),
                         ]);
                         router.replace(LIST_PATH);
@@ -155,7 +161,9 @@ export default function TravelConcernForm({
                         setError(res.error);
                     } else {
                         setSuccess(res?.success ?? '新增成功');
-                        await await qc.invalidateQueries({ queryKey: ['concerns'] });
+                        await await qc.invalidateQueries({
+                            queryKey: ['concerns'],
+                        });
                         router.replace(LIST_PATH);
                         router.refresh(); // 可選
                     }
