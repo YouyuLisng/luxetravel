@@ -5,7 +5,7 @@ import {
     type AttractionCreateValues,
 } from '@/schemas/attraction';
 
-/** GET /api/admin/attraction?page=&pageSize=&q= */
+/** GET /api/admin/attraction?page=&pageSize=&keyword= */
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -14,14 +14,14 @@ export async function GET(req: Request) {
             1,
             Math.min(100, Number(searchParams.get('pageSize') ?? 10))
         );
-        const q = searchParams.get('q');
+        const keyword = searchParams.get('keyword')?.trim();
 
         const where: any = {};
-        if (q) {
-            where.OR = [
-                { name: { contains: q, mode: 'insensitive' } },
-                { code: { contains: q, mode: 'insensitive' } },
-            ];
+        if (keyword) {
+            where.nameZh = {
+                contains: keyword,
+                mode: 'insensitive', // 不分大小寫搜尋
+            };
         }
 
         const [total, rows] = await Promise.all([

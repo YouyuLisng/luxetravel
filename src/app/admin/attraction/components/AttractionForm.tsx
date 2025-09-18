@@ -1,12 +1,6 @@
 'use client';
 
-import {
-    useState,
-    useTransition,
-    useCallback,
-    ChangeEvent,
-    useEffect,
-} from 'react';
+import { useState, useTransition, useCallback, ChangeEvent } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
@@ -85,6 +79,7 @@ export default function AttractionForm({
     const { data: cities = [] } = useCities();
     const { data: countries } = useCountriesAll();
     const { data: regions = [] } = useRegions();
+
     const form = useForm<AttractionFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
@@ -95,7 +90,7 @@ export default function AttractionForm({
             content: initialData?.content ?? '',
             region: initialData?.region ?? '',
             country: initialData?.country ?? '',
-            city: initialData?.city ?? '',
+            city: initialData?.city ?? '', // 編輯時會自動帶出
             tags: initialData?.tags ?? [],
             imageUrl: initialData?.imageUrl ?? null,
             enabled: initialData?.enabled ?? true,
@@ -109,10 +104,6 @@ export default function AttractionForm({
         (c: any) =>
             c.countryNameZh === selectedCountry || c.country === selectedCountry
     );
-
-    useEffect(() => {
-        form.setValue('city', '');
-    }, [selectedCountry, form]);
 
     const headingTitle = isEdit ? '編輯景點' : '新增景點';
     const formId = 'attraction-form';
@@ -346,7 +337,9 @@ export default function AttractionForm({
                                             <FormLabel>抵達國家</FormLabel>
                                             <FormControl>
                                                 <Combobox
-                                                    options={[...(countries ?? [])]
+                                                    options={[
+                                                        ...(countries ?? []),
+                                                    ]
                                                         .sort(
                                                             (a: any, b: any) =>
                                                                 a.nameEn.localeCompare(
@@ -361,10 +354,13 @@ export default function AttractionForm({
                                                     value={field.value ?? ''}
                                                     onChange={(val) => {
                                                         field.onChange(val);
-                                                        form.setValue(
-                                                            'city',
-                                                            ''
-                                                        );
+                                                        if (!isEdit) {
+                                                            // 新增模式下才清空城市
+                                                            form.setValue(
+                                                                'city',
+                                                                ''
+                                                            );
+                                                        }
                                                     }}
                                                     placeholder="選擇抵達國家"
                                                     searchPlaceholder="搜尋國家..."

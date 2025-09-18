@@ -54,7 +54,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { z } from 'zod';
-
+import { useDebounce } from 'use-debounce';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -89,7 +89,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-
+import { Input } from '@/components/ui/input';
+import { IconSearch } from '@tabler/icons-react';
+import { useEffect } from 'react';
 /* ========================= Schema ========================= */
 export const schema = z.object({
     id: z.union([z.string(), z.number()]),
@@ -889,6 +891,8 @@ export function DataTable({
     pagination: serverPagination,
     onPageChange,
     onPageSizeChange,
+    searchValue = '',
+    onSearch,
 }: {
     data: Array<Record<string, any>>;
     visibleKeys?: string[];
@@ -907,6 +911,8 @@ export function DataTable({
     };
     onPageChange?: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
+    searchValue?: string;
+    onSearch?: (keyword: string) => void;
 }) {
     const [data, setData] = React.useState(() => initialData);
     React.useEffect(() => setData(initialData), [initialData]);
@@ -937,6 +943,17 @@ export function DataTable({
         pageIndex: 0,
         pageSize: 10,
     });
+    const [search, setSearch] = React.useState(searchValue);
+    React.useEffect(() => {
+        setSearch(searchValue);
+    }, [searchValue]);
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') onSearch?.(search);
+    };
+
+    const handleSearchClick = () => {
+        onSearch?.(search);
+    };
 
     const sensors = useSensors(
         useSensor(MouseSensor, {}),
@@ -963,7 +980,6 @@ export function DataTable({
             }),
         [data, visibleKeys, columnLabels, getEditHref, enableDrag]
     );
-
     const table = useReactTable({
         data,
         columns,
@@ -979,7 +995,7 @@ export function DataTable({
                   }
                 : pagination,
         },
-        manualPagination: !!serverPagination, // 🚀 後端分頁必須加這個
+        manualPagination: !!serverPagination,
         pageCount: serverPagination?.pageCount,
         getRowId: (row) => String((row as any).id),
         enableRowSelection: true,
@@ -1077,50 +1093,75 @@ export function DataTable({
         <>
             {/* 頂部：只有右側控制 */}
             <div className="flex items-center justify-end px-4 lg:px-6 lg:py-2">
-                <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="h-8">
-                                <IconLayoutColumns />
-                                <span className="hidden lg:inline">
-                                    自定義顯示欄位
-                                </span>
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between px-4 lg:px-6 lg:py-2">
+                    {onSearch && (
+                        <div className="relative flex w-full max-w-xs items-center">
+                            <IconSearch className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="搜尋..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="pl-8 pr-10"
+                            />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleSearchClick}
+                                className="absolute right-1"
+                            >
+                                <IconSearch className="h-4 w-4" />
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                            {table
-                                .getAllColumns()
-                                .filter(
-                                    (column) =>
-                                        typeof column.accessorFn !==
-                                            'undefined' && column.getCanHide()
-                                )
-                                .map((column) => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(v) =>
-                                            column.toggleVisibility(!!v)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </div>
+                    )}
 
-                    <Button asChild variant="outline" className="h-8">
-                        <Link
-                            href={addButtonHref}
-                            className="inline-flex items-center gap-2"
-                        >
-                            <IconPlus />
-                            <span className="hidden lg:inline">
-                                {addButtonLabel}
-                            </span>
-                        </Link>
-                    </Button>
+                    {/* 原本的右側控制列 */}
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="h-8">
+                                    <IconLayoutColumns />
+                                    <span className="hidden lg:inline">
+                                        自定義顯示欄位
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                {table
+                                    .getAllColumns()
+                                    .filter(
+                                        (column) =>
+                                            typeof column.accessorFn !==
+                                                'undefined' &&
+                                            column.getCanHide()
+                                    )
+                                    .map((column) => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            className="capitalize"
+                                            checked={column.getIsVisible()}
+                                            onCheckedChange={(v) =>
+                                                column.toggleVisibility(!!v)
+                                            }
+                                        >
+                                            {column.id}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button asChild variant="outline" className="h-8">
+                            <Link
+                                href={addButtonHref}
+                                className="inline-flex items-center gap-2"
+                            >
+                                <IconPlus />
+                                <span className="hidden lg:inline">
+                                    {addButtonLabel}
+                                </span>
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
             </div>
 

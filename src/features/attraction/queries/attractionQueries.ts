@@ -37,17 +37,21 @@ export const listResponseSchema = z.object({
 
 // === Query Keys ===
 export const KEYS = {
-    list: (page: number, pageSize: number) =>
-        ['attractions', page, pageSize] as const,
+    list: (page: number, pageSize: number, keyword: string) =>
+        ['attractions', page, pageSize, keyword] as const, // ✅ 加 keyword
     detail: (id: string) => ['attractions', id] as const,
 };
 
 // === Queries ===
-export const attractionsQuery = (page: number, pageSize: number) => ({
-    queryKey: KEYS.list(page, pageSize),
+export const attractionsQuery = (
+    page: number,
+    pageSize: number,
+    keyword: string = ''
+) => ({
+    queryKey: KEYS.list(page, pageSize, keyword),
     queryFn: async () => {
         const res = await axios.get('/api/admin/attraction', {
-            params: { page, pageSize },
+            params: { page, pageSize, keyword }, // ✅ 傳 keyword 給 API
         });
         return listResponseSchema.parse(res.data);
     },

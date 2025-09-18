@@ -9,10 +9,12 @@ import useAttractionRow from '@/features/attraction/hooks/useAttractionRow';
 export default function Page() {
     const [page, setPage] = React.useState(1);
     const [pageSize, setPageSize] = React.useState(10);
+    const [keyword, setKeyword] = React.useState('');
 
     const { rows, pagination, isLoading, isError, refetch } = useAttractionRow(
         page,
-        pageSize
+        pageSize,
+        keyword
     );
 
     if (isLoading) return <GlobalLoading />;
@@ -24,6 +26,11 @@ export default function Page() {
             pagination={pagination}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            searchValue={keyword}
+            onSearch={(kw) => {
+                setKeyword(kw);
+                setPage(1);
+            }}
             visibleKeys={[
                 'imageUrl',
                 'nameZh',

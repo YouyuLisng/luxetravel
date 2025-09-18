@@ -16,7 +16,7 @@ export async function createAttraction(values: AttractionCreateValues) {
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     const data = parsed.data;
-
+    console.log("data:", data)
     // 如果有輸入 code → 檢查唯一性
     if (data.code) {
         const up = data.code.toUpperCase();
@@ -40,7 +40,7 @@ export async function editAttraction(id: string, values: AttractionEditValues) {
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     const data = parsed.data;
-
+    console.log("edit data:", data)
     // 找現有資料
     const exists = await db.attraction.findUnique({ where: { id } });
     if (!exists) return { error: '找不到 Attraction' };
