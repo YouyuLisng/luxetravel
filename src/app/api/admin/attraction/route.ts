@@ -18,10 +18,13 @@ export async function GET(req: Request) {
 
         const where: any = {};
         if (keyword) {
-            where.nameZh = {
-                contains: keyword,
-                mode: 'insensitive', // 不分大小寫搜尋
-            };
+            where.OR = [
+                { nameZh: { contains: keyword, mode: 'insensitive' } },
+                { nameEn: { contains: keyword, mode: 'insensitive' } },
+                { region: { contains: keyword, mode: 'insensitive' } },
+                { country: { contains: keyword, mode: 'insensitive' } },
+                { city: { contains: keyword, mode: 'insensitive' } },
+            ];
         }
 
         const [total, rows] = await Promise.all([

@@ -36,7 +36,6 @@ import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useToast } from '@/hooks/use-toast';
 
 /* ========================= 常數 ========================= */
-const LIST_PATH = '/admin/advantage';
 const FIXED_MODULE_ID = '68b04a89eb0b7404083d887a';
 
 /* ========================= Client 端統一 Schema ========================= */
