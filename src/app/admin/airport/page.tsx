@@ -12,7 +12,6 @@ export default function Page() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // 從 URL 初始化 page/pageSize
     const [page, setPage] = React.useState(
         Number(searchParams.get('page')) || 1
     );
@@ -32,7 +31,6 @@ export default function Page() {
         router.replace(`?${params.toString()}`);
     }, [page, pageSize, router]);
 
-    // 組合當前 query 參數
     const currentQuery = searchParams.toString()
         ? `?${searchParams.toString()}`
         : '';

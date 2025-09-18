@@ -75,7 +75,7 @@ export default function AttractionForm({
     const pageSize = searchParams.get('pageSize') || '50';
     const q = searchParams.get('q') || '';
     const LIST_PATH = `/admin/attraction?page=${page}&pageSize=${pageSize}&q=${q}`;
-
+        console.log("LIST_PATH:", LIST_PATH)
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
     const [imgPreview, setImgPreview] = useState(initialData?.imageUrl ?? '');

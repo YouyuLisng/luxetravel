@@ -788,7 +788,7 @@ function generateColumns<T extends Record<string, any>>(
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                        {isTourProduct && (
+                        {/* {isTourProduct && (
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
@@ -797,10 +797,10 @@ function generateColumns<T extends Record<string, any>>(
                                     </Link>
                                 </DropdownMenuItem>
                             </>
-                        )}
+                        )} */}
                         {editHref ? (
                             <DropdownMenuItem asChild>
-                                <Link href={editHref}>編輯</Link>
+                                <Link href={editHref} target='blank'>編輯</Link>
                             </DropdownMenuItem>
                         ) : (
                             <DropdownMenuItem disabled>編輯</DropdownMenuItem>
@@ -916,7 +916,6 @@ export function DataTable({
 }) {
     const [data, setData] = React.useState(() => initialData);
     React.useEffect(() => setData(initialData), [initialData]);
-
     const { toast } = useToast();
 
     // ✅ 是否啟用拖曳：資料含有 order，且（若指定）visibleKeys 也包含 order

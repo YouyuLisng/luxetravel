@@ -11,7 +11,6 @@ export default function Page() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // 從 URL 初始化 page/pageSize/keyword
     const [page, setPage] = React.useState(
         Number(searchParams.get('page')) || 1
     );
@@ -26,7 +25,6 @@ export default function Page() {
         keyword
     );
 
-    // ⚡ 同步狀態到 URL
     React.useEffect(() => {
         const params = new URLSearchParams();
         params.set('page', String(page));
@@ -34,6 +32,10 @@ export default function Page() {
         if (keyword) params.set('q', keyword);
         router.replace(`?${params.toString()}`);
     }, [page, pageSize, keyword, router]);
+
+    const currentQuery = `?page=${page}&pageSize=${pageSize}${
+        keyword ? `&q=${encodeURIComponent(keyword)}` : ''
+    }`;
 
     if (isLoading) return <GlobalLoading />;
     if (isError) return <p className="p-6">載入失敗</p>;
@@ -76,9 +78,9 @@ export default function Page() {
                 return res;
             }}
             onRefresh={refetch}
-            getEditHref={(id) => `/admin/attraction/${id}`}
+            getEditHref={(id) => `/admin/attraction/${id}${currentQuery}`}
             addButtonLabel="新增景點"
-            addButtonHref="/admin/attraction/new"
+            addButtonHref={`/admin/attraction/new${currentQuery}`}
         />
     );
 }
