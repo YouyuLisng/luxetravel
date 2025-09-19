@@ -610,7 +610,7 @@ function generateColumns<T extends Record<string, any>>(
             continue;
         }
 
-        if (key === 'countries' || key === 'role' || key === 'tags') {
+        if (key === 'countries' || key === 'role' || key === 'tags' || key === 'keywords') {
             generated.push({
                 accessorKey: key,
                 header: () =>
@@ -707,6 +707,7 @@ function generateColumns<T extends Record<string, any>>(
 
         const IMAGE_KEYS = [
             'imageUrl',
+            'seoImage',
             'image',
             'thumbnail',
             'thumbUrl',
@@ -720,7 +721,7 @@ function generateColumns<T extends Record<string, any>>(
         if (IMAGE_KEYS.includes(key)) {
             generated.push({
                 accessorKey: key,
-                header: () => L(key, 'Image'),
+                header: () => L(key, '圖片'),
                 enableSorting: false,
                 cell: ({ row }) => {
                     const src = String((row.original as any)[key] ?? '');

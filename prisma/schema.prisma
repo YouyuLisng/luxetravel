@@ -499,6 +499,7 @@ model TourProduct {
   map         TourMap?
   highlights  TourHighlight[]
   itineraries Itinerary[]
+  pages PageOnTourProduct[]
 
   createdAt DateTime @default(now()) /// 建立時間
   updatedAt DateTime @updatedAt /// 更新時間
@@ -631,4 +632,34 @@ model ItineraryOnAttraction {
 
   @@index([itineraryId])
   @@index([attractionId])
+}
+
+model Page {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  slug     String   @unique /// 用於前台 URL，例如 /pages/japan-ski
+  content  String?
+  seoTitle String?
+  seoDesc  String?
+  seoImage String?
+  keywords String[] @default([])
+
+  tourProducts PageOnTourProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// 多對多關聯表：Page × TourProduct
+model PageOnTourProduct {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  pageId      String       @db.ObjectId
+  tourProductId String     @db.ObjectId
+
+  page        Page         @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tourProduct TourProduct  @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, tourProductId]) /// 防止重複關聯
+  @@index([pageId])
+  @@index([tourProductId])
 }
