@@ -26,7 +26,7 @@ import { TextareaInput } from '@/components/TextareaInput';
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useQueryClient } from '@tanstack/react-query';
-import { createPage, editPage } from '@/app/admin/page/action/page';
+import { createPage, editPage } from '@/app/admin/page/action/index';
 import { KEYS } from '@/features/page/queries/pageQueries';
 
 /* ========= Page Schema ========= */

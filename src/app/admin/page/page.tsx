@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import GlobalLoading from '@/components/GlobalLoading';
 import { DataTable } from '@/components/DataTable';
-import { deletePage } from '@/app/admin/page/action/page';
+import { deletePage } from '@/app/admin/page/action/index';
 import usePageRow from '@/features/page/hooks/usePageRow';
 
 export default function Page() {
