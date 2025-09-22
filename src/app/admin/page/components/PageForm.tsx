@@ -229,7 +229,6 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                 name: p.name || '',
             })),
         ];
-        // 去重複
         const uniqueList = Array.from(
             new Map(newList.map((p) => [p.id, p])).values()
         );
@@ -332,7 +331,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                標題
+                                                SEO標題
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
@@ -358,7 +357,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                             <FormControl>
                                                 <Input
                                                     {...field}
-                                                    placeholder="例如 japan-ski"
+                                                    placeholder=""
                                                     value={field.value ?? ''}
                                                 />
                                             </FormControl>
@@ -373,7 +372,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     name="keywords"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>關鍵字</FormLabel>
+                                            <FormLabel>SEO關鍵字</FormLabel>
                                             <FormControl>
                                                 <CreatableMultiSelect
                                                     value={field.value ?? []}
@@ -413,11 +412,11 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     name="seoTitle"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>SEO 標題</FormLabel>
+                                            <FormLabel>SEO標題</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     {...field}
-                                                    placeholder="SEO 標題"
+                                                    placeholder="SEO標題"
                                                     value={field.value ?? ''}
                                                 />
                                             </FormControl>
@@ -432,7 +431,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     name="seoDesc"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>SEO 描述</FormLabel>
+                                            <FormLabel>SEO描述</FormLabel>
                                             <FormControl>
                                                 <TextareaInput
                                                     {...field}
