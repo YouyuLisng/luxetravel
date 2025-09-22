@@ -17,9 +17,7 @@ export async function GET(req: NextRequest) {
 
         const where: Prisma.PageWhereInput = q
             ? {
-                  OR: [
-                      { title: { contains: q, mode: 'insensitive' } },
-                  ],
+                  OR: [{ title: { contains: q, mode: 'insensitive' } }],
               }
             : {};
 
@@ -30,12 +28,24 @@ export async function GET(req: NextRequest) {
                 orderBy: [{ createdAt: 'desc' }],
                 skip: (page - 1) * pageSize,
                 take: pageSize,
+                include: {
+                    tourProducts: {
+                        include: {
+                            tourProduct: true,
+                        },
+                    },
+                },
             }),
         ]);
 
+        const result = rows.map((p) => ({
+            ...p,
+            tourProducts: p.tourProducts.map((tp) => tp.tourProduct),
+        }));
+
         return NextResponse.json(
             {
-                rows,
+                rows: result,
                 pagination: {
                     page,
                     pageSize,

@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
-import AsyncSelect from 'react-select/async';
 
 import {
     Form,
@@ -19,10 +18,19 @@ import {
 import CreatableMultiSelect from '@/components/CreatableMultiSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import FormError from '@/components/auth/FormError';
 import FormSuccess from '@/components/auth/FormSuccess';
+import { Badge } from '@/components/ui/badge';
+import { GoPlus, GoX } from 'react-icons/go';
 import { TextareaInput } from '@/components/TextareaInput';
-
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import { useQueryClient } from '@tanstack/react-query';
@@ -42,18 +50,25 @@ const FormSchema = z.object({
     seoDesc: z.string().optional(),
     seoImage: z.string().url('請輸入正確的圖片網址').optional().nullable(),
     keywords: z.array(z.string()).default([]),
-    tourProducts: z.array(z.string()).default([]), // ⬅️ 新增關聯產品
+    tourProducts: z.array(z.string()).default([]),
 });
 
 // ❗ 用 input 型別，讓 RHF 可以接受 `undefined`
 type PageFormValues = z.input<typeof FormSchema>;
 
+type TourProductDetail = {
+    id: string;
+    code: string;
+    name: string;
+};
+
 interface Props {
     mode?: 'create' | 'edit';
-    initialData?: Partial<PageFormValues> & { id?: string };
+    initialData?: Partial<PageFormValues> & {
+        id?: string;
+        tourProductsDetail?: TourProductDetail[];
+    };
 }
-
-type Option = { value: string; label: string };
 
 export default function PageForm({ mode = 'create', initialData }: Props) {
     const isEdit = mode === 'edit';
@@ -73,6 +88,13 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
     const [imgPreview, setImgPreview] = useState(initialData?.seoImage ?? '');
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
+
+    // for TourProducts
+    const [productId, setProductId] = useState('');
+    const [productData, setProductData] = useState<any[]>([]);
+    const [addedProducts, setAddedProducts] = useState<TourProductDetail[]>(
+        initialData?.tourProductsDetail ?? []
+    );
 
     const form = useForm<PageFormValues>({
         resolver: zodResolver(FormSchema),
@@ -109,8 +131,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                 const { url } = await res.json();
 
                 form.setValue('seoImage', url, { shouldValidate: true });
-                const previewUrl = URL.createObjectURL(file);
-                setImgPreview(previewUrl);
+                setImgPreview(url);
 
                 toast({
                     title: '上傳成功',
@@ -146,18 +167,77 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
         handleImageUpload(file);
     };
 
-    const loadTourProducts = async (inputValue: string): Promise<Option[]> => {
-        if (!inputValue) return [];
-        const res = await fetch(
-            `/api/admin/product/search?q=${encodeURIComponent(inputValue)}`
+    /** TourProducts Handlers **/
+    const handleProductIdChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setProductId(e.target.value);
+    };
+
+    const onSearchProduct = async () => {
+        if (!productId) return;
+        setIsLoading(true);
+        try {
+            const res = await fetch(
+                `/api/admin/product/search?q=${encodeURIComponent(productId)}`
+            );
+            if (!res.ok) throw new Error('搜尋失敗');
+            const data = await res.json();
+            setProductData(data.rows || []);
+        } catch (err) {
+            toast({
+                variant: 'destructive',
+                title: '搜尋失敗',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const onAddProduct = (product: any) => {
+        const exists = addedProducts.find((p) => p.id === product.id);
+        if (!exists) {
+            const newList = [
+                ...addedProducts,
+                {
+                    id: product.id,
+                    code: product.code || product.GRUP_CD,
+                    name: product.name || '',
+                },
+            ];
+            setAddedProducts(newList);
+            form.setValue(
+                'tourProducts',
+                newList.map((p) => p.id)
+            );
+        }
+    };
+
+    const onRemoveProduct = (product: any) => {
+        const newList = addedProducts.filter((p) => p.id !== product.id);
+        setAddedProducts(newList);
+        form.setValue(
+            'tourProducts',
+            newList.map((p) => p.id)
         );
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.rows.map((t: any) => ({
-            value: t.id,
-            label: `${t.code} - ${t.name}`,
-            code: t.code,
-        }));
+    };
+
+    const onAddAllProducts = () => {
+        const newList = [
+            ...addedProducts,
+            ...productData.map((p) => ({
+                id: p.id,
+                code: p.code || p.GRUP_CD,
+                name: p.name || '',
+            })),
+        ];
+        // 去重複
+        const uniqueList = Array.from(
+            new Map(newList.map((p) => [p.id, p])).values()
+        );
+        setAddedProducts(uniqueList);
+        form.setValue(
+            'tourProducts',
+            uniqueList.map((p) => p.id)
+        );
     };
 
     const onSubmit: SubmitHandler<PageFormValues> = (values) => {
@@ -273,7 +353,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                Slug
+                                                網址名稱 (請輸入英文)
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
@@ -308,64 +388,6 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                         </FormItem>
                                     )}
                                 />
-
-                                {/* TourProducts */}
-                                <FormField
-                                    control={form.control}
-                                    name="tourProducts"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>關聯行程</FormLabel>
-                                            <FormControl>
-                                                <AsyncSelect
-                                                    instanceId="tour-products-select"
-                                                    inputId="tour-products-input"
-                                                    name="tour-products"
-                                                    isMulti
-                                                    cacheOptions
-                                                    defaultOptions
-                                                    loadOptions={
-                                                        loadTourProducts
-                                                    }
-                                                    closeMenuOnSelect={false}
-                                                    value={(
-                                                        field.value ?? []
-                                                    ).map((id) => ({
-                                                        value: id,
-                                                        label: id,
-                                                    }))}
-                                                    onChange={(selected) =>
-                                                        field.onChange(
-                                                            (
-                                                                selected as Option[]
-                                                            ).map(
-                                                                (opt) =>
-                                                                    opt.value
-                                                            )
-                                                        )
-                                                    }
-                                                    placeholder="搜尋並選擇行程"
-                                                    getOptionLabel={(
-                                                        option: any
-                                                    ) => option.label}
-                                                    getOptionValue={(
-                                                        option: any
-                                                    ) => option.value}
-                                                    formatOptionLabel={(
-                                                        option: any,
-                                                        { context }
-                                                    ) =>
-                                                        context === 'value'
-                                                            ? option.code ||
-                                                              option.label
-                                                            : option.label
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 {/* Content */}
                                 <FormField
                                     control={form.control}
@@ -384,6 +406,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                         </FormItem>
                                     )}
                                 />
+
                                 {/* SEO Title */}
                                 <FormField
                                     control={form.control}
@@ -487,7 +510,132 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     )}
                                 />
                             </div>
-
+                            <FormField
+                                control={form.control}
+                                name="tourProducts"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>關聯行程</FormLabel>
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle>產品編號</CardTitle>
+                                                <CardDescription>
+                                                    輸入產品編號並搜尋
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="grid grid-cols-[10fr,1fr,1fr] items-center gap-4">
+                                                    <Input
+                                                        value={productId}
+                                                        onChange={
+                                                            handleProductIdChange
+                                                        }
+                                                        type="text"
+                                                        placeholder="請輸入產品編號"
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        onClick={
+                                                            onSearchProduct
+                                                        }
+                                                        disabled={isLoading}
+                                                    >
+                                                        搜尋產品
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={
+                                                            onAddAllProducts
+                                                        }
+                                                    >
+                                                        添加所有產品
+                                                    </Button>
+                                                </div>
+                                                <div className="grid grid-cols-[5fr,0.1fr,5fr] gap-4">
+                                                    {/* 搜尋結果 */}
+                                                    <div className="mt-4">
+                                                        {productData &&
+                                                            productData.length >
+                                                                0 && (
+                                                                <div className="grid grid-cols-5 gap-2 mt-4">
+                                                                    {productData.map(
+                                                                        (
+                                                                            product: any,
+                                                                            index: number
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    index
+                                                                                }
+                                                                                className="mb-4"
+                                                                            >
+                                                                                <Badge
+                                                                                    variant="secondary"
+                                                                                    className="px-2 py-2 mr-2 flex justify-around cursor-pointer"
+                                                                                    onClick={() =>
+                                                                                        onAddProduct(
+                                                                                            product
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <p className="text-sm">
+                                                                                        {product.code ||
+                                                                                            product.GRUP_CD}
+                                                                                    </p>
+                                                                                    <GoPlus className="h-5 w-5 text-orange-500" />
+                                                                                </Badge>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                    </div>
+                                                    <Separator
+                                                        orientation="vertical"
+                                                        className="my-4 mx-auto"
+                                                    />
+                                                    {/* 已選產品 */}
+                                                    <div className="mt-4">
+                                                        <div className="grid grid-cols-5 gap-2 mt-4">
+                                                            {addedProducts.map(
+                                                                (
+                                                                    product,
+                                                                    index
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            index
+                                                                        }
+                                                                        className="mb-4"
+                                                                    >
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="px-2 py-2 mr-2 flex justify-around cursor-pointer"
+                                                                            onClick={() =>
+                                                                                onRemoveProduct(
+                                                                                    product
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <p className="text-sm">
+                                                                                {
+                                                                                    product.code
+                                                                                }
+                                                                            </p>
+                                                                            <GoX className="h-5 w-5 text-red-500" />
+                                                                        </Badge>
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormError message={error} />
                             <FormSuccess message={success} />
                         </form>

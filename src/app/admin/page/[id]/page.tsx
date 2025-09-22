@@ -18,15 +18,12 @@ export default async function Page({ params }: Props) {
 
     const data = await db.page.findUnique({
         where: { id },
-        select: {
-            id: true,
-            title: true,
-            slug: true,
-            content: true,
-            seoTitle: true,
-            seoDesc: true,
-            seoImage: true,
-            keywords: true,
+        include: {
+            tourProducts: {
+                include: {
+                    tourProduct: true,
+                },
+            },
         },
     });
 
@@ -41,6 +38,12 @@ export default async function Page({ params }: Props) {
         seoDesc: data.seoDesc ?? '',
         seoImage: data.seoImage ?? null,
         keywords: data.keywords ?? [],
+        tourProducts: data.tourProducts.map((tp) => tp.tourProduct.id),
+        tourProductsDetail: data.tourProducts.map((tp) => ({
+            id: tp.tourProduct.id,
+            code: tp.tourProduct.code,
+            name: tp.tourProduct.name,
+        })),
     };
 
     return <PageForm initialData={initialData} mode="edit" />;
