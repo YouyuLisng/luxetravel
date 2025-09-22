@@ -42,7 +42,6 @@ export async function editBanner(id: string, values: BannerEditValues) {
 
     const { imageUrl, title, subtitle, linkText, linkUrl, order } = parsed.data;
 
-    // 如果換了新圖，刪除舊 blob
     if (imageUrl !== undefined && exists.imageUrl && exists.imageUrl !== imageUrl) {
         try {
             await deleteFromVercelBlob(exists.imageUrl);
