@@ -53,7 +53,6 @@ const FormSchema = z.object({
     tourProducts: z.array(z.string()).default([]),
 });
 
-// ❗ 用 input 型別，讓 RHF 可以接受 `undefined`
 type PageFormValues = z.input<typeof FormSchema>;
 
 type TourProductDetail = {
