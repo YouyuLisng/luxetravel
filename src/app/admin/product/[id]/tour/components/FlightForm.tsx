@@ -22,14 +22,6 @@ import { FlightFormSchema, type FlightFormValues } from '@/schemas/flight';
 import { saveFlights } from '@/app/admin/product/action/flight';
 import { Plus, X } from 'lucide-react';
 import type { Resolver } from 'react-hook-form';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 
 import { useAirports } from '@/features/airport/queries/airportQueries';
 import { useAirlines } from '@/features/airline/queries/airlineQueries';
@@ -179,6 +171,7 @@ export default function FlightForm({ productId, initialData }: Props) {
                 )}
             />
 
+            {/* 抵達機場 */}
             <FormField
                 control={control}
                 name={`flights.${index}.arriveAirport`}
@@ -213,6 +206,7 @@ export default function FlightForm({ productId, initialData }: Props) {
                 )}
             />
 
+            {/* 航空公司 */}
             <FormField
                 control={control}
                 name={`flights.${index}.airlineCode`}
@@ -299,6 +293,29 @@ export default function FlightForm({ productId, initialData }: Props) {
                     )}
                 />
             </div>
+
+            {/* 是否跨日 */}
+            <FormField
+                control={control}
+                name={`flights.${index}.crossDay`}
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3">
+                        <FormControl>
+                            <input
+                                type="checkbox"
+                                checked={field.value ?? false}
+                                onChange={(e) =>
+                                    field.onChange(e.target.checked)
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                            />
+                        </FormControl>
+                        <FormLabel className="!mt-0">
+                            是否跨日航班
+                        </FormLabel>
+                    </FormItem>
+                )}
+            />
 
             {/* Day */}
             <FormField
@@ -414,8 +431,7 @@ export default function FlightForm({ productId, initialData }: Props) {
                                                 })
                                             }
                                         >
-                                            <Plus className="h-4 w-4" />{' '}
-                                            新增去程航班
+                                            <Plus className="h-4 w-4" /> 新增去程航班
                                         </Button>
                                     </div>
                                 </div>
@@ -455,8 +471,7 @@ export default function FlightForm({ productId, initialData }: Props) {
                                                 })
                                             }
                                         >
-                                            <Plus className="h-4 w-4" />{' '}
-                                            新增回程航班
+                                            <Plus className="h-4 w-4" /> 新增回程航班
                                         </Button>
                                     </div>
                                 </div>
