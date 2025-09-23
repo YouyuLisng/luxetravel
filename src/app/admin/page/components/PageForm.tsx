@@ -113,7 +113,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
 
     const { isValid, isSubmitting } = form.formState;
 
-    const headingTitle = isEdit ? '編輯 Page' : '新增 Page';
+    const headingTitle = isEdit ? '編輯活動頁面' : '新增活動頁面';
     const formId = 'page-form';
 
     // 上傳圖片

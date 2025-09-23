@@ -43,7 +43,6 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
     const stepParam = searchParams.get('step') ?? 'product';
     const [currentStep, setCurrentStep] = useState(stepParam);
 
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
 
@@ -71,27 +70,6 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         refetchOnWindowFocus: false,
         refetchOnMount: false,
     });
-
-    const handlePublish = async () => {
-        setError(undefined);
-        setSuccess(undefined);
-        setLoading(true);
-        try {
-            show();
-            const res = await publishProduct(productId);
-            if ('error' in res) {
-                setError(res.error);
-            } else {
-                setSuccess(res.success);
-                queryClient.invalidateQueries({
-                    queryKey: ['product-progress', productId],
-                });
-            }
-        } finally {
-            setLoading(false);
-            hide();
-        }
-    };
 
     if (progressLoading) {
         return <p className="p-6">載入進度中...</p>;
