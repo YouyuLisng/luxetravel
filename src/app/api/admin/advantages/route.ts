@@ -53,9 +53,25 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const page = parseInt(searchParams.get('page') ?? '1', 10);
-        const pageSize = parseInt(searchParams.get('pageSize') ?? '10', 10);
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
 
+        // ➤ 如果 page 和 pageSize 都沒帶，就回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.travelAdvantage.findMany({
+                orderBy: { order: 'asc' },
+            });
+            return NextResponse.json({
+                status: true,
+                message: '成功取得全部 Advantage 清單',
+                rows,
+                pagination: null, // 沒有分頁
+            });
+        }
+
+        // ➤ 否則照分頁處理
+        const page = Math.max(1, parseInt(pageParam ?? '1', 10));
+        const pageSize = Math.max(1, parseInt(pageSizeParam ?? '10', 10));
         const skip = (page - 1) * pageSize;
 
         const [advantages, total] = await Promise.all([
@@ -69,7 +85,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             status: true,
-            message: '成功取得 Advantage 模組與清單',
+            message: '成功取得 Advantage 分頁清單',
             rows: advantages,
             pagination: {
                 page,

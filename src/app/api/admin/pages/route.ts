@@ -8,11 +8,8 @@ import { Prisma } from '@prisma/client';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
-        const pageSize = Math.max(
-            1,
-            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
-        );
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
         const q = searchParams.get('q')?.trim();
 
         const where: Prisma.PageWhereInput = q
@@ -20,6 +17,41 @@ export async function GET(req: NextRequest) {
                   OR: [{ title: { contains: q, mode: 'insensitive' } }],
               }
             : {};
+
+        // 👉 沒帶 page/pageSize → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.page.findMany({
+                where,
+                orderBy: [{ createdAt: 'desc' }],
+                include: {
+                    tourProducts: {
+                        include: { tourProduct: true },
+                    },
+                },
+            });
+
+            const result = rows.map((p) => ({
+                ...p,
+                tourProducts: p.tourProducts.map((tp) => tp.tourProduct),
+            }));
+
+            return NextResponse.json(
+                {
+                    status: true,
+                    message: '成功取得全部 Page 清單',
+                    rows: result,
+                    pagination: null, // 沒有分頁
+                },
+                { status: 200 }
+            );
+        }
+
+        // 👉 有分頁參數才分頁
+        const page = Math.max(1, Number(pageParam ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(pageSizeParam ?? 10))
+        );
 
         const [total, rows] = await Promise.all([
             db.page.count({ where }),
@@ -30,9 +62,7 @@ export async function GET(req: NextRequest) {
                 take: pageSize,
                 include: {
                     tourProducts: {
-                        include: {
-                            tourProduct: true,
-                        },
+                        include: { tourProduct: true },
                     },
                 },
             }),
@@ -45,6 +75,8 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(
             {
+                status: true,
+                message: '成功取得 Page 分頁清單',
                 rows: result,
                 pagination: {
                     page,
@@ -58,7 +90,10 @@ export async function GET(req: NextRequest) {
     } catch (e) {
         console.error('GET /pages error:', e);
         return NextResponse.json(
-            { error: '取得 Page 列表失敗' },
+            {
+                status: false,
+                message: '取得 Page 列表失敗',
+            },
             { status: 500 }
         );
     }

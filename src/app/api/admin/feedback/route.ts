@@ -4,10 +4,58 @@ import { db } from '@/lib/db';
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
+
+        // 👉 沒帶 page/pageSize → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.feedback.findMany({
+                orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+                include: {
+                    countries: { include: { country: true } },
+                },
+            });
+
+            const data = rows.map((f) => ({
+                id: f.id,
+                title: f.title,
+                subtitle: f.subtitle,
+                content: f.content,
+                nickname: f.nickname,
+                imageUrl: f.imageUrl,
+                linkUrl: f.linkUrl,
+                linekName: f.linekName,
+                order: f.order,
+                createdAt: f.createdAt,
+                updatedAt: f.updatedAt,
+                countries: (f.countries ?? [])
+                    .filter((rel) => !!rel.country)
+                    .map((rel) => ({
+                        id: rel.country.id,
+                        name: rel.country.name,
+                        nameZh: rel.country.nameZh,
+                        code: rel.country.code,
+                        createdAt: rel.country.createdAt,
+                        updatedAt: rel.country.updatedAt,
+                    })),
+            }));
+
+            return NextResponse.json(
+                {
+                    status: true,
+                    message: '成功取得全部 Feedback 清單',
+                    rows: data,
+                    pagination: null, // 沒有分頁
+                },
+                { status: 200 }
+            );
+        }
+
+        // 👉 有分頁參數才執行分頁
+        const page = Math.max(1, Number(pageParam ?? 1));
         const pageSize = Math.max(
             1,
-            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+            Math.min(100, Number(pageSizeParam ?? 10))
         );
 
         const [total, rows] = await Promise.all([
@@ -22,7 +70,6 @@ export async function GET(req: Request) {
             }),
         ]);
 
-        // 扁平化 countries：只回傳 Country 詳細資料陣列
         const data = rows.map((f) => ({
             id: f.id,
             title: f.title,
@@ -49,6 +96,8 @@ export async function GET(req: Request) {
 
         return NextResponse.json(
             {
+                status: true,
+                message: '成功取得 Feedback 分頁清單',
                 rows: data,
                 pagination: {
                     page,
@@ -62,7 +111,7 @@ export async function GET(req: Request) {
     } catch (error) {
         console.error('Error fetching feedback list:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch feedback list' },
+            { status: false, message: 'Failed to fetch feedback list' },
             { status: 500 }
         );
     }

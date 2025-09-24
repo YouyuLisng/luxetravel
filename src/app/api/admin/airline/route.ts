@@ -9,9 +9,26 @@ import {
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get('page') ?? '1', 10);
-        const pageSize = parseInt(searchParams.get('pageSize') ?? '10', 10);
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
 
+        // 👉 沒帶 page & pageSize → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.airline.findMany({
+                orderBy: { code: 'asc' },
+            });
+
+            return NextResponse.json({
+                status: true,
+                message: '成功取得全部 Airline 清單',
+                rows,
+                pagination: null, // 沒有分頁
+            });
+        }
+
+        // 👉 有帶參數才走分頁
+        const page = Math.max(1, parseInt(pageParam ?? '1', 10));
+        const pageSize = Math.max(1, parseInt(pageSizeParam ?? '10', 10));
         const skip = (page - 1) * pageSize;
 
         const [rows, total] = await Promise.all([
@@ -24,6 +41,8 @@ export async function GET(req: Request) {
         ]);
 
         return NextResponse.json({
+            status: true,
+            message: '成功取得 Airline 分頁清單',
             rows,
             pagination: {
                 page,
@@ -33,7 +52,11 @@ export async function GET(req: Request) {
             },
         });
     } catch (err) {
-        return NextResponse.json({ error: '讀取失敗' }, { status: 500 });
+        console.error('Error fetching airlines:', err);
+        return NextResponse.json(
+            { status: false, error: '讀取失敗' },
+            { status: 500 }
+        );
     }
 }
 

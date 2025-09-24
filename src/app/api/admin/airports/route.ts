@@ -21,11 +21,9 @@ const CreateSchema = z.object({
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
-        const pageSize = Math.max(
-            1,
-            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
-        );
+
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
 
         // 🔎 where 條件
         const where: any = {};
@@ -49,7 +47,32 @@ export async function GET(req: Request) {
         const countryId = searchParams.get('countryId');
         if (countryId) where.countryId = countryId;
 
-        // Prisma 查詢
+        // ➤ 如果 page & pageSize 都沒帶 → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.airport.findMany({
+                where,
+                include: { region: true, country: true },
+                orderBy: { createdAt: 'desc' },
+            });
+
+            return NextResponse.json(
+                {
+                    status: true,
+                    message: '成功取得全部 Airport 清單',
+                    rows,
+                    pagination: null, // 沒有分頁
+                },
+                { status: 200 }
+            );
+        }
+
+        // ➤ 否則照分頁查詢
+        const page = Math.max(1, Number(pageParam ?? 1));
+        const pageSize = Math.max(
+            1,
+            Math.min(100, Number(pageSizeParam ?? 10))
+        );
+
         const [total, rows] = await Promise.all([
             db.airport.count({ where }),
             db.airport.findMany({
@@ -65,6 +88,8 @@ export async function GET(req: Request) {
 
         return NextResponse.json(
             {
+                status: true,
+                message: '成功取得 Airport 分頁清單',
                 rows,
                 pagination: { page, pageSize, total, pageCount },
             },
@@ -73,7 +98,7 @@ export async function GET(req: Request) {
     } catch (error) {
         console.error('Error fetching airports:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch airports' },
+            { status: false, error: 'Failed to fetch airports' },
             { status: 500 }
         );
     }

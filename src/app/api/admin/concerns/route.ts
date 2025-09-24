@@ -55,10 +55,31 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
+
+        // 👉 如果沒帶分頁參數 → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.travelConcern.findMany({
+                orderBy: { order: 'asc' },
+            });
+
+            return NextResponse.json(
+                {
+                    status: true,
+                    message: '成功取得全部 Concern 清單',
+                    rows,
+                    pagination: null, // 沒有分頁
+                },
+                { status: 200 }
+            );
+        }
+
+        // 👉 有帶分頁參數 → 分頁查詢
+        const page = Math.max(1, Number(pageParam ?? 1));
         const pageSize = Math.max(
             1,
-            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+            Math.min(100, Number(pageSizeParam ?? 10))
         );
 
         const [total, rows] = await Promise.all([
@@ -72,6 +93,8 @@ export async function GET(request: Request) {
 
         return NextResponse.json(
             {
+                status: true,
+                message: '成功取得 Concern 分頁清單',
                 rows,
                 pagination: {
                     page,
@@ -85,7 +108,7 @@ export async function GET(request: Request) {
     } catch (error) {
         console.error('Error fetching concerns:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch concerns' },
+            { status: false, message: 'Failed to fetch concerns' },
             { status: 500 }
         );
     }

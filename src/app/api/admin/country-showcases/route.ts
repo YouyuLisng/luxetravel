@@ -57,10 +57,45 @@ export async function POST(request: Request) {
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
+
+        // 👉 沒有帶分頁參數 → 回傳全部
+        if (!pageParam && !pageSizeParam) {
+            const rows = await db.countryShowcase.findMany({
+                orderBy: { order: 'asc' },
+                select: {
+                    id: true,
+                    imageUrl: true,
+                    imageUrl1: true,
+                    imageUrl2: true,
+                    title: true,
+                    subtitle: true,
+                    description: true,
+                    linkText: true,
+                    linkUrl: true,
+                    order: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            });
+
+            return NextResponse.json(
+                {
+                    status: true,
+                    message: '成功取得全部 CountryShowcase 清單',
+                    rows,
+                    pagination: null, // 沒有分頁
+                },
+                { status: 200 }
+            );
+        }
+
+        // 👉 有帶參數才做分頁
+        const page = Math.max(1, Number(pageParam ?? 1));
         const pageSize = Math.max(
             1,
-            Math.min(100, Number(searchParams.get('pageSize') ?? 10))
+            Math.min(100, Number(pageSizeParam ?? 10))
         );
 
         const [total, rows] = await Promise.all([
@@ -88,6 +123,8 @@ export async function GET(req: Request) {
 
         return NextResponse.json(
             {
+                status: true,
+                message: '成功取得 CountryShowcase 分頁清單',
                 rows,
                 pagination: {
                     page,
@@ -101,7 +138,7 @@ export async function GET(req: Request) {
     } catch (error) {
         console.error('Error fetching showcases:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch country showcases' },
+            { status: false, message: 'Failed to fetch country showcases' },
             { status: 500 }
         );
     }

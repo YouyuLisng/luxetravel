@@ -35,30 +35,6 @@ const steps = [
     { id: 'tours', label: '團次' },
 ];
 
-const initialData = Array.from({ length: 16 }, (_, i) => {
-    const day = i + 1;
-    return {
-        day,
-        title: `Day ${day} 標題`,
-        subtitle: `Day ${day} 副標題`,
-        content: `這是第 ${day} 天的行程內容，包含一些簡單的介紹文字。`,
-        breakfast: '飯店早餐',
-        lunch: '中式合菜',
-        dinner: '西式套餐',
-        hotel: `第 ${day} 天入住飯店`,
-        note: `備註：第 ${day} 天注意事項，請自行調整測試資料。`,
-        featured: day % 3 === 0,
-        routes: [
-            {
-                depart: `Day ${day} 出發地`,
-                arrive: `Day ${day} 抵達地`,
-                duration: `${60 + day} 分鐘`,
-                distance: `${50 + day * 3} 公里`,
-            },
-        ],
-    };
-});
-
 export default function ProductWizard({ productId, tourProduct, data }: Props) {
     const searchParams = useSearchParams();
     const { show, hide } = useLoadingStore();
@@ -159,7 +135,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 <TabsContent value="itinerary">
                     <ItineraryForm
                         productId={productId}
-                        initialData={initialData}
+                        initialData={data.itineraries}
                     />
                 </TabsContent>
 
@@ -177,14 +153,10 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                 <TabsContent value="tours">
                     <TourForm
                         productId={productId}
-                        productCode={tourProduct.code}
+                        productCode={tourProduct.code}                        
                         productDays={data.days}
                         initialData={data.tour}
-                        initialDates={
-                            data.tour?.map(
-                                (t: any) => new Date(t.departDate)
-                            ) ?? []
-                        }
+                        initialDates={data.tour?.map((t: any) => new Date(t.departDate)) ?? []}
                     />
                     {/* <div className="mt-6 flex justify-end">
                         <Button onClick={handlePublish} disabled={loading}>
