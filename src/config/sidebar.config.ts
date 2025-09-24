@@ -82,6 +82,7 @@ export const sidebarItems: SidebarItem[] = [
         icon: Bot,
         items: [
             { title: '首頁輪播大圖', url: '/admin/banner' },
+            { title: '活動管理', url: '/admin/page' },
             { title: '經典行程卡片', url: '/admin/countryshowcases' },
             { title: '自由行規劃', url: '/admin/concern' },
             { title: '典藏優勢', url: '/admin/advantage' },
@@ -97,4 +98,12 @@ export const sidebarItems: SidebarItem[] = [
             { title: '行程', url: '/admin/product' },
         ],
     },
+    {
+        title: '旅客服務',
+        url: '',
+        icon: BookOpen,
+        items: [
+            { title: '旅客迴響', url: '/admin/feedback' },
+        ],
+    }
 ];
