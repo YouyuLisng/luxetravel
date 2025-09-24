@@ -51,6 +51,10 @@ const FormSchema = z.object({
     seoImage: z.string().url('請輸入正確的圖片網址').optional().nullable(),
     keywords: z.array(z.string()).default([]),
     tourProducts: z.array(z.string()).default([]),
+
+    // 🔥 新增欄位
+    icon: z.string().url('請輸入正確的圖片網址').optional().nullable(),
+    activityTextEn: z.string().optional(),
 });
 
 type PageFormValues = z.input<typeof FormSchema>;
@@ -85,6 +89,9 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
     const [isPending, startTransition] = useTransition();
     const [isLoading, setIsLoading] = useState(false);
     const [imgPreview, setImgPreview] = useState(initialData?.seoImage ?? '');
+    const [imgIconPreview, setImgIconPreview] = useState(
+        initialData?.icon ?? ''
+    );
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
 
@@ -107,6 +114,10 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
             seoImage: initialData?.seoImage ?? null,
             keywords: initialData?.keywords ?? [],
             tourProducts: initialData?.tourProducts ?? [],
+
+            // 🔥 新增欄位
+            icon: initialData?.icon ?? null,
+            activityTextEn: initialData?.activityTextEn ?? '',
         },
     });
 
@@ -115,43 +126,20 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
     const headingTitle = isEdit ? '編輯活動頁面' : '新增活動頁面';
     const formId = 'page-form';
 
-    // 上傳圖片
-    const handleImageUpload = useCallback(
-        async (file: File) => {
-            setIsLoading(true);
-            show();
-            try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'content-type': file.type },
-                    body: file,
-                });
-                if (!res.ok) throw new Error('上傳失敗');
-                const { url } = await res.json();
+    // 共用上傳處理
+    const uploadFile = async (file: File): Promise<string> => {
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'content-type': file.type },
+            body: file,
+        });
+        if (!res.ok) throw new Error('上傳失敗');
+        const { url } = await res.json();
+        return url;
+    };
 
-                form.setValue('seoImage', url, { shouldValidate: true });
-                setImgPreview(url);
-
-                toast({
-                    title: '上傳成功',
-                    description: '已更新圖片預覽',
-                    duration: 1500,
-                });
-            } catch (err: any) {
-                toast({
-                    variant: 'destructive',
-                    title: err?.message ?? '上傳失敗',
-                    duration: 1800,
-                });
-            } finally {
-                setIsLoading(false);
-                hide();
-            }
-        },
-        [form, show, hide, toast]
-    );
-
-    const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    // 上傳 SEO 圖片
+    const handleSeoFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         if (file.size / 1024 / 1024 > 50) {
@@ -163,7 +151,63 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
             });
             return;
         }
-        handleImageUpload(file);
+        setIsLoading(true);
+        show();
+        try {
+            const url = await uploadFile(file);
+            form.setValue('seoImage', url, { shouldValidate: true });
+            setImgPreview(url);
+            toast({
+                title: '上傳成功',
+                description: '已更新 SEO 圖片',
+                duration: 1500,
+            });
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: err?.message ?? '上傳失敗',
+                duration: 1800,
+            });
+        } finally {
+            setIsLoading(false);
+            hide();
+        }
+    };
+
+    // 上傳 Icon
+    const handleIconFileInput = async (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size / 1024 / 1024 > 50) {
+            toast({
+                variant: 'destructive',
+                title: '檔案過大',
+                description: '上限 50MB，請重新選擇',
+                duration: 1800,
+            });
+            return;
+        }
+        setIsLoading(true);
+        show();
+        try {
+            const url = await uploadFile(file);
+            form.setValue('icon', url, { shouldValidate: true });
+            setImgIconPreview(url);
+            toast({
+                title: '上傳成功',
+                description: '已更新 Icon',
+                duration: 1500,
+            });
+        } catch (err: any) {
+            toast({
+                variant: 'destructive',
+                title: err?.message ?? '上傳失敗',
+                duration: 1800,
+            });
+        } finally {
+            setIsLoading(false);
+            hide();
+        }
     };
 
     /** TourProducts Handlers **/
@@ -181,11 +225,8 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
             if (!res.ok) throw new Error('搜尋失敗');
             const data = await res.json();
             setProductData(data.rows || []);
-        } catch (err) {
-            toast({
-                variant: 'destructive',
-                title: '搜尋失敗',
-            });
+        } catch {
+            toast({ variant: 'destructive', title: '搜尋失敗' });
         } finally {
             setIsLoading(false);
         }
@@ -262,7 +303,6 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                         hide();
                         return;
                     }
-
                     res = await editPage(id, payload, payload.tourProducts);
                     if (!res?.error) {
                         await Promise.all([
@@ -330,7 +370,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                SEO標題
+                                                活動頁面標題
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
@@ -356,7 +396,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                             <FormControl>
                                                 <Input
                                                     {...field}
-                                                    placeholder=""
+                                                    placeholder="japan-ski"
                                                     value={field.value ?? ''}
                                                 />
                                             </FormControl>
@@ -386,6 +426,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                         </FormItem>
                                     )}
                                 />
+
                                 {/* Content */}
                                 <FormField
                                     control={form.control}
@@ -444,7 +485,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                 />
                             </div>
 
-                            {/* 圖片上傳 */}
+                            {/* 圖片上傳 (SEO 圖片) */}
                             <div className="space-y-2">
                                 <FormField
                                     control={form.control}
@@ -454,9 +495,8 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                             <FormLabel>
                                                 SEO 圖片（選填）
                                             </FormLabel>
-
                                             <label
-                                                htmlFor="upload-page"
+                                                htmlFor="upload-seo"
                                                 className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
                                             >
                                                 <div className="absolute inset-0 z-10" />
@@ -482,7 +522,6 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                                         拖曳或點擊上傳
                                                     </p>
                                                 </div>
-
                                                 {imgPreview ? (
                                                     <Image
                                                         src={imgPreview}
@@ -492,14 +531,12 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                                     />
                                                 ) : null}
                                             </label>
-
                                             <input
-                                                id="upload-page"
+                                                id="upload-seo"
                                                 type="file"
                                                 className="hidden"
-                                                onChange={handleFileInput}
+                                                onChange={handleSeoFileInput}
                                             />
-
                                             <p className="text-xs text-slate-500">
                                                 支援單張圖片上傳（最大 50MB）。
                                             </p>
@@ -508,6 +545,88 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     )}
                                 />
                             </div>
+
+                            {/* 圖片上傳 (Icon) */}
+                            <div className="space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="icon"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                小 Icon（選填）
+                                            </FormLabel>
+                                            <label
+                                                htmlFor="upload-icon"
+                                                className="group relative flex h-40 w-40 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
+                                            >
+                                                <div className="absolute inset-0 z-10" />
+                                                <div
+                                                    className={`z-[3] flex flex-col items-center justify-center px-4 text-center ${
+                                                        imgIconPreview
+                                                            ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <svg
+                                                        className="h-7 w-7"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24" />
+                                                        <path d="M12 12v9" />
+                                                        <path d="m16 16-4-4-4 4" />
+                                                    </svg>
+                                                    <p className="mt-2 text-sm text-slate-500">
+                                                        拖曳或點擊上傳
+                                                    </p>
+                                                </div>
+                                                {imgIconPreview ? (
+                                                    <Image
+                                                        src={imgIconPreview}
+                                                        alt="Icon 預覽"
+                                                        fill
+                                                        className="rounded-xl object-contain bg-white"
+                                                    />
+                                                ) : null}
+                                            </label>
+                                            <input
+                                                id="upload-icon"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={handleIconFileInput}
+                                            />
+                                            <p className="text-xs text-slate-500">
+                                                支援單張圖片上傳（最大 50MB）。
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* 活動文字英文 */}
+                            <FormField
+                                control={form.control}
+                                name="activityTextEn"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>活動文字 (英文)</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="例如：Winter Ski Festival"
+                                                value={field.value ?? ''}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* TourProducts */}
                             <FormField
                                 control={form.control}
                                 name="tourProducts"
@@ -634,6 +753,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     </FormItem>
                                 )}
                             />
+
                             <FormError message={error} />
                             <FormSuccess message={success} />
                         </form>

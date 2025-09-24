@@ -198,7 +198,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                         />
 
                         {/* 餐食 & 住宿 */}
-                        <div className="grid grid-cols-4 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             {['breakfast', 'lunch', 'dinner'].map((meal) => (
                                 <FormField
                                     key={meal}
@@ -224,24 +224,23 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                                     )}
                                 />
                             ))}
-                            <FormField
-                                control={control}
-                                name={`itineraries.${index}.hotel`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>住宿</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                value={field.value ?? ''}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                         </div>
-
+                        <FormField
+                            control={control}
+                            name={`itineraries.${index}.hotel`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>住宿</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            value={field.value ?? ''}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         {/* 備註 */}
                         <FormField
                             control={control}

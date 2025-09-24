@@ -31,6 +31,10 @@ export const PageCreateSchema = z.object({
   seoDesc: emptyToUndefined.optional(),
   seoImage: imageUrlSchema,
   keywords: z.array(z.string().trim()).default([]), // ✅ 一律回傳 string[]
+
+  // 🔥 新增欄位
+  icon: imageUrlSchema,              // 小 icon（可空或 null）
+  activityTextEn: emptyToUndefined.optional(), // 活動文字英文
 })
 
 export type PageCreateValues = z.infer<typeof PageCreateSchema>
@@ -43,7 +47,11 @@ export const PageEditSchema = z.object({
   seoTitle: emptyToUndefined.optional(),
   seoDesc: emptyToUndefined.optional(),
   seoImage: imageUrlSchema,
-  keywords: z.array(z.string().trim()).optional().default([]), // ✅ 保證至少是 []
+  keywords: z.array(z.string().trim()).optional().default([]),
+
+  // 🔥 新增欄位
+  icon: imageUrlSchema,
+  activityTextEn: emptyToUndefined.optional(),
 })
 
 export type PageEditValues = z.infer<typeof PageEditSchema>

@@ -1,4 +1,3 @@
-// /api/tour-products/search
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
@@ -23,9 +22,7 @@ export async function GET(req: Request) {
 
     // 目的地
     if (destination) {
-        where.OR = [
-            { arriveCountry: destination }
-        ];
+        where.OR = [{ arriveCountry: destination }];
     }
 
     // 預算
@@ -47,23 +44,43 @@ export async function GET(req: Request) {
             where,
             skip,
             take: limit,
-            include: {
+            select: {
+                id: true,
+                code: true,
+                namePrefix: true,
+                name: true,
+                mainImageUrl: true,
+                summary: true,
+                description: true,
+                days: true,
+                nights: true,
+                departAirport: true,
+                arriveCountry: true,
+                arriveCity: true,
+                arriveAirport: true,
+                category: true,
+                priceMin: true,
+                priceMax: true,
+                tags: true,
+                countries: true,
+                policy: true,
+                status: true,
+                categoryId: true,
+                subCategoryId: true,
+                createdAt: true,
+                updatedAt: true,
                 tour: {
+                    include: {},
                     orderBy: { departDate: 'asc' },
                 },
                 flights: {
-                    orderBy: [
-                        { day: 'asc' },
-                        { departTime: 'asc' },
-                    ],
-                },
-                itineraries: {
-                    orderBy: { day: 'asc' },
+                    include: {},
+                    orderBy: [{ day: 'asc' }, { departTime: 'asc' }],
                 },
                 highlights: {
+                    include: {},
                     orderBy: { order: 'asc' },
                 },
-                map: true,
             },
             orderBy: {
                 [sort]: order,

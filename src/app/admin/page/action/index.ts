@@ -16,8 +16,17 @@ export async function createPage(
     const parsed = PageCreateSchema.safeParse(values);
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
-    const { title, slug, content, seoTitle, seoDesc, seoImage, keywords } =
-        parsed.data;
+    const {
+        title,
+        slug,
+        content,
+        seoTitle,
+        seoDesc,
+        seoImage,
+        keywords,
+        icon,
+        activityTextEn,
+    } = parsed.data;
 
     // Slug 唯一檢查
     const dup = await db.page.findUnique({ where: { slug } });
@@ -32,6 +41,8 @@ export async function createPage(
             seoDesc: seoDesc ?? null,
             seoImage: seoImage === null ? null : seoImage?.trim(),
             keywords: keywords ?? [],
+            icon: icon === null ? null : icon?.trim(),
+            activityTextEn: activityTextEn ?? null,
             tourProducts: {
                 create: productIds.map((pid) => ({
                     tourProduct: { connect: { id: pid } },
@@ -66,6 +77,8 @@ export async function editPage(
         seoDesc: values.seoDesc,
         seoImage: values.seoImage ?? null,
         keywords: values.keywords ?? [],
+        icon: values.icon === null ? null : values.icon?.trim(),
+        activityTextEn: values.activityTextEn ?? null,
     };
 
     const data = await db.page.update({

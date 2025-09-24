@@ -16,7 +16,9 @@ export async function GET(_req: NextRequest, { params }: Props) {
 
     try {
         const row = await db.page.findUnique({
-            where: { id },
+            where: { 
+                slug: id
+            },
             include: {
                 tourProducts: {
                     include: { tourProduct: true },

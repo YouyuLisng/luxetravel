@@ -38,6 +38,8 @@ export default async function Page({ params }: Props) {
         seoDesc: data.seoDesc ?? '',
         seoImage: data.seoImage ?? null,
         keywords: data.keywords ?? [],
+        icon: data.icon ?? null,
+        activityTextEn: data.activityTextEn ?? '',
         tourProducts: data.tourProducts.map((tp) => tp.tourProduct.id),
         tourProductsDetail: data.tourProducts.map((tp) => ({
             id: tp.tourProduct.id,
