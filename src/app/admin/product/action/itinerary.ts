@@ -15,7 +15,6 @@ export async function replaceItineraries(
 ) {
     const parsed = ItineraryCreateSchema.safeParse(payload);
     if (!parsed.success) return { error: '欄位格式錯誤' };
-    console.log('parsed:', parsed.data);
 
     try {
         // ⚡ Transaction 保證一致性，延長 timeout 到 60 秒
