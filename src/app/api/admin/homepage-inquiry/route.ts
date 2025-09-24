@@ -15,12 +15,10 @@ export async function POST(req: Request) {
         }
 
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT ?? '465', 10),
-            secure: true,
+            service: 'gmail',
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
+                user: process.env.SMTP_USER, // luxetravel@gmail.com
+                pass: process.env.SMTP_PASS, // ehtpldceklyosovt
             },
         });
 
@@ -45,6 +43,7 @@ export async function POST(req: Request) {
         await transporter.sendMail({
             from: `"網站表單通知" <${process.env.SMTP_USER}>`,
             to: process.env.NOTIFY_EMAIL ?? 'info@luxetravel.com.tw',
+            replyTo: process.env.REPLY_TO ?? process.env.SMTP_USER, // ⬅️ 使用 env
             subject: `新包車需求單 - ${d.contactName}`,
             html: mailHtml,
         });
