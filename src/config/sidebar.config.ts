@@ -7,6 +7,7 @@ import {
     PieChart,
     Map,
     type LucideIcon,
+    Headphones,
 } from 'lucide-react';
 
 // ✅ 型別定義
@@ -101,7 +102,7 @@ export const sidebarItems: SidebarItem[] = [
     {
         title: '旅客服務',
         url: '',
-        icon: BookOpen,
+        icon: Headphones,
         items: [
             { title: '旅客迴響', url: '/admin/feedback' },
         ],
