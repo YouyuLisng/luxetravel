@@ -4,6 +4,9 @@ import {
     type TravelInquiryValues,
 } from '@/schemas/travelInquiry';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+import Handlebars from 'handlebars';
 
 /** POST /api/admin/travel-inquiry - 收到需求單並寄出 Email */
 export async function POST(req: Request) {
@@ -17,6 +20,23 @@ export async function POST(req: Request) {
             );
         }
 
+        const d = parsed.data;
+
+        // ===== 讀取並編譯 hbs 模板 =====
+        const templatePath = path.join(process.cwd(), 'templates', 'travel-inquiry.hbs');
+        const source = fs.readFileSync(templatePath, 'utf8');
+        const template = Handlebars.compile(source);
+
+        // 把表單資料帶入模板
+        const mailHtml = template({
+            ...d,
+            gender: d.gender ?? '',
+            contactMethod: d.contactMethod?.join(', ') ?? '-',
+            source: d.source?.join(', ') ?? '-',
+            note: d.note ?? '-',
+            lineId: d.lineId ?? '-',
+        });
+
         // ===== 建立 Email transporter =====
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
@@ -27,23 +47,6 @@ export async function POST(req: Request) {
                 pass: process.env.SMTP_PASS,
             },
         });
-
-        // ===== 信件內容 =====
-        const d = parsed.data;
-        const mailHtml = `
-            <h2>新的旅遊需求單</h2>
-            <p><b>聯絡人：</b>${d.contactName} ${d.gender ?? ''}</p>
-            <p><b>旅遊形式：</b>${d.travelType}</p>
-            <p><b>聯絡方式：</b>${d.contactMethod.join(', ') || '-'}</p>
-            <p><b>聯絡時間：</b>${d.contactTime}</p>
-            <p><b>來源：</b>${d.source.join(', ') || '-'}</p>
-            <p><b>需求說明：</b>${d.note ?? '-'}</p>
-            <p><b>人數：</b>大人 ${d.adults} 小孩 ${d.children} 嬰兒 ${d.infants}</p>
-            <p><b>期望行程：</b>${d.itinerary}</p>
-            <p><b>出發日期：</b>${d.departDate}</p>
-            <p><b>手機：</b>${d.phone}</p>
-            <p><b>LINE：</b>${d.lineId ?? '-'}</p>
-        `;
 
         // ===== 寄出信件 =====
         await transporter.sendMail({

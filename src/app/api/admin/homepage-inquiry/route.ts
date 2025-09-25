@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { CarInquirySchema, type CarInquiryValues } from '@/schemas/carInquiry';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+import Handlebars from 'handlebars';
 
-/** POST /api/admin/car-inquiry - 收到包車需求單並寄出 Email */
+/** POST /api/admin/home-inquiry - 收到需求單並寄出 Email */
 export async function POST(req: Request) {
     try {
         const json = (await req.json()) as CarInquiryValues;
@@ -14,32 +17,37 @@ export async function POST(req: Request) {
             );
         }
 
+        const d = parsed.data;
+
+        // ===== 讀取並編譯 hbs 模板 =====
+        const templatePath = path.join(
+            process.cwd(),
+            'templates',
+            'home-inquiry.hbs'
+        );
+        const source = fs.readFileSync(templatePath, 'utf8');
+        const template = Handlebars.compile(source);
+
+        // 把表單資料帶入模板
+        const mailHtml = template({
+            ...d,
+            lineId: d.lineId ?? '-',
+            contactMethod: d.contactMethod?.join(', ') ?? '-',
+            source: d.source?.join(', ') ?? '-',
+            wishlist: d.wishlist ?? '-',
+            note: d.note ?? '-',
+        });
+
+        // ===== 建立寄件器 =====
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: process.env.SMTP_USER, // luxetravel@gmail.com
-                pass: process.env.SMTP_PASS, // ehtpldceklyosovt
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
             },
         });
 
-        const d = parsed.data;
-        const mailHtml = `
-            <h2>新的包車需求單</h2>
-            <p><b>聯絡人：</b>${d.contactName} ${d.gender}</p>
-            <p><b>手機：</b>${d.phone}</p>
-            <p><b>LINE：</b>${d.lineId ?? '-'}</p>
-            <p><b>聯絡方式：</b>${d.contactMethod.join(', ')}</p>
-            <p><b>聯絡時間：</b>${d.contactTime ?? '-'}</p>
-            <p><b>來源：</b>${d.source.join(', ')}</p>
-            <p><b>每人預算：</b>${d.budget}</p>
-            <p><b>想去的地區：</b>${d.regions.join(', ')}</p>
-            <p><b>人數：</b>大人 ${d.adults} 小孩 ${d.children}</p>
-            <p><b>旅遊天數：</b>${d.days} 天</p>
-            <p><b>出發日期：</b>${d.departDate}</p>
-            <p><b>心願清單：</b>${d.wishlist ?? '-'}</p>
-            <p><b>其他需求：</b>${d.note ?? '-'}</p>
-        `;
-
+        // ===== 寄出信件 =====
         await transporter.sendMail({
             from: `"網站表單通知" <${process.env.SMTP_USER}>`,
             to: process.env.NOTIFY_EMAIL ?? 'info@luxetravel.com.tw',
