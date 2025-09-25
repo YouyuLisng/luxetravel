@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         await transporter.sendMail({
             from: `"網站表單通知" <${process.env.SMTP_USER}>`,
             to: process.env.NOTIFY_EMAIL ?? 'info@luxetravel.com.tw',
-            replyTo: process.env.REPLY_TO ?? process.env.SMTP_USER, // ⬅️ 使用 env
+            replyTo: process.env.REPLY_TO ?? process.env.SMTP_USER,
             subject: `新包車需求單 - ${d.contactName}`,
             html: mailHtml,
         });
