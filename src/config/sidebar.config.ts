@@ -1,13 +1,13 @@
-// config/sidebar.config.ts（或你現有的檔名）
+// config/sidebar.config.ts
 import {
-    Bot,
-    BookOpen,
-    Settings2,
+    LayoutDashboard,
+    Home,
+    MapPinned,
+    Headphones,
     Frame,
     PieChart,
     Map,
     type LucideIcon,
-    Headphones,
 } from 'lucide-react';
 
 // ✅ 型別定義
@@ -44,33 +44,19 @@ export const sidebarProjects: ProjectItem[] = [
     { name: 'Travel', url: '#', icon: Map },
 ];
 
-// ✅ 主導覽項目
-// 202508251720 [CK] 暫時不顯示 { title: '模組管理', url: '/admin/modules' },
-// 202508251720 [CK] 暫時不顯示 { title: '立即諮詢', url: '/admin/enquiry' },
-// 202508251720 [CK] 暫時不顯示     ,
-// 202508251720 [CK] 暫時不顯示     {
-// 202508251720 [CK] 暫時不顯示         title: '行程管理',
-// 202508251720 [CK] 暫時不顯示         url: '',
-// 202508251720 [CK] 暫時不顯示         icon: BookOpen,
-// 202508251720 [CK] 暫時不顯示         items: [
-// 202508251720 [CK] 暫時不顯示             { title: '團體', url: '/admin/tour' },
-// 202508251720 [CK] 暫時不顯示             { title: '自由行', url: '/admin/package' },
-// 202508251720 [CK] 暫時不顯示             { title: '旅客迴響', url: '/admin/feedback' },
-// 202508251720 [CK] 暫時不顯示         ],
-// 202508251720 [CK] 暫時不顯示     },
 export const sidebarItems: SidebarItem[] = [
     {
         title: '網站管理',
         url: '',
-        icon: Settings2,
+        icon: LayoutDashboard,
         items: [
             { title: '使用者管理', url: '/admin/users' },
             { title: '網站選單', url: '/admin/menu' },
-            { title: '大類別管理', url: '/admin/category' }, // 大類別：西歐
-            { title: '小類別管理', url: '/admin/categorysub' }, // 小類別：英法雙國
-            { title: '地區管理', url: '/admin/region' }, // 地理意義上的地區
-            { title: '國家管理', url: '/admin/country' }, // 地理意義上的國家 英國、法國
-            { title: '機場管理', url: '/admin/airport' }, //
+            { title: '大類別管理', url: '/admin/category' },
+            { title: '小類別管理', url: '/admin/categorysub' },
+            { title: '地區管理', url: '/admin/region' },
+            { title: '國家管理', url: '/admin/country' },
+            { title: '機場管理', url: '/admin/airport' },
             { title: '城市管理', url: '/admin/city' },
             { title: '航空公司', url: '/admin/airline' },
             { title: '景點管理', url: '/admin/attraction' },
@@ -80,7 +66,7 @@ export const sidebarItems: SidebarItem[] = [
     {
         title: '首頁設定',
         url: '',
-        icon: Bot,
+        icon: Home,
         items: [
             { title: '首頁輪播大圖', url: '/admin/banner' },
             { title: '活動管理', url: '/admin/page' },
@@ -94,7 +80,7 @@ export const sidebarItems: SidebarItem[] = [
     {
         title: '行程管理',
         url: '',
-        icon: BookOpen,
+        icon: MapPinned,
         items: [
             { title: '行程', url: '/admin/product' },
         ],
