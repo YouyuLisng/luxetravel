@@ -51,7 +51,7 @@ export async function POST(req: Request) {
             from: `"網站表單通知" <${process.env.SMTP_USER}>`,
             to: process.env.NOTIFY_EMAIL ?? 'info@luxetravel.com.tw',
             replyTo: process.env.REPLY_TO ?? process.env.SMTP_USER,
-            subject: `新旅遊需求單 - ${d.contactName}`,
+            subject: `典藏旅遊｜感謝您的旅遊諮詢，我們已收到您的需求`,
             html: mailHtml,
         });
 
