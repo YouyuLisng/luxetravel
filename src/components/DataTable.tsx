@@ -789,19 +789,9 @@ function generateColumns<T extends Record<string, any>>(
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                        {/* {isTourProduct && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/admin/product/${id}/tour`}>
-                                        檢視行程日曆
-                                    </Link>
-                                </DropdownMenuItem>
-                            </>
-                        )} */}
                         {editHref ? (
                             <DropdownMenuItem asChild>
-                                <Link href={editHref} target='blank'>編輯</Link>
+                                <Link href={editHref} target="_blank" rel="noopener noreferrer">編輯</Link>
                             </DropdownMenuItem>
                         ) : (
                             <DropdownMenuItem disabled>編輯</DropdownMenuItem>
