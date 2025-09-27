@@ -9,6 +9,7 @@ export async function replaceTours(productId: string, tours: TourValues[]) {
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     try {
+        // 先刪除舊的梯次
         await db.tours.deleteMany({ where: { productId } });
 
         if (parsed.data.length > 0) {
@@ -18,11 +19,12 @@ export async function replaceTours(productId: string, tours: TourValues[]) {
                     code: t.code,
                     departDate: t.departDate,
                     returnDate: t.returnDate,
-                    adult: t.prices.adult ?? '',
-                    childWithBed: t.prices.childWithBed ?? '',
-                    childNoBed: t.prices.childNoBed ?? '',
-                    infant: t.prices.infant ?? '',
-                    deposit: t.deposit ?? null,
+                    adult: t.prices.adult ?? '',              // ✅ 沒填就存空字串
+                    childWithBed: t.prices.childWithBed ?? '', // ✅
+                    childNoBed: t.prices.childNoBed ?? '',     // ✅
+                    childExtraBed: t.prices.childExtraBed ?? 'NIL', // ✅ 只有加床允許 NIL
+                    infant: t.prices.infant ?? '',             // ✅
+                    deposit: t.deposit ?? '',                  // ✅
                     status: t.status,
                     note: t.note ?? null,
                 })),

@@ -75,6 +75,9 @@ export default function TourForm({
                                         childWithBed:
                                             t.prices.childWithBed ?? '',
                                         childNoBed: t.prices.childNoBed ?? '',
+                                        childExtraBed:
+                                            (t.prices as any).childExtraBed ??
+                                            '',
                                         infant: t.prices.infant ?? '',
                                     }
                                   : {
@@ -82,6 +85,8 @@ export default function TourForm({
                                         childWithBed:
                                             (t as any).childWithBed ?? '',
                                         childNoBed: (t as any).childNoBed ?? '',
+                                        childExtraBed:
+                                            (t as any).childExtraBed ?? '',
                                         infant: (t as any).infant ?? '',
                                     },
                           deposit: t.deposit ?? '',
@@ -99,6 +104,7 @@ export default function TourForm({
                                         adult: '',
                                         childWithBed: '',
                                         childNoBed: '',
+                                        childExtraBed: '',
                                         infant: '',
                                     },
                                     deposit: '',
@@ -112,6 +118,7 @@ export default function TourForm({
                                             adult: '',
                                             childWithBed: '',
                                             childNoBed: '',
+                                            childExtraBed: '',
                                             infant: '',
                                         },
                                         deposit: '',
@@ -157,11 +164,16 @@ export default function TourForm({
                             adult: tour.prices.adult ?? '',
                             childWithBed: tour.prices.childWithBed ?? '',
                             childNoBed: tour.prices.childNoBed ?? '',
+                            childExtraBed:
+                                tour.prices.childExtraBed === ''
+                                    ? 'NIL'
+                                    : tour.prices.childExtraBed,
                             infant: tour.prices.infant ?? '',
                         },
-                        deposit: tour.deposit ?? null,
+                        deposit: tour.deposit ?? '',
+
                         status: tour.status,
-                        note: tour.note ?? null,
+                        note: tour.note === '' ? null : tour.note,
                     };
                 });
 
@@ -196,7 +208,8 @@ export default function TourForm({
                             團體設定
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            選擇多個日期，系統會自動建立團體代碼與回程日，並可設定每個日期的價格、訂金、狀態與備註。
+                            選擇多個日期，系統會自動建立團體代碼與回程日，並可設定每個日期的價格、加床、訂金、狀態與備註。
+                            若未填寫價格，系統會回傳「NIL」表示無此報價。
                         </p>
                     </div>
 
@@ -226,6 +239,7 @@ export default function TourForm({
                                                         adult: '',
                                                         childWithBed: '',
                                                         childNoBed: '',
+                                                        childExtraBed: '',
                                                         infant: '',
                                                     },
                                                     deposit:
@@ -270,6 +284,12 @@ export default function TourForm({
                                             </th>
                                             <th className="px-4 py-2 border">
                                                 兒童不佔床價
+                                            </th>
+                                            <th className="px-4 py-2 border">
+                                                加床價 <br />
+                                                <span className="text-red-500">
+                                                    (未填寫則系統會回傳無此報價)
+                                                </span>
                                             </th>
                                             <th className="px-4 py-2 border">
                                                 嬰兒價
@@ -334,6 +354,18 @@ export default function TourForm({
                                                                 className="text-right"
                                                             />
                                                         </td>
+                                                        <td className="px-4 py-2 border">
+                                                            <div className="flex flex-col items-start">
+                                                                <Input
+                                                                    type="text"
+                                                                    {...form.register(
+                                                                        `tours.${index}.prices.childExtraBed`
+                                                                    )}
+                                                                    className="text-right"
+                                                                />
+                                                            </div>
+                                                        </td>
+
                                                         <td className="px-4 py-2 border">
                                                             <Input
                                                                 type="text"

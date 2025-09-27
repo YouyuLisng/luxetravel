@@ -508,23 +508,26 @@ model TourProduct {
 }
 
 model Tours {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
-  productId    String   @db.ObjectId /// 關聯 TourProduct ID
-  code         String /// 團體代碼
-  departDate   DateTime /// 出發日期
-  returnDate   DateTime /// 回程日期
-  adult        String /// 大人價錢
-  childWithBed String /// 佔床兒童價錢
-  childNoBed   String /// 不佔床兒童價錢
-  infant       String /// 嬰兒價錢
-  deposit      String? /// 訂金
-  status       Int /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
-  note         String? /// 備註
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
+  productId     String   @db.ObjectId /// 關聯 TourProduct ID
+  code          String   /// 團體代碼
+  departDate    DateTime /// 出發日期
+  returnDate    DateTime /// 回程日期
 
-  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  adult         String   /// 大人價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childWithBed  String   /// 佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childNoBed    String   /// 不佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childExtraBed String   /// 加床價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  infant        String   /// 嬰兒價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
 
-  createdAt DateTime @default(now()) /// 建立時間
-  updatedAt DateTime @updatedAt /// 更新時間
+  deposit       String?  /// 訂金 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  status        Int      /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
+  note          String?  /// 備註
+
+  product       TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now()) /// 建立時間
+  updatedAt     DateTime @updatedAt      /// 更新時間
 }
 
 model Flight {
