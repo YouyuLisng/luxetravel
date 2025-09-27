@@ -8,6 +8,16 @@ import {
 
 type ReplacePayload = { itineraries: ItineraryCreateValues[] };
 
+// 處理 hotel 欄位
+function formatHotel(hotel?: string | null): string | null {
+    if (hotel == null) return null;
+
+    const parts = hotel.split(' 或 ');
+    if (parts.length === 1) return hotel;
+
+    return parts.slice(0, -1).join('<br/>') + ' 或 ' + parts[parts.length - 1];
+}
+
 /** 覆寫某產品的所有行程 */
 export async function replaceItineraries(
     productId: string,
@@ -17,13 +27,10 @@ export async function replaceItineraries(
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     try {
-        // ⚡ Transaction 保證一致性，延長 timeout 到 60 秒
         await db.$transaction(
             async (tx) => {
-                // 1. 先刪掉舊資料（連帶 routes/attractions）
                 await tx.itinerary.deleteMany({ where: { productId } });
 
-                // 2. 新建全部行程
                 for (const it of parsed.data.itineraries) {
                     await tx.itinerary.create({
                         data: {
@@ -35,7 +42,7 @@ export async function replaceItineraries(
                             breakfast: it.breakfast,
                             lunch: it.lunch,
                             dinner: it.dinner,
-                            hotel: it.hotel,
+                            hotel: formatHotel(it.hotel), // ✅ 格式化
                             note: it.note,
                             featured: it.featured ?? false,
                             routes: {
@@ -55,7 +62,7 @@ export async function replaceItineraries(
                     });
                 }
             },
-            { timeout: 60000 } // ⏱️ 60 秒
+            { timeout: 60000 }
         );
 
         return { success: '每日行程更新成功' };
