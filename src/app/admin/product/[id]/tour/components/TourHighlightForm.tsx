@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useTransition, useCallback, ChangeEvent, useEffect } from 'react';
+import {
+    useState,
+    useTransition,
+    useCallback,
+    ChangeEvent,
+    useEffect,
+} from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
@@ -194,7 +200,7 @@ export default function TourHighlightForm({
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            行程亮點
+                            焦點特色
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
                             可新增多個亮點，每個亮點可包含多張圖片，帶 *
@@ -254,13 +260,24 @@ export default function TourHighlightForm({
                                                                 版型
                                                             </SelectLabel>
                                                             <SelectItem value="1">
-                                                                版型一
+                                                                版型一：兩張圖片靠右
+                                                                - 16:9 橫式圖片
                                                             </SelectItem>
                                                             <SelectItem value="2">
-                                                                版型二
+                                                                版型二：滿版主圖輪播
+                                                                - 16:9 橫式圖片
                                                             </SelectItem>
                                                             <SelectItem value="3">
-                                                                版型三
+                                                                版型三：兩張圖片靠左
+                                                                - 16:9 橫式圖片
+                                                            </SelectItem>
+                                                            <SelectItem value="4">
+                                                                版型四：三張圖 -
+                                                                1:1 正方形圖片
+                                                            </SelectItem>
+                                                            <SelectItem value="5">
+                                                                版型五：每日行程中的景點輪播
+                                                                - 9:16 直式圖片
                                                             </SelectItem>
                                                         </SelectGroup>
                                                     </SelectContent>
@@ -406,7 +423,9 @@ export default function TourHighlightForm({
                                 <Button
                                     type="submit"
                                     form={formId}
-                                    disabled={isLoading || isPending || isSubmitting}
+                                    disabled={
+                                        isLoading || isPending || isSubmitting
+                                    }
                                 >
                                     儲存亮點
                                 </Button>
@@ -469,7 +488,7 @@ function ImageFields({
                                 </FormLabel>
                                 <label
                                     htmlFor={`upload-highlight-${nestIndex}-${imgIndex}`}
-                                    className="group relative flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
+                                    className="group relative flex h-40 w-full cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50/60 transition hover:bg-slate-50"
                                 >
                                     <div className="absolute inset-0 z-10" />
                                     <div

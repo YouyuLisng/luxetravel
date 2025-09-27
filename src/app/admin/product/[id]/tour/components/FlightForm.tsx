@@ -310,9 +310,7 @@ export default function FlightForm({ productId, initialData }: Props) {
                                 className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
                             />
                         </FormControl>
-                        <FormLabel className="!mt-0">
-                            是否跨日航班
-                        </FormLabel>
+                        <FormLabel className="!mt-0">是否跨日航班</FormLabel>
                     </FormItem>
                 )}
             />
@@ -377,6 +375,9 @@ export default function FlightForm({ productId, initialData }: Props) {
                     </FormItem>
                 )}
             />
+            <p className="mt-1 text-sm text-red-600">
+                ※ 每個航段的備註會「分段落」，同時顯示在前端。例如設定四段航班，前端就會有四個分段落。
+            </p>
         </div>
     );
 
@@ -431,7 +432,8 @@ export default function FlightForm({ productId, initialData }: Props) {
                                                 })
                                             }
                                         >
-                                            <Plus className="h-4 w-4" /> 新增去程航班
+                                            <Plus className="h-4 w-4" />{' '}
+                                            新增去程航班
                                         </Button>
                                     </div>
                                 </div>
@@ -471,7 +473,8 @@ export default function FlightForm({ productId, initialData }: Props) {
                                                 })
                                             }
                                         >
-                                            <Plus className="h-4 w-4" /> 新增回程航班
+                                            <Plus className="h-4 w-4" />{' '}
+                                            新增回程航班
                                         </Button>
                                     </div>
                                 </div>

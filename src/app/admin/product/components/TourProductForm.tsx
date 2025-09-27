@@ -501,7 +501,7 @@ export default function TourProductForm({
                                                         <SelectItem value="FREE">
                                                             自由行
                                                         </SelectItem>
-                                                        <SelectItem value="CUST">
+                                                        <SelectItem value="RCAR">
                                                             包車
                                                         </SelectItem>
                                                         <SelectItem value="RECO">
@@ -922,13 +922,13 @@ export default function TourProductForm({
                                 name="reminder"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>貼心提醒</FormLabel>
+                                        <FormLabel>請輸入貼心提醒餐團須知 旅客篇</FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入貼心提醒"
+                                                placeholder="請輸入請輸入貼心提醒餐團須知 旅客篇"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||
@@ -946,13 +946,13 @@ export default function TourProductForm({
                                 name="policy"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>參團須知</FormLabel>
+                                        <FormLabel>請輸入貼心提醒餐團須知 航空篇</FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入參團須知"
+                                                placeholder="請輸入請輸入貼心提醒餐團須知 航空篇"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||

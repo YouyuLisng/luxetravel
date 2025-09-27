@@ -30,7 +30,7 @@ const steps = [
     { id: 'product', label: '產品' },
     { id: 'flight', label: '航班' },
     { id: 'itinerary', label: '行程表' },
-    { id: 'highlight', label: '亮點' },
+    { id: 'highlight', label: '焦點特色' },
     { id: 'map', label: '地圖' },
     { id: 'tours', label: '團次' },
 ];

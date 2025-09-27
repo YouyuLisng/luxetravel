@@ -195,19 +195,19 @@ export default function TourMapForm({ productId, initialData }: Props) {
                                 )}
                             />
 
-                            {/* 文字說明 */}
+                            {/* 地圖備註 */}
                             <FormField
                                 control={form.control}
                                 name="content"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>文字說明</FormLabel>
+                                        <FormLabel>地圖備註</FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={4}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入地圖說明"
+                                                placeholder="請輸入地圖備註"
                                                 disabled={
                                                     isSubmitting || isLoading
                                                 }
