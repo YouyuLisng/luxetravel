@@ -13,8 +13,10 @@ enum Role {
 }
 
 enum ProductType {
-  FREE
   GROUP
+  FREE
+  RCAR
+  RECO
 }
 
 enum FeedbackMode {
