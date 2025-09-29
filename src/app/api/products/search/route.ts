@@ -20,9 +20,10 @@ export async function GET(req: Request) {
         status: 1,
     };
 
-    // 目的地
+    // 目的地 (支援多國家搜尋)
     if (destination) {
-        where.OR = [{ arriveCountry: destination }];
+        const destinations = destination.split(',').map((d) => d.trim());
+        where.arriveCountry = { in: destinations };
     }
 
     // 預算
