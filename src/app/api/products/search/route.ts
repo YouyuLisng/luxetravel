@@ -16,9 +16,7 @@ export async function GET(req: Request) {
     const sort = searchParams.get('sort') ?? 'createdAt';
     const order = searchParams.get('order') ?? 'desc';
 
-    const where: any = {
-        status: 1,
-    };
+    const where: any = { status: 1 };
 
     // 目的地 (支援多國家搜尋)
     if (destination) {
@@ -90,6 +88,31 @@ export async function GET(req: Request) {
         db.tourProduct.count({ where }),
     ]);
 
+    // 收集所有代碼
+    const allCodes = new Set<string>();
+    products.forEach((p) => {
+        p.countries?.forEach((c) => allCodes.add(c));
+    });
+
+    const countriesMap = await db.country.findMany({
+        where: { code: { in: Array.from(allCodes) }, enabled: true },
+        select: { code: true, nameZh: true, nameEn: true },
+    });
+
+    const countryDict = Object.fromEntries(
+        countriesMap.map((c) => [c.code, { zh: c.nameZh, en: c.nameEn }])
+    );
+
+    // 替換 products 裡的 countries
+    const formattedProducts = products.map((p) => ({
+        ...p,
+        countries: p.countries.map((code) => ({
+            code,
+            zh: countryDict[code]?.zh ?? code,
+            en: countryDict[code]?.en ?? code,
+        })),
+    }));
+
     return NextResponse.json({
         page,
         limit,
@@ -97,6 +120,6 @@ export async function GET(req: Request) {
         totalPages: Math.ceil(total / limit),
         sort,
         order,
-        data: products,
+        data: formattedProducts,
     });
 }
