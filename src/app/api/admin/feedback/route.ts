@@ -10,34 +10,28 @@ export async function GET(req: Request) {
         // 👉 沒帶 page/pageSize → 回傳全部
         if (!pageParam && !pageSizeParam) {
             const rows = await db.feedback.findMany({
-                orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+                orderBy: { createdAt: 'desc' },
                 include: {
-                    countries: { include: { country: true } },
+                    product: true,
                 },
             });
 
             const data = rows.map((f) => ({
                 id: f.id,
                 title: f.title,
-                subtitle: f.subtitle,
                 content: f.content,
                 nickname: f.nickname,
                 imageUrl: f.imageUrl,
                 linkUrl: f.linkUrl,
-                linekName: f.linekName,
-                order: f.order,
                 createdAt: f.createdAt,
                 updatedAt: f.updatedAt,
-                countries: (f.countries ?? [])
-                    .filter((rel) => !!rel.country)
-                    .map((rel) => ({
-                        id: rel.country.id,
-                        name: rel.country.name,
-                        nameZh: rel.country.nameZh,
-                        code: rel.country.code,
-                        createdAt: rel.country.createdAt,
-                        updatedAt: rel.country.updatedAt,
-                    })),
+                product: f.product
+                    ? {
+                          id: f.product.id,
+                          code: f.product.code,
+                          name: f.product.name,
+                      }
+                    : null,
             }));
 
             return NextResponse.json(
@@ -61,9 +55,9 @@ export async function GET(req: Request) {
         const [total, rows] = await Promise.all([
             db.feedback.count(),
             db.feedback.findMany({
-                orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+                orderBy: { createdAt: 'desc' },
                 include: {
-                    countries: { include: { country: true } },
+                    product: true,
                 },
                 skip: (page - 1) * pageSize,
                 take: pageSize,
@@ -73,25 +67,19 @@ export async function GET(req: Request) {
         const data = rows.map((f) => ({
             id: f.id,
             title: f.title,
-            subtitle: f.subtitle,
             content: f.content,
             nickname: f.nickname,
             imageUrl: f.imageUrl,
             linkUrl: f.linkUrl,
-            linekName: f.linekName,
-            order: f.order,
             createdAt: f.createdAt,
             updatedAt: f.updatedAt,
-            countries: (f.countries ?? [])
-                .filter((rel) => !!rel.country)
-                .map((rel) => ({
-                    id: rel.country.id,
-                    name: rel.country.name,
-                    nameZh: rel.country.nameZh,
-                    code: rel.country.code,
-                    createdAt: rel.country.createdAt,
-                    updatedAt: rel.country.updatedAt,
-                })),
+            product: f.product
+                ? {
+                      id: f.product.id,
+                      code: f.product.code,
+                      name: f.product.name,
+                  }
+                : null,
         }));
 
         return NextResponse.json(

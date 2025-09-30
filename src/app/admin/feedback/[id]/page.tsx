@@ -20,18 +20,10 @@ export default async function Page({ params }: Props) {
         select: {
             id: true,
             title: true,
-            subtitle: true,
             content: true,
             nickname: true,
             imageUrl: true,
             linkUrl: true,
-            linekName: true,
-            order: true,
-            countries: {
-                include: {
-                    country: true,
-                },
-            },
         },
     });
 
@@ -40,19 +32,10 @@ export default async function Page({ params }: Props) {
     const initialData = {
         id: data.id,
         title: data.title ?? '',
-        subtitle: data.subtitle ?? '',
         content: data.content ?? '',
         nickname: data.nickname ?? '',
         imageUrl: data.imageUrl ?? '',
         linkUrl: data.linkUrl ?? '',
-        linekName: data.linekName ?? '',
-        order: data.order ?? 0,
-        countries: data.countries?.map((rel) => ({
-            id: rel.country.id,
-            name: rel.country.name,
-            nameZh: rel.country.nameZh,
-            code: rel.country.code,
-        })),
     };
 
     return <FeedbackForm initialData={initialData} mode="edit" />;

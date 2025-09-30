@@ -39,13 +39,6 @@ export async function createCountry(values: CountryCreateValues) {
             create: { name: nameEn.trim(), nameZh: nameZh.trim(), code: upper },
         });
 
-        // 同步 FeedbackCountry
-        await tx.feedbackCountry.upsert({
-            where: { name: nameEn.trim() },
-            update: { nameZh: nameZh.trim(), code: upper },
-            create: { name: nameEn.trim(), nameZh: nameZh.trim(), code: upper },
-        });
-
         return country;
     });
 
@@ -115,21 +108,6 @@ export async function editCountry(id: string, values: CountryEditValues) {
             });
         } else {
             await tx.articleCountry.upsert({
-                where: { name: newNameEn },
-                update: { nameZh: newNameZh, code: newCode },
-                create: { name: newNameEn, nameZh: newNameZh, code: newCode },
-            });
-        }
-
-        // 同步 FeedbackCountry
-        const oldFeedback = await tx.feedbackCountry.findUnique({ where: { name: oldNameEn } });
-        if (oldFeedback) {
-            await tx.feedbackCountry.update({
-                where: { name: oldNameEn },
-                data: { name: newNameEn, nameZh: newNameZh, code: newCode },
-            });
-        } else {
-            await tx.feedbackCountry.upsert({
                 where: { name: newNameEn },
                 update: { nameZh: newNameZh, code: newCode },
                 create: { name: newNameEn, nameZh: newNameZh, code: newCode },

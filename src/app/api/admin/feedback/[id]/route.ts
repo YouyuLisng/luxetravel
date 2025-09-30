@@ -14,13 +14,11 @@ export async function GET(_req: NextRequest, { params }: Props) {
     }
 
     try {
-        // Feedback + 關聯表 + 國家
+        // Feedback + 關聯的產品
         const row = await db.feedback.findUnique({
             where: { id },
             include: {
-                countries: {
-                    include: { country: true },
-                },
+                product: true, // ✅ 現在只需要關聯產品
             },
         });
 
@@ -31,27 +29,22 @@ export async function GET(_req: NextRequest, { params }: Props) {
             );
         }
 
-        // 扁平化成「countries: FeedbackCountry[]」
         const data = {
             id: row.id,
             title: row.title,
-            subtitle: row.subtitle ?? null,
             content: row.content ?? null,
             nickname: row.nickname,
             imageUrl: row.imageUrl,
             linkUrl: row.linkUrl,
-            linekName: row.linekName ?? null, // 依你的欄位名
-            order: row.order,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
-            countries: row.countries.map((rel) => ({
-                id: rel.country.id,
-                name: rel.country.name,
-                nameZh: rel.country.nameZh,
-                code: rel.country.code,
-                createdAt: rel.country.createdAt,
-                updatedAt: rel.country.updatedAt,
-            })),
+            product: row.product
+                ? {
+                      id: row.product.id,
+                      code: row.product.code,
+                      name: row.product.name,
+                  }
+                : null,
         };
 
         return NextResponse.json({
@@ -60,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
             data,
         });
     } catch (error) {
-        console.error('Failed to get feedback with countries:', error);
+        console.error('Failed to get feedback:', error);
         return NextResponse.json(
             { error: 'Failed to fetch feedback' },
             { status: 500 }

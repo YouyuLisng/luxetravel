@@ -8,6 +8,7 @@ export async function GET(req: Request) {
     const budgetMin = searchParams.get('budgetMin');
     const budgetMax = searchParams.get('budgetMax');
     const daysRange = searchParams.get('daysRange');
+    const category = searchParams.get('category'); // ✅ 新增類別參數
 
     const page = Number(searchParams.get('page') ?? 1);
     const limit = Number(searchParams.get('limit') ?? 10);
@@ -38,6 +39,11 @@ export async function GET(req: Request) {
         where.days = { gte: min, lte: max };
     }
 
+    // ✅ 新增類別篩選
+    if (category && category !== 'ALL') {
+        where.category = category;
+    }
+
     const [products, total] = await Promise.all([
         db.tourProduct.findMany({
             where,
@@ -66,6 +72,16 @@ export async function GET(req: Request) {
                 status: true,
                 categoryId: true,
                 subCategoryId: true,
+                isFeatured: true,
+                feedback: {
+                    select: {
+                        id: true,
+                        title: true,
+                        nickname: true,
+                        imageUrl: true,
+                        linkUrl: true,
+                    },
+                },
                 createdAt: true,
                 updatedAt: true,
                 tour: {
@@ -81,37 +97,13 @@ export async function GET(req: Request) {
                     orderBy: { order: 'asc' },
                 },
             },
-            orderBy: {
-                [sort]: order,
-            },
+            orderBy: [
+                { isFeatured: 'desc' },
+                { [sort]: order },
+            ],
         }),
         db.tourProduct.count({ where }),
     ]);
-
-    // 收集所有代碼
-    const allCodes = new Set<string>();
-    products.forEach((p) => {
-        p.countries?.forEach((c) => allCodes.add(c));
-    });
-
-    const countriesMap = await db.country.findMany({
-        where: { code: { in: Array.from(allCodes) }, enabled: true },
-        select: { code: true, nameZh: true, nameEn: true },
-    });
-
-    const countryDict = Object.fromEntries(
-        countriesMap.map((c) => [c.code, { zh: c.nameZh, en: c.nameEn }])
-    );
-
-    // 替換 products 裡的 countries
-    const formattedProducts = products.map((p) => ({
-        ...p,
-        countries: p.countries.map((code) => ({
-            code,
-            zh: countryDict[code]?.zh ?? code,
-            en: countryDict[code]?.en ?? code,
-        })),
-    }));
 
     return NextResponse.json({
         page,
@@ -120,6 +112,6 @@ export async function GET(req: Request) {
         totalPages: Math.ceil(total / limit),
         sort,
         order,
-        data: formattedProducts,
+        data: products,
     });
 }

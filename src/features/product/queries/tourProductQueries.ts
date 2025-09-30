@@ -2,6 +2,15 @@ import axios from '@/lib/axios';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
+// === Feedback 簡單 Schema（for 關聯用） ===
+export const feedbackSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    nickname: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    linkUrl: z.string().nullable(),
+});
+
 // === TourProduct Schema ===
 export const tourProductSchema = z.object({
     id: z.string(),
@@ -21,6 +30,7 @@ export const tourProductSchema = z.object({
     priceMin: z.number(),
     priceMax: z.number().nullable(),
     tags: z.array(z.string()),
+    countries: z.array(z.string()).optional().default([]), // ✅ DB 有 countries[]
     note: z.string().nullable(),
     status: z.number(),
     staff: z.string().nullable(),
@@ -28,6 +38,9 @@ export const tourProductSchema = z.object({
     policy: z.string().nullable(),
     categoryId: z.string(),
     subCategoryId: z.string().nullable(),
+    isFeatured: z.boolean().default(false), // ✅ 新增
+    feedbackId: z.string().nullable(), // ✅ 新增
+    feedback: feedbackSchema.nullable().optional(), // ✅ 關聯
     createdAt: z.string(),
     updatedAt: z.string(),
 });
@@ -87,7 +100,7 @@ export const tourProductQuery = (id: string) => ({
     queryKey: KEYS.detail(id),
     queryFn: async () => {
         const res = await axios.get(`/api/admin/product/${id}`);
-        return tourProductSchema.parse(res.data); 
+        return tourProductSchema.parse(res.data);
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,

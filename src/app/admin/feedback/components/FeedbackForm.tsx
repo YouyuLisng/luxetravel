@@ -1,13 +1,7 @@
 // src/app/admin/feedback/components/FeedbackForm.tsx
 'use client';
 
-import {
-    useState,
-    useTransition,
-    useCallback,
-    ChangeEvent,
-    useEffect,
-} from 'react';
+import { useState, useTransition, useCallback, ChangeEvent } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
@@ -35,37 +29,24 @@ import {
     editFeedback,
 } from '@/app/admin/feedback/action/feedback';
 
-import CreatableMultiSelect from '@/components/CreatableMultiSelect';
-
 import { useQueryClient } from '@tanstack/react-query';
 import { KEYS } from '@/features/feedback/queries/feedbackQueries';
-
-type CountryOption = { label: string; value: string };
 
 /* ========== Zod：表單 Schema（輸入形狀）========== */
 const FormSchema = z.object({
     title: z.string().min(1, '請輸入標題'),
-    subtitle: z.string().optional(),
     content: z.string().optional(),
     nickname: z.string().min(1, '請輸入暱稱'),
     linkUrl: z.string().url('請輸入正確的網址'),
     imageUrl: z.string().url('請輸入正確的圖片網址'),
     linekName: z.string().optional(),
-    order: z.preprocess(
-        (v) => (v === '' || v === null ? undefined : v),
-        z.coerce.number().int().min(0).optional()
-    ),
-    countryIds: z.array(z.string().min(1)).optional(),
 });
 
-type FeedbackFormValues = z.input<typeof FormSchema>;
+type FeedbackFormValues = z.infer<typeof FormSchema>;
 
 interface Props {
     mode?: 'create' | 'edit';
-    initialData?: Partial<FeedbackFormValues> & {
-        id?: string;
-        countries?: Array<{ id: string; name?: string; nameZh?: string }>;
-    };
+    initialData?: Partial<FeedbackFormValues> & { id?: string };
 }
 
 export default function FeedbackForm({ mode = 'create', initialData }: Props) {
@@ -87,62 +68,16 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
     const [error, setError] = useState<string>();
     const [success, setSuccess] = useState<string>();
 
-    // 取得「FeedbackCountry」選項
-    const [options, setOptions] = useState<CountryOption[]>([]);
-    const [loadingOptions, setLoadingOptions] = useState(false);
-
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                setLoadingOptions(true);
-                const res = await fetch('/api/admin/feedback-country', {
-                    cache: 'no-store',
-                });
-                const json = await res.json();
-                const list = Array.isArray(json?.data) ? json.data : [];
-                const opts: CountryOption[] = list.map((c: any) => ({
-                    value: c.id,
-                    label: c.nameZh || c.name || c.code || c.id,
-                }));
-                if (mounted) setOptions(opts);
-            } catch {
-                toast({
-                    title: '無法取得國家選項',
-                    description: '稍後再試或重新整理頁面',
-                    variant: 'destructive',
-                });
-            } finally {
-                if (mounted) setLoadingOptions(false);
-            }
-        })();
-        return () => {
-            mounted = false;
-        };
-    }, [toast]);
-
-    // 初始國家 id 陣列
-    const initialCountryIds =
-        initialData?.countryIds ??
-        initialData?.countries?.map((c) => c.id) ??
-        [];
-
     const form = useForm<FeedbackFormValues>({
         resolver: zodResolver(FormSchema),
         mode: 'onChange',
         defaultValues: {
             title: initialData?.title ?? '',
-            subtitle: initialData?.subtitle ?? '',
             content: initialData?.content ?? '',
             nickname: initialData?.nickname ?? '',
             linkUrl: initialData?.linkUrl ?? '',
             imageUrl: initialData?.imageUrl ?? '',
             linekName: initialData?.linekName ?? '',
-            order:
-                typeof initialData?.order === 'number'
-                    ? initialData.order
-                    : undefined,
-            countryIds: initialCountryIds ?? [],
         },
     });
 
@@ -151,12 +86,8 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
     const headingTitle = isEdit ? '編輯旅客迴響' : '新增旅客迴響';
     const headingDesc = isEdit
         ? '修改此旅客迴響 並儲存。帶 * 為必填。'
-        : '請填寫標題、暱稱、連結、選擇國家並上傳圖片。帶 * 為必填。';
+        : '請填寫標題、暱稱、連結、並上傳圖片。帶 * 為必填。';
     const formId = 'feedback-form';
-
-    // 將空字串正規化為 undefined（給可選欄位）
-    const toUndef = (v?: string) =>
-        typeof v === 'string' && v.trim() === '' ? undefined : v?.trim();
 
     // 上傳圖片
     const handleImageUpload = useCallback(
@@ -210,20 +141,6 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
         handleImageUpload(file);
     };
 
-    // 多選國家：僅接受選單內存在的 id
-    const handleCountriesChange = (vals: string[]) => {
-        const allowed = new Set(options.map((o) => o.value));
-        const filtered = vals.filter((v) => allowed.has(v));
-        if (filtered.length !== vals.length) {
-            toast({
-                title: '有些選項不是有效的國家',
-                description: '僅能選擇列表中的國家（若需新增，請先到國家管理）',
-                variant: 'destructive',
-            });
-        }
-        form.setValue('countryIds', filtered, { shouldValidate: true });
-    };
-
     const onSubmit: SubmitHandler<FeedbackFormValues> = (values) => {
         setError(undefined);
         setSuccess(undefined);
@@ -236,14 +153,11 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
 
                 const payload = {
                     title: values.title.trim(),
-                    subtitle: toUndef(values.subtitle),
-                    content: toUndef(values.content),
+                    content: values.content?.trim() || undefined,
                     nickname: values.nickname.trim(),
                     imageUrl: values.imageUrl.trim(),
                     linkUrl: values.linkUrl.trim(),
-                    linekName: toUndef(values.linekName),
-                    order: typeof values.order === 'number' ? values.order : 0,
-                    countryIds: values.countryIds ?? [],
+                    linekName: values.linekName?.trim() || undefined,
                 };
 
                 if (isEdit) {
@@ -298,19 +212,17 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                     {/* Header */}
                     <div className="border-b border-slate-100 p-6">
                         <h2 className="text-xl font-semibold text-slate-900">
-                            {isEdit ? '編輯旅客迴響' : '新增旅客迴響'}
+                            {headingTitle}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            {isEdit
-                                ? '修改此旅客迴響 並儲存。帶 * 為必填。'
-                                : '請填寫標題、暱稱、連結、選擇國家並上傳圖片。帶 * 為必填。'}
+                            {headingDesc}
                         </p>
                     </div>
 
                     {/* Content */}
                     <div className="p-6">
                         <form
-                            id="feedback-form"
+                            id={formId}
                             onSubmit={form.handleSubmit(onSubmit)}
                             className="space-y-8"
                         >
@@ -340,32 +252,7 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                                     )}
                                 />
 
-                                {/* 副標題（選填） */}
-                                <FormField
-                                    control={form.control}
-                                    name="subtitle"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                副標題（選填）
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="例：粉雪季的浪漫體驗"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* 內容（選填） */}
+                                {/* 內容 */}
                                 <FormField
                                     control={form.control}
                                     name="content"
@@ -431,123 +318,6 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                                                         isPending ||
                                                         isLoading ||
                                                         isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* 連結顯示名稱（選填） */}
-                                <FormField
-                                    control={form.control}
-                                    name="linekName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                連結顯示名稱（選填）
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="例：看更多"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* 排序（可不填） */}
-                                <FormField
-                                    control={form.control}
-                                    name="order"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                排序（可不填）
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    // ✅ 僅接受 number；否則顯示空字串，避免 TS 抱怨把 {} 丟進 input
-                                                    value={
-                                                        typeof field.value ===
-                                                        'number'
-                                                            ? field.value
-                                                            : ''
-                                                    }
-                                                    onChange={(e) => {
-                                                        const raw =
-                                                            e.target.value;
-                                                        field.onChange(
-                                                            raw === ''
-                                                                ? undefined
-                                                                : Number(raw)
-                                                        );
-                                                    }}
-                                                    placeholder="0"
-                                                    disabled={
-                                                        isPending ||
-                                                        isLoading ||
-                                                        isSubmitting
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* 國家：多選（可不填） */}
-                                <FormField
-                                    control={form.control}
-                                    name="countryIds"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                國家（可複選）
-                                            </FormLabel>
-                                            <FormControl>
-                                                <CreatableMultiSelect
-                                                    value={field.value ?? []}
-                                                    onChange={(vals) => {
-                                                        const allowed = new Set(
-                                                            options.map(
-                                                                (o) => o.value
-                                                            )
-                                                        );
-                                                        const filtered =
-                                                            vals.filter((v) =>
-                                                                allowed.has(v)
-                                                            );
-                                                        if (
-                                                            filtered.length !==
-                                                            vals.length
-                                                        ) {
-                                                            toast({
-                                                                title: '有些選項不是有效的國家',
-                                                                description:
-                                                                    '僅能選擇列表中的國家（若需新增，請先到國家管理）',
-                                                                variant:
-                                                                    'destructive',
-                                                            });
-                                                        }
-                                                        field.onChange(
-                                                            filtered
-                                                        );
-                                                    }}
-                                                    options={options}
-                                                    placeholder={
-                                                        loadingOptions
-                                                            ? '載入選項中…'
-                                                            : '請選擇或輸入'
                                                     }
                                                 />
                                             </FormControl>
@@ -641,7 +411,7 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                             </Button>
                             <Button
                                 type="submit"
-                                form="feedback-form"
+                                form={formId}
                                 disabled={
                                     !isValid ||
                                     isLoading ||
@@ -649,7 +419,7 @@ export default function FeedbackForm({ mode = 'create', initialData }: Props) {
                                     isSubmitting
                                 }
                             >
-                                {isEdit ? '儲存變更' : '新增 Feedback'}
+                                {isEdit ? '儲存變更' : '新增旅客迴響'}
                             </Button>
                         </div>
                     </div>

@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
                     },
                 },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [
+                { isFeatured: 'desc' },
+                { createdAt: 'desc' },
+            ],
         });
 
         return NextResponse.json({

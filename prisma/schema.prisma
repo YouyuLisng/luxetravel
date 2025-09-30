@@ -189,47 +189,18 @@ model TravelArticleOnCountry {
   @@index([countryId])
 }
 
-model FeedbackCountry {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String @unique
-  nameZh String
-  code   String
-
-  feedbacks FeedbackOnCountry[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Feedback {
-  id        String              @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   title     String
-  subtitle  String?
   content   String?
   nickname  String
   imageUrl  String
   linkUrl   String
-  linekName String?
-  order     Int
-  countries FeedbackOnCountry[]
+
+  product   TourProduct? @relation("ProductFeedback")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// ✅ 顯式多對多關聯表：Feedback × Country
-model FeedbackOnCountry {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  feedbackId String @db.ObjectId
-  countryId  String @db.ObjectId
-
-  feedback Feedback        @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  country  FeedbackCountry @relation(fields: [countryId], references: [id], onDelete: Cascade)
-
-  @@unique([feedbackId, countryId]) // 防止重複關聯
-  @@index([feedbackId])
-  @@index([countryId])
 }
 
 model Testimonial {
@@ -468,32 +439,33 @@ enum VisitType {
 }
 
 model TourProduct {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
-  code          String   @unique /// 行程代碼 (唯一)
-  namePrefix    String? /// 名稱前綴（例如：北海道、東京）
-  name          String /// 行程名稱
-  mainImageUrl  String /// 行程主圖
-  summary       String? /// 行程簡述
-  description   String? /// 行程描述
-  days          Int /// 天數
-  nights        Int /// 晚數
-  departAirport String /// 出發機場代碼
-  arriveCountry String /// 抵達國家代碼
-  arriveCity    String /// 抵達城市代碼
-  arriveAirport String /// 抵達機場代碼
-  category      String /// 類別（例如：GROUP, FREE, CUST, RECO）
-  priceMin      Int /// 起價（最低價格）
-  priceMax      Int? /// 最高價格
-  tags          String[] @default([]) /// 標籤（自由輸入）
-  countries     String[] @default([]) /// 國家代碼陣列（例如：["JP", "KR", "TH"]）
-  note          String? /// 備註
-  status        Int      @default(1) /// 狀態 (1: 上架, 2: 下架, 3: 草稿)
-  staff         String? /// 上架人員 ID
-  reminder      String? /// 貼心提醒
-  policy        String? /// 參團須知
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  code          String   @unique
+  namePrefix    String?
+  name          String
+  mainImageUrl  String
+  summary       String?
+  description   String?
+  days          Int
+  nights        Int
+  departAirport String
+  arriveCountry String
+  arriveCity    String
+  arriveAirport String
+  category      String
+  priceMin      Int
+  priceMax      Int?
+  tags          String[] @default([])
+  countries     String[] @default([])
+  note          String?
+  status        Int      @default(1)
+  staff         String?
+  reminder      String?
+  policy        String?
+  isFeatured    Boolean   @default(false)
 
-  categoryId    String  @db.ObjectId /// 關聯大類別 ID
-  subCategoryId String? @db.ObjectId /// 關聯子類別 ID
+  categoryId    String  @db.ObjectId
+  subCategoryId String? @db.ObjectId
 
   /// 關聯
   tour        Tours[]
@@ -501,33 +473,36 @@ model TourProduct {
   map         TourMap?
   highlights  TourHighlight[]
   itineraries Itinerary[]
-  pages PageOnTourProduct[]
+  pages       PageOnTourProduct[]
 
-  createdAt DateTime @default(now()) /// 建立時間
-  updatedAt DateTime @updatedAt /// 更新時間
+  feedbackId String?   @unique @db.ObjectId
+  feedback   Feedback? @relation("ProductFeedback", fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Tours {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
-  productId     String   @db.ObjectId /// 關聯 TourProduct ID
-  code          String   /// 團體代碼
-  departDate    DateTime /// 出發日期
-  returnDate    DateTime /// 回程日期
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
+  productId  String   @db.ObjectId /// 關聯 TourProduct ID
+  code       String /// 團體代碼
+  departDate DateTime /// 出發日期
+  returnDate DateTime /// 回程日期
 
-  adult         String   /// 大人價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
-  childWithBed  String   /// 佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
-  childNoBed    String   /// 不佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
-  childExtraBed String   /// 加床價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
-  infant        String   /// 嬰兒價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  adult         String /// 大人價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childWithBed  String /// 佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childNoBed    String /// 不佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childExtraBed String /// 加床價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  infant        String /// 嬰兒價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
 
-  deposit       String?  /// 訂金 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
-  status        Int      /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
-  note          String?  /// 備註
+  deposit String? /// 訂金 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  status  Int /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
+  note    String? /// 備註
 
-  product       TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime @default(now()) /// 建立時間
-  updatedAt     DateTime @updatedAt      /// 更新時間
+  createdAt DateTime @default(now()) /// 建立時間
+  updatedAt DateTime @updatedAt /// 更新時間
 }
 
 model Flight {
@@ -556,12 +531,12 @@ model Flight {
 }
 
 model TourMap {
-  id        String       @id @default(auto()) @map("_id") @db.ObjectId
-  productId String       @unique @db.ObjectId
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @unique @db.ObjectId
   imageUrl  String
   content   String?
 
-  product   TourProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -577,12 +552,11 @@ model TourHighlight {
   content   String?
   order     Int
 
-  product   TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 
 model Itinerary {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
@@ -640,17 +614,17 @@ model ItineraryOnAttraction {
 }
 
 model Page {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  title    String
-  slug     String   @unique /// 用於前台 URL，例如 /pages/japan-ski
-  content  String?
-  seoTitle String?
-  seoDesc  String?
-  seoImage String?
-  keywords String[] @default([])
+  id             String              @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  slug           String              @unique /// 用於前台 URL，例如 /pages/japan-ski
+  content        String?
+  seoTitle       String?
+  seoDesc        String?
+  seoImage       String?
+  keywords       String[]            @default([])
   icon           String? /// 小 icon（圖片 URL）
   activityTextEn String? /// 活動文字（英文）
-  tourProducts PageOnTourProduct[]
+  tourProducts   PageOnTourProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -658,12 +632,12 @@ model Page {
 
 /// 多對多關聯表：Page × TourProduct
 model PageOnTourProduct {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  pageId      String       @db.ObjectId
-  tourProductId String     @db.ObjectId
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  pageId        String @db.ObjectId
+  tourProductId String @db.ObjectId
 
-  page        Page         @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  tourProduct TourProduct  @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
+  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tourProduct TourProduct @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, tourProductId]) /// 防止重複關聯
   @@index([pageId])

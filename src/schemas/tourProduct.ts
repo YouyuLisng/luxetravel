@@ -27,6 +27,12 @@ export const TourProductBaseSchema = z.object({
     staff: z.string().optional().nullable(),
     reminder: z.string().optional().nullable(),
     policy: z.string().optional().nullable(),
+
+    // ✅ 改成 boolean
+    isFeatured: z.boolean().default(false),
+
+    // ✅ 可選填
+    feedbackId: z.string().optional().nullable(),
 });
 
 /** 新增行程 */

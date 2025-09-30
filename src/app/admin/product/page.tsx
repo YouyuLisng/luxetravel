@@ -7,6 +7,7 @@ import useTourProductRows from '@/features/product/hooks/useTourProductRows';
 
 import {
     deleteTourProduct,
+    toggleFeatured,
 } from '@/app/admin/product/action/product';
 
 export default function TourProductTable() {
@@ -31,6 +32,7 @@ export default function TourProductTable() {
                 'priceMin',
                 'priceMax',
                 'status',
+                'isFeatured', // ✅ 顯示精選欄位
             ]}
             columnLabels={{
                 code: '行程編號',
@@ -41,10 +43,16 @@ export default function TourProductTable() {
                 priceMin: '最低價',
                 priceMax: '最高價',
                 status: '狀態',
+                isFeatured: '精選', // ✅ 欄位標籤
                 actions: '操作',
             }}
             onDelete={async (id: string) => {
                 const res = await deleteTourProduct(id);
+                if (res?.error) throw new Error(res.error);
+                return res;
+            }}
+            onToggleFeatured={async (id: string, featured: boolean) => {
+                const res = await toggleFeatured(id, featured);
                 if (res?.error) throw new Error(res.error);
                 return res;
             }}

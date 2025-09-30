@@ -31,7 +31,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
         priceMin,
         priceMax,
         tags,
-        countries,   // ⬅️ 新增
+        countries,
         note,
         status,
         staff,
@@ -39,6 +39,8 @@ export async function createTourProduct(values: TourProductCreateValues) {
         policy,
         categoryId,
         subCategoryId,
+        isFeatured,
+        feedbackId,
     } = parsed.data;
 
     try {
@@ -60,7 +62,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
-                countries: countries ?? [], // ⬅️ 新增
+                countries: countries ?? [],
                 note: note || null,
                 status,
                 staff: staff || null,
@@ -68,6 +70,11 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 policy: policy || null,
                 categoryId,
                 subCategoryId: subCategoryId || null,
+
+                // ✅ 改為布林
+                isFeatured: isFeatured ?? false,
+                feedbackId: feedbackId || null,
+
                 itineraries: {
                     create: Array.from({ length: days }).map((_, i) => ({
                         day: i + 1,
@@ -82,6 +89,34 @@ export async function createTourProduct(values: TourProductCreateValues) {
     } catch (err) {
         console.error('createTourProduct error:', err);
         return { error: '行程新增失敗' };
+    }
+}
+
+/** 更新 TourProduct 的精選狀態 */
+export async function toggleFeatured(id: string, isFeatured: boolean) {
+    if (!id) return { error: '無效的 ID' };
+
+    try {
+        if (isFeatured) {
+            // 檢查目前精選數量
+            const count = await db.tourProduct.count({
+                where: { isFeatured: true },
+            });
+
+            if (count >= 6) {
+                return { error: '精選最多只能有六筆' };
+            }
+        }
+
+        const product = await db.tourProduct.update({
+            where: { id },
+            data: { isFeatured },
+        });
+
+        return { success: '已更新精選狀態', data: product };
+    } catch (err) {
+        console.error('toggleFeatured error:', err);
+        return { error: '更新精選狀態失敗' };
     }
 }
 
@@ -115,7 +150,7 @@ export async function editTourProduct(
         priceMin,
         priceMax,
         tags,
-        countries,   // ⬅️ 新增
+        countries,
         note,
         status,
         staff,
@@ -123,6 +158,8 @@ export async function editTourProduct(
         policy,
         categoryId,
         subCategoryId,
+        isFeatured,
+        feedbackId,
     } = parsed.data;
 
     try {
@@ -157,7 +194,7 @@ export async function editTourProduct(
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
-                countries: countries ?? [], // ⬅️ 新增
+                countries: countries ?? [],
                 note: note || null,
                 status,
                 staff: staff || null,
@@ -165,6 +202,10 @@ export async function editTourProduct(
                 policy: policy || null,
                 categoryId,
                 subCategoryId: subCategoryId || null,
+
+                // ✅ 改為布林
+                isFeatured: isFeatured ?? false,
+                feedbackId: feedbackId || null,
             },
         });
 
@@ -200,7 +241,6 @@ export async function editTourProduct(
     }
 }
 
-
 /** 刪除 TourProduct（依 id，同時刪關聯資料 & blob 圖片） */
 export async function deleteTourProduct(id: string) {
     if (!id) return { error: '無效的 ID' };
@@ -208,8 +248,8 @@ export async function deleteTourProduct(id: string) {
     const exists = await db.tourProduct.findUnique({
         where: { id },
         include: {
-            map: true, 
-            highlights: true, 
+            map: true,
+            highlights: true,
         },
     });
     if (!exists) return { error: '找不到產品' };

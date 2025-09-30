@@ -312,7 +312,8 @@ type GenerateOpts = {
     columnLabels?: ColumnLabels;
     onDeleteClick?: (id: string) => void;
     getEditHref?: (id: string | number) => string;
-    enableDrag?: boolean; // 是否啟用拖曳欄
+    enableDrag?: boolean;
+    onToggleFeatured?: (id: string, featured: boolean) => void;
 };
 
 function generateColumns<T extends Record<string, any>>(
@@ -492,6 +493,27 @@ function generateColumns<T extends Record<string, any>>(
                 } as ColumnDef<T>);
                 continue;
             }
+            if (key === 'isFeatured') {
+                generated.push({
+                    accessorKey: key,
+                    header: () => L(key, '精選'),
+                    cell: ({ row }) => {
+                        const id = String((row.original as any).id);
+                        const raw = (row.original as any).isFeatured ?? false;
+
+                        return (
+                            <Switch
+                                checked={Boolean(raw)}
+                                onCheckedChange={(checked) => {
+                                    // 這邊呼叫 DataTable 傳下來的更新函式
+                                    opts?.onToggleFeatured?.(id, checked);
+                                }}
+                            />
+                        );
+                    },
+                } as ColumnDef<T>);
+                continue;
+            }
         }
 
         // ===== 原本的邏輯 =====
@@ -610,7 +632,12 @@ function generateColumns<T extends Record<string, any>>(
             continue;
         }
 
-        if (key === 'countries' || key === 'role' || key === 'tags' || key === 'keywords') {
+        if (
+            key === 'countries' ||
+            key === 'role' ||
+            key === 'tags' ||
+            key === 'keywords'
+        ) {
             generated.push({
                 accessorKey: key,
                 header: () =>
@@ -791,7 +818,13 @@ function generateColumns<T extends Record<string, any>>(
                     <DropdownMenuContent align="end" className="w-40">
                         {editHref ? (
                             <DropdownMenuItem asChild>
-                                <Link href={editHref} target="_blank" rel="noopener noreferrer">編輯</Link>
+                                <Link
+                                    href={editHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    編輯
+                                </Link>
                             </DropdownMenuItem>
                         ) : (
                             <DropdownMenuItem disabled>編輯</DropdownMenuItem>
@@ -883,6 +916,7 @@ export function DataTable({
     onPageSizeChange,
     searchValue = '',
     onSearch,
+    onToggleFeatured,
 }: {
     data: Array<Record<string, any>>;
     visibleKeys?: string[];
@@ -904,6 +938,7 @@ export function DataTable({
     onPageSizeChange?: (size: number) => void;
     searchValue?: string;
     onSearch?: (keyword: string) => void;
+    onToggleFeatured?: (id: string, featured: boolean) => Promise<any>;
 }) {
     const [data, setData] = React.useState(() => initialData);
     React.useEffect(() => setData(initialData), [initialData]);
@@ -917,6 +952,41 @@ export function DataTable({
         const orderInVisible = !visibleKeys || visibleKeys.includes('order');
         return !!orderInData && !!orderInVisible;
     }, [data, visibleKeys]);
+    const handleToggleFeatured = async (id: string, featured: boolean) => {
+        // 先更新本地 state，讓 UI 即時切換
+        setData((prev) =>
+            prev.map((item) =>
+                String(item.id) === id
+                    ? { ...item, isFeatured: featured }
+                    : item
+            )
+        );
+
+        if (onToggleFeatured) {
+            try {
+                await onToggleFeatured(id, featured);
+                toast({
+                    variant: 'success',
+                    title: '操作完成',
+                    description: featured ? '已設為精選' : '已取消精選',
+                });
+            } catch (e: any) {
+                // 如果後端失敗，還原回原本的值
+                setData((prev) =>
+                    prev.map((item) =>
+                        String(item.id) === id
+                            ? { ...item, isFeatured: !featured }
+                            : item
+                    )
+                );
+                toast({
+                    variant: 'destructive',
+                    title: '更新失敗',
+                    description: e?.message ?? '',
+                });
+            }
+        }
+    };
 
     // 刪除 Dialog 狀態
     const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -966,9 +1036,11 @@ export function DataTable({
                     setDeleteOpen(true);
                 },
                 enableDrag,
+                onToggleFeatured: handleToggleFeatured,
             }),
         [data, visibleKeys, columnLabels, getEditHref, currentQuery, enableDrag]
     );
+
     const table = useReactTable({
         data,
         columns,

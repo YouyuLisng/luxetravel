@@ -54,6 +54,7 @@ import { useCities } from '@/features/city/queries/cityQueries';
 import { TextareaInput } from '@/components/TextareaInput';
 import { Combobox } from '@/components/combobox';
 import { useCountriesAll } from '@/features/country/queries/countryQueries';
+import { useFeedbacksAll } from '@/features/feedback/queries/feedbackQueries';
 
 const LIST_PATH = '/admin/product';
 
@@ -123,6 +124,8 @@ export default function TourProductForm({
             policy: initialData?.policy ?? '',
             categoryId: initialData?.categoryId ?? '',
             subCategoryId: initialData?.subCategoryId ?? '',
+            isFeatured: initialData?.isFeatured ?? false, // ✅
+            feedbackId: initialData?.feedbackId ?? '', // ✅
         },
     });
     const { isValid, isSubmitting } = form.formState;
@@ -132,10 +135,12 @@ export default function TourProductForm({
     const { data: countries = [] } = useCountriesAll();
     const { data: categories = [] } = useCategories();
     const { data: subCategories = [] } = useSubCategories();
+    const { data: feedbacks = [] } = useFeedbacksAll(); // ✅
 
     const selectedCountry = form.watch('arriveCountry');
     const selectedCountryName =
-        (countries ?? []).find((c: any) => c.code === selectedCountry)  ?.nameZh ?? '';
+        (countries ?? []).find((c: any) => c.code === selectedCountry)
+            ?.nameZh ?? '';
     const filteredCities = (cities ?? []).filter(
         (c: any) => c.country === selectedCountryName
     );
@@ -165,6 +170,16 @@ export default function TourProductForm({
         fetchUsers();
     }, [toast, form, isEdit]);
 
+    useEffect(() => {
+        const subscription = form.watch((value, { name }) => {
+            if (name === 'category' && value.category === 'GROUP') {
+                if (form.getValues('feedbackId')) {
+                    form.setValue('feedbackId', '', { shouldValidate: true });
+                }
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [form]);
     // 上傳圖片
     const handleImageUpload = useCallback(
         async (file: File) => {
@@ -554,6 +569,94 @@ export default function TourProductForm({
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="isFeatured"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>是否精選</FormLabel>
+                                            <Select
+                                                value={
+                                                    field.value
+                                                        ? 'true'
+                                                        : 'false'
+                                                }
+                                                onValueChange={(val) =>
+                                                    field.onChange(
+                                                        val === 'true'
+                                                    )
+                                                }
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="請選擇是否精選" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value="true">
+                                                            是
+                                                        </SelectItem>
+                                                        <SelectItem value="false">
+                                                            否
+                                                        </SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* 旅客回饋 */}
+                                {form.watch('category') !== 'GROUP' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="feedbackId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>旅客回饋</FormLabel>
+                                                <Select
+                                                    value={field.value ?? ''}
+                                                    onValueChange={
+                                                        field.onChange
+                                                    }
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="請選擇旅客回饋" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectGroup>
+                                                            {feedbacks.map(
+                                                                (f: any) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            f.id
+                                                                        }
+                                                                        value={
+                                                                            f.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            f.title
+                                                                        }{' '}
+                                                                        -{' '}
+                                                                        {
+                                                                            f.nickname
+                                                                        }
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectGroup>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
 
                             {/* === 行程時間 === */}
@@ -922,7 +1025,9 @@ export default function TourProductForm({
                                 name="reminder"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>請輸入貼心提醒餐團須知 旅客篇</FormLabel>
+                                        <FormLabel>
+                                            請輸入貼心提醒餐團須知 旅客篇
+                                        </FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
@@ -946,7 +1051,9 @@ export default function TourProductForm({
                                 name="policy"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>請輸入貼心提醒餐團須知 航空篇</FormLabel>
+                                        <FormLabel>
+                                            請輸入貼心提醒餐團須知 航空篇
+                                        </FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
@@ -1059,7 +1166,6 @@ export default function TourProductForm({
                                     </FormItem>
                                 )}
                             />
-
                             <FormError message={error} />
                             <FormSuccess message={success} />
                         </form>
