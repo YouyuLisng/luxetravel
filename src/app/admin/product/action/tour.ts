@@ -19,12 +19,12 @@ export async function replaceTours(productId: string, tours: TourValues[]) {
                     code: t.code,
                     departDate: t.departDate,
                     returnDate: t.returnDate,
-                    adult: t.prices.adult ?? '',              // ✅ 沒填就存空字串
-                    childWithBed: t.prices.childWithBed ?? '', // ✅
-                    childNoBed: t.prices.childNoBed ?? '',     // ✅
-                    childExtraBed: t.prices.childExtraBed ?? 'NIL', // ✅ 只有加床允許 NIL
-                    infant: t.prices.infant ?? '',             // ✅
-                    deposit: t.deposit ?? '',                  // ✅
+                    adult: t.prices.adult ?? '',            
+                    childWithBed: t.prices.childWithBed ?? '', 
+                    childNoBed: t.prices.childNoBed ?? '',     
+                    childExtraBed: t.prices.childExtraBed ?? 'NIL', 
+                    infant: t.prices.infant ?? '',            
+                    deposit: t.deposit ?? '',                  
                     status: t.status,
                     note: t.note ?? null,
                 })),

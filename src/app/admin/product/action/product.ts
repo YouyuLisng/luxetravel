@@ -44,6 +44,16 @@ export async function createTourProduct(values: TourProductCreateValues) {
     } = parsed.data;
 
     try {
+        // ✅ 檢查同一 category 的精選上限
+        if (isFeatured) {
+            const count = await db.tourProduct.count({
+                where: { isFeatured: true, category },
+            });
+            if (count >= 6) {
+                return { error: `「${category}」類別的精選最多只能有六筆` };
+            }
+        }
+
         const product = await db.tourProduct.create({
             data: {
                 code,
@@ -70,8 +80,6 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 policy: policy || null,
                 categoryId,
                 subCategoryId: subCategoryId || null,
-
-                // ✅ 改為布林
                 isFeatured: isFeatured ?? false,
                 feedbackId: feedbackId || null,
 
@@ -97,23 +105,25 @@ export async function toggleFeatured(id: string, isFeatured: boolean) {
     if (!id) return { error: '無效的 ID' };
 
     try {
-        if (isFeatured) {
-            // 檢查目前精選數量
-            const count = await db.tourProduct.count({
-                where: { isFeatured: true },
-            });
+        const product = await db.tourProduct.findUnique({ where: { id } });
+        if (!product) return { error: '找不到產品' };
 
+        if (isFeatured) {
+            // ✅ 檢查同一 category 的精選上限
+            const count = await db.tourProduct.count({
+                where: { isFeatured: true, category: product.category },
+            });
             if (count >= 6) {
-                return { error: '精選最多只能有六筆' };
+                return { error: `「${product.category}」類別的精選最多只能有六筆` };
             }
         }
 
-        const product = await db.tourProduct.update({
+        const updated = await db.tourProduct.update({
             where: { id },
             data: { isFeatured },
         });
 
-        return { success: '已更新精選狀態', data: product };
+        return { success: '已更新精選狀態', data: updated };
     } catch (err) {
         console.error('toggleFeatured error:', err);
         return { error: '更新精選狀態失敗' };
@@ -175,6 +185,16 @@ export async function editTourProduct(
             }
         }
 
+        // ✅ 檢查同一 category 的精選上限
+        if (isFeatured) {
+            const count = await db.tourProduct.count({
+                where: { isFeatured: true, category },
+            });
+            if (count >= 6 && !exists.isFeatured) {
+                return { error: `「${category}」類別的精選最多只能有六筆` };
+            }
+        }
+
         const product = await db.tourProduct.update({
             where: { id },
             data: {
@@ -202,14 +222,12 @@ export async function editTourProduct(
                 policy: policy || null,
                 categoryId,
                 subCategoryId: subCategoryId || null,
-
-                // ✅ 改為布林
                 isFeatured: isFeatured ?? false,
                 feedbackId: feedbackId || null,
             },
         });
 
-        // itinerary 同步邏輯維持不變
+        // itinerary 同步
         const existingItineraries = await db.itinerary.findMany({
             where: { productId: id },
             orderBy: { day: 'asc' },
