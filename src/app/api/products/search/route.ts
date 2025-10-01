@@ -10,9 +10,13 @@ export async function GET(req: Request) {
   const daysRange = searchParams.get('daysRange');
   const category = searchParams.get('category');
 
-  const page = Number(searchParams.get('page') ?? 1);
-  const limit = Number(searchParams.get('limit') ?? 10);
-  const skip = (page - 1) * limit;
+  // 取得 page / limit，如果沒傳就是 undefined
+  const pageParam = searchParams.get('page');
+  const limitParam = searchParams.get('limit');
+
+  const page = pageParam ? Number(pageParam) : undefined;
+  const limit = limitParam ? Number(limitParam) : undefined;
+  const skip = page && limit ? (page - 1) * limit : undefined;
 
   const sort = searchParams.get('sort') ?? 'createdAt';
   const order = (searchParams.get('order') as 'asc' | 'desc') ?? 'desc';
@@ -51,10 +55,12 @@ export async function GET(req: Request) {
   }
 
   try {
+    // 如果有分頁參數 → 用 skip / take
+    // 如果沒有分頁參數 → 回傳全部
     const [products, total] = await Promise.all([
       db.tourProduct.findMany({
         where,
-        skip,
+        skip: skip,
         take: limit,
         select: {
           id: true,
@@ -110,10 +116,10 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json({
-      page,
-      limit,
+      page: page ?? null,
+      limit: limit ?? null,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: page && limit ? Math.ceil(total / limit) : 1,
       sort,
       order,
       data: products,
