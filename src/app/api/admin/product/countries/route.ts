@@ -1,10 +1,18 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-/** GET /api/products/countries - 回傳有上架產品的國家清單 (中文 + 英文 + 圖片) */
+/** 國家代碼 → 地區對照表 */
+// utils/regionMap.ts
+export const EUROPE_REGIONS: Record<string, string> = {
+  AT: "西歐", BE: "西歐", FR: "西歐", DE: "西歐", LI: "西歐", LU: "西歐", MC: "西歐", NL: "西歐", CH: "西歐",
+  DK: "北歐", EE: "北歐", FI: "北歐", IS: "北歐", IE: "北歐", LV: "北歐", LT: "北歐", NO: "北歐", SE: "北歐", GB: "北歐", AX: "北歐", FO: "北歐",
+  AD: "南歐", AL: "南歐", BA: "南歐", HR: "南歐", GR: "南歐", IT: "南歐", MT: "南歐", ME: "南歐", MK: "南歐", PT: "南歐", SM: "南歐", RS: "南歐", SI: "南歐", ES: "南歐", VA: "南歐", XK: "南歐",
+  BY: "東歐", BG: "東歐", CZ: "東歐", HU: "東歐", MD: "東歐", PL: "東歐", RO: "東歐", RU: "東歐", SK: "東歐", UA: "東歐"
+};
+
 export async function GET() {
     try {
-        // 1. 找出所有上架產品的 countries
+        // 1. 找出所有上架產品的國家
         const products = await db.tourProduct.findMany({
             where: { status: 1 },
             select: { countries: true },
@@ -18,16 +26,11 @@ export async function GET() {
         });
 
         const codes = Array.from(allCodes);
-
         if (codes.length === 0) {
-            return NextResponse.json({
-                status: true,
-                total: 0,
-                data: [],
-            });
+            return NextResponse.json({ status: 200, total: 0, data: [] });
         }
 
-        // 2. 去 Country 表查對應資料
+        // 2. 查詢有上架的國家資料
         const countries = await db.country.findMany({
             where: { code: { in: codes }, enabled: true },
             select: {
@@ -36,19 +39,32 @@ export async function GET() {
                 nameEn: true,
                 imageUrl: true,
             },
-            orderBy: { nameEn: 'asc' }, // 中文排序 (可以改成 nameEn)
+        });
+
+        // 3. 按地區分組
+        const grouped: Record<string, any[]> = {};
+        countries.forEach((c) => {
+            const region = EUROPE_REGIONS[c.code] ?? '其他';
+            if (!grouped[region]) grouped[region] = [];
+            grouped[region].push({
+                ...c,
+                checked: true, // 有上架的才會回傳，全部都是 true
+            });
         });
 
         return NextResponse.json({
-            status: true,
+            status: 200,
             total: countries.length,
-            data: countries,
+            data: Object.entries(grouped).map(([region, countries]) => ({
+                region,
+                countries,
+            })),
         });
     } catch (err: any) {
         console.error('GET /api/product/countries error:', err);
-        return NextResponse.json(
-            { status: false, message: err?.message ?? '伺服器錯誤' },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            status: 500,
+            message: err?.message ?? '伺服器錯誤',
+        });
     }
 }
