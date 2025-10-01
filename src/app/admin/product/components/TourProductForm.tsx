@@ -615,44 +615,22 @@ export default function TourProductForm({
                                         name="feedbackId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>旅客回饋</FormLabel>
-                                                <Select
-                                                    value={field.value ?? ''}
-                                                    onValueChange={
-                                                        field.onChange
-                                                    }
-                                                >
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="請選擇旅客回饋" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            {feedbacks.map(
-                                                                (f: any) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            f.id
-                                                                        }
-                                                                        value={
-                                                                            f.id
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            f.title
-                                                                        }{' '}
-                                                                        -{' '}
-                                                                        {
-                                                                            f.nickname
-                                                                        }
-                                                                    </SelectItem>
-                                                                )
-                                                            )}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
+                                            <FormLabel>旅客回饋</FormLabel>
+                                            <FormControl>
+                                                <Combobox
+                                                options={(feedbacks ?? []).map((f: any) => ({
+                                                    value: f.id,
+                                                    label: `${f.nickname} - ${f.title}`,
+                                                }))}
+                                                value={field.value ?? ''}
+                                                onChange={(val) => {
+                                                    field.onChange(val);
+                                                }}
+                                                placeholder="選擇旅客回饋"
+                                                searchPlaceholder="搜尋暱稱或標題..."
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
                                             </FormItem>
                                         )}
                                     />

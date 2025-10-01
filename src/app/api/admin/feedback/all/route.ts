@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-/** GET /api/admin/feedback/all - 取得所有沒有被產品選中的 Feedback */
+/** GET /api/admin/feedback/all - 取得所有 Feedback */
 export async function GET() {
     try {
         const feedbacks = await db.feedback.findMany({
-            where: {
-                product: { is: null },
-            },
             orderBy: { createdAt: 'desc' },
         });
 

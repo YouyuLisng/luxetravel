@@ -190,14 +190,14 @@ model TravelArticleOnCountry {
 }
 
 model Feedback {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
   title     String
   content   String?
   nickname  String
   imageUrl  String
   linkUrl   String
 
-  product   TourProduct? @relation("ProductFeedback")
+  products  TourProduct[] @relation("ProductFeedback")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -475,11 +475,13 @@ model TourProduct {
   itineraries Itinerary[]
   pages       PageOnTourProduct[]
 
-  feedbackId String?   @unique @db.ObjectId
+  feedbackId String?   @db.ObjectId
   feedback   Feedback? @relation("ProductFeedback", fields: [feedbackId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([feedbackId])
 }
 
 model Tours {

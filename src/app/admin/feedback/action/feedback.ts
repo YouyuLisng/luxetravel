@@ -18,7 +18,7 @@ export async function createFeedback(input: FeedbackCreateValues) {
 
     const data = await db.feedback.findUnique({
         where: { id: created.id },
-        include: { product: true },
+        include: { products: true }, // ✅ 改這裡
     });
 
     return { success: '新增成功', data };
@@ -54,7 +54,7 @@ export async function editFeedback(id: string, input: FeedbackEditValues) {
 
     const data = await db.feedback.findUnique({
         where: { id },
-        include: { product: true },
+        include: { products: true },
     });
 
     return { success: '更新成功', data };
