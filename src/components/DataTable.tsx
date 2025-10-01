@@ -377,9 +377,7 @@ function generateColumns<T extends Record<string, any>>(
     // 判斷是不是 TourProduct
     const isTourProduct =
         'code' in first &&
-        'days' in first &&
-        'departAirport' in first &&
-        'arriveAirport' in first;
+        'days' in first;
 
     for (const key of keys) {
         // ===== TourProduct 專屬欄位 =====
@@ -452,7 +450,6 @@ function generateColumns<T extends Record<string, any>>(
                 } as ColumnDef<T>);
                 continue;
             }
-
             if (key === 'name') {
                 generated.push({
                     accessorKey: key,
@@ -1156,13 +1153,12 @@ export function DataTable({
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between px-4 lg:px-6 lg:py-2">
                     {onSearch && (
                         <div className="relative flex w-full max-w-xs items-center">
-                            <IconSearch className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="搜尋..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                className="pl-8 pr-10"
+                                className="pr-10"
                             />
                             <Button
                                 variant="ghost"
@@ -1354,7 +1350,6 @@ function PaginationBar({
     onPageSizeChange?: (size: number) => void;
 }) {
     if (serverPagination) {
-        // ✅ 後端分頁模式
         const { page, pageSize, pageCount, total } = serverPagination;
         return (
             <div className="flex items-center justify-between px-4 py-2">
