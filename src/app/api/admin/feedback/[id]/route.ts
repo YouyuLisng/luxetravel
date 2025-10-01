@@ -14,11 +14,11 @@ export async function GET(_req: NextRequest, { params }: Props) {
     }
 
     try {
-        // Feedback + 關聯的產品
+        // Feedback + 關聯的產品（多筆）
         const row = await db.feedback.findUnique({
             where: { id },
             include: {
-                product: true, // ✅ 現在只需要關聯產品
+                products: true, // ✅ 改成 products
             },
         });
 
@@ -38,13 +38,11 @@ export async function GET(_req: NextRequest, { params }: Props) {
             linkUrl: row.linkUrl,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
-            product: row.product
-                ? {
-                      id: row.product.id,
-                      code: row.product.code,
-                      name: row.product.name,
-                  }
-                : null,
+            products: row.products.map((p) => ({
+                id: p.id,
+                code: p.code,
+                name: p.name,
+            })),
         };
 
         return NextResponse.json({
