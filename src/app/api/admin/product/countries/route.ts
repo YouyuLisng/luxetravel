@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 /** 國家代碼 → 地區對照表 */
-export const EUROPE_REGIONS: Record<string, string> = {
+const EUROPE_REGIONS: Record<string, string> = {
     // 西歐 Western Europe
     BE: '西歐',
     FR: '西歐',
