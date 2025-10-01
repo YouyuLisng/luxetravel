@@ -8,7 +8,7 @@ export async function GET(req: Request) {
     const budgetMin = searchParams.get('budgetMin');
     const budgetMax = searchParams.get('budgetMax');
     const daysRange = searchParams.get('daysRange');
-    const category = searchParams.get('category'); // ✅ 新增類別參數
+    const category = searchParams.get('category');
 
     const page = Number(searchParams.get('page') ?? 1);
     const limit = Number(searchParams.get('limit') ?? 10);

@@ -65,7 +65,6 @@ export type TourProductEntity = z.infer<typeof tourProductSchema>;
 
 /* ========================= Search Schemas ========================= */
 
-// === Search Result Schema：必須包含 DataTable 需要的欄位 ===
 export const tourProductSearchSchema = z.object({
   id: z.string(),
   code: z.string(),
@@ -88,20 +87,25 @@ export type TourProductSearchEntity = z.infer<typeof tourProductSearchSchema>;
 /* ========================= Query Keys ========================= */
 
 export const KEYS = {
-  list: (page: number, pageSize: number) =>
-    ['tourProducts', page, pageSize] as const,
+  list: (page: number, pageSize: number, type?: string) =>
+    ['tourProducts', page, pageSize, type] as const,
   detail: (id: string) => ['tourProducts', id] as const,
   search: (q: string) => ['tourProducts', 'search', q] as const,
 };
 
 /* ========================= Queries ========================= */
 
-// === 分頁查詢 TourProduct ===
-export const tourProductsQuery = (page: number, pageSize: number) => ({
-  queryKey: KEYS.list(page, pageSize),
+/**
+ * 分頁查詢 TourProduct
+ * @param page 第幾頁
+ * @param pageSize 每頁筆數
+ * @param type 產品類型 (GROUP | FREE | RECO)
+ */
+export const tourProductsQuery = (page: number, pageSize: number, type?: string) => ({
+  queryKey: KEYS.list(page, pageSize, type),
   queryFn: async () => {
     const res = await axios.get('/api/admin/product', {
-      params: { page, pageSize },
+      params: { page, pageSize, ...(type ? { type } : {}) },
     });
     return listResponseSchema.parse(res.data);
   },
@@ -109,13 +113,13 @@ export const tourProductsQuery = (page: number, pageSize: number) => ({
   staleTime: 1000 * 60 * 5,
 });
 
-/** 抓全部 TourProduct (不分頁，適合 dropdown 選單) */
-export function useTourProducts() {
+/** 抓全部 TourProduct (不分頁，可指定類型) */
+export function useTourProducts(type?: string) {
   return useQuery({
-    queryKey: ['tourProducts', 'all'],
+    queryKey: ['tourProducts', 'all', type],
     queryFn: async () => {
       const res = await axios.get('/api/admin/product', {
-        params: { page: 1, pageSize: 999 },
+        params: { page: 1, pageSize: 999, ...(type ? { type } : {}) },
       });
       return listResponseSchema.parse(res.data).rows;
     },
@@ -139,9 +143,7 @@ export const tourProductSearchQuery = (q: string) => ({
   queryKey: KEYS.search(q),
   queryFn: async () => {
     if (!q.trim()) return [];
-    const res = await axios.get('/api/admin/product/search', {
-      params: { q },
-    });
+    const res = await axios.get('/api/admin/product/search', { params: { q } });
     return searchResponseSchema.parse(res.data).rows;
   },
   enabled: !!q.trim(),

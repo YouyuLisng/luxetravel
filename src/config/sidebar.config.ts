@@ -82,7 +82,9 @@ export const sidebarItems: SidebarItem[] = [
         url: '',
         icon: MapPinned,
         items: [
-            { title: '行程', url: '/admin/product' },
+            { title: '團體', url: '/admin/product/group' },
+            { title: '自由行', url: '/admin/product/free' },
+            { title: '包車', url: '/admin/product/reco' },
         ],
     },
     {

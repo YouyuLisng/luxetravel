@@ -1,5 +1,7 @@
 // src/config/breadcrumb.config.ts
 
+import { group } from "console";
+
 /** 顯示每個 segment 的中文（列表頁等一般情況） */
 export const breadcrumbMap: Record<string, string> = {
     admin: '管理後台',
@@ -18,6 +20,9 @@ export const breadcrumbMap: Record<string, string> = {
     category: '大類別',
     categorysub: '小類別',
     dictionary: '辭庫管理',
+    group: '團體',
+    free: '自由行',
+    reco: '包車',
     // 首頁設定
     menu: '前台選單',
     banner: '首頁輪播大圖',
