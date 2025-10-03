@@ -1,8 +1,8 @@
-import authConfig from './authconfig';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import NextAuth from 'next-auth';
 import { getToken } from 'next-auth/jwt';
-import { NextResponse } from 'next/server';
-
+import authConfig from './authconfig';
 import {
     authRoutes,
     publicRoutes,
@@ -12,18 +12,56 @@ import {
 
 const { auth } = NextAuth(authConfig);
 
-export default auth(async (req) => {
+const ALLOWED_ORIGINS = [
+    'https://luxe-travel.vercel.app',
+    'http://localhost:3000',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        return {
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true',
+        };
+    }
+    return {
+        'Access-Control-Allow-Origin': '',
+        'Access-Control-Allow-Methods': '',
+        'Access-Control-Allow-Headers': '',
+        'Access-Control-Allow-Credentials': '',
+    };
+}
+
+interface AuthenticatedRequest extends NextRequest {
+    auth?: any;
+}
+
+export default auth(async (req: AuthenticatedRequest) => {
     const { nextUrl } = req;
     const isLoggedIn = !!req.auth;
     const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
 
-    if (isApiAuthRoute) return;
+    // ✅ CORS 預檢
+    if (req.method === 'OPTIONS') {
+        return new NextResponse(null, {
+            status: 204,
+            headers: getCorsHeaders(req.headers.get('origin')),
+        });
+    }
+
+    // 預設加上 CORS
+    let res = NextResponse.next({
+        headers: getCorsHeaders(req.headers.get('origin')),
+    });
+
+    if (isApiAuthRoute) return res;
 
     // ✅ 僅 ADMIN 可訪問 /dashboard
     if (nextUrl.pathname.startsWith('/dashboard')) {
         const token = await getToken({ req, secret: process.env.AUTH_SECRET });
         if (!token || token.role !== 'ADMIN') {
-            console.log('❌ 未授權訪問 /dashboard');
             return NextResponse.redirect(new URL('/', nextUrl));
         }
     }
@@ -32,7 +70,6 @@ export default auth(async (req) => {
     const isPublic = [...publicRoutes, ...authRoutes].includes(
         nextUrl.pathname
     );
-
     if (!isLoggedIn && !isPublic) {
         return NextResponse.redirect(new URL('/auth/login', nextUrl));
     }
@@ -42,7 +79,7 @@ export default auth(async (req) => {
         return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
     }
 
-    return undefined;
+    return res;
 });
 
 export const config = {
