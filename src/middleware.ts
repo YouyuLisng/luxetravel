@@ -52,7 +52,7 @@ export default auth(async (req: AuthenticatedRequest) => {
     }
 
     // 預設加上 CORS
-    let res = NextResponse.next({
+    const res = NextResponse.next({
         headers: getCorsHeaders(req.headers.get('origin')),
     });
 
