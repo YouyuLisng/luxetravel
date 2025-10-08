@@ -92,7 +92,7 @@ export default function TourHighlightForm({
                               subtitle: '',
                               content: '',
                               order: 0,
-                              imageUrls: [''], // ✅ 預設至少一張空圖片，避免驗證失敗
+                              imageUrls: [''],
                           },
                       ],
         },
