@@ -674,74 +674,68 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                                         {productData &&
                                                             productData.length >
                                                                 0 && (
-                                                                <div className="grid grid-cols-5 gap-2 mt-4">
+                                                                <div className="flex flex-wrap gap-2 mt-4">
                                                                     {productData.map(
                                                                         (
                                                                             product: any,
                                                                             index: number
                                                                         ) => (
-                                                                            <div
+                                                                            <Badge
                                                                                 key={
                                                                                     index
                                                                                 }
-                                                                                className="mb-4"
+                                                                                variant="secondary"
+                                                                                className="px-3 py-2 flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                                                                                onClick={() =>
+                                                                                    onAddProduct(
+                                                                                        product
+                                                                                    )
+                                                                                }
                                                                             >
-                                                                                <Badge
-                                                                                    variant="secondary"
-                                                                                    className="px-2 py-2 mr-2 flex justify-around cursor-pointer"
-                                                                                    onClick={() =>
-                                                                                        onAddProduct(
-                                                                                            product
-                                                                                        )
-                                                                                    }
-                                                                                >
-                                                                                    <p className="text-sm">
-                                                                                        {product.code ||
-                                                                                            product.GRUP_CD}
-                                                                                    </p>
-                                                                                    <GoPlus className="h-5 w-5 text-orange-500" />
-                                                                                </Badge>
-                                                                            </div>
+                                                                                <p className="text-sm font-medium">
+                                                                                    {product.code ||
+                                                                                        product.GRUP_CD}
+                                                                                </p>
+                                                                                <GoPlus className="h-4 w-4 text-orange-500" />
+                                                                            </Badge>
                                                                         )
                                                                     )}
                                                                 </div>
                                                             )}
                                                     </div>
+
                                                     <Separator
                                                         orientation="vertical"
                                                         className="my-4 mx-auto"
                                                     />
+
                                                     {/* 已選產品 */}
                                                     <div className="mt-4">
-                                                        <div className="grid grid-cols-5 gap-2 mt-4">
+                                                        <div className="flex flex-wrap gap-2 mt-4">
                                                             {addedProducts.map(
                                                                 (
                                                                     product,
                                                                     index
                                                                 ) => (
-                                                                    <div
+                                                                    <Badge
                                                                         key={
                                                                             index
                                                                         }
-                                                                        className="mb-4"
+                                                                        variant="secondary"
+                                                                        className="px-3 py-2 flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                                                                        onClick={() =>
+                                                                            onRemoveProduct(
+                                                                                product
+                                                                            )
+                                                                        }
                                                                     >
-                                                                        <Badge
-                                                                            variant="secondary"
-                                                                            className="px-2 py-2 mr-2 flex justify-around cursor-pointer"
-                                                                            onClick={() =>
-                                                                                onRemoveProduct(
-                                                                                    product
-                                                                                )
+                                                                        <p className="text-sm font-medium">
+                                                                            {
+                                                                                product.code
                                                                             }
-                                                                        >
-                                                                            <p className="text-sm">
-                                                                                {
-                                                                                    product.code
-                                                                                }
-                                                                            </p>
-                                                                            <GoX className="h-5 w-5 text-red-500" />
-                                                                        </Badge>
-                                                                    </div>
+                                                                        </p>
+                                                                        <GoX className="h-4 w-4 text-red-500" />
+                                                                    </Badge>
                                                                 )
                                                             )}
                                                         </div>

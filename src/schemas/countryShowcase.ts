@@ -15,6 +15,12 @@ export const CountryShowcaseCreateSchema = z.object({
         .optional()
         .nullable(),
     order: z.number().int().nonnegative().default(0),
+
+    /** ✅ 新增：關聯產品 ID 陣列 */
+    tourProducts: z
+        .array(z.string().min(1, '產品 ID 不可為空'))
+        .optional()
+        .default([]),
 });
 
 export const CountryShowcaseEditSchema = CountryShowcaseCreateSchema;

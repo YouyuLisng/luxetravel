@@ -45,7 +45,7 @@ export default function Page() {
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
             visibleKeys={[
-                'imageUrl',
+                'bookImage',
                 'title',
                 'subtitle',
                 'description',
@@ -54,7 +54,7 @@ export default function Page() {
                 'order',
             ]}
             columnLabels={{
-                imageUrl: '圖片',
+                bookImage: '圖片',
                 title: '標題',
                 subtitle: '副標題',
                 description: '描述',

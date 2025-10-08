@@ -124,8 +124,8 @@ export default function TourProductForm({
             policy: initialData?.policy ?? '',
             categoryId: initialData?.categoryId ?? '',
             subCategoryId: initialData?.subCategoryId ?? '',
-            isFeatured: initialData?.isFeatured ?? false, // ✅
-            feedbackId: initialData?.feedbackId ?? '', // ✅
+            isFeatured: initialData?.isFeatured ?? false,
+            feedbackId: initialData?.feedbackId ?? '',
         },
     });
     const { isValid, isSubmitting } = form.formState;
@@ -135,7 +135,7 @@ export default function TourProductForm({
     const { data: countries = [] } = useCountriesAll();
     const { data: categories = [] } = useCategories();
     const { data: subCategories = [] } = useSubCategories();
-    const { data: feedbacks = [] } = useFeedbacksAll(); // ✅
+    const { data: feedbacks = [] } = useFeedbacksAll();
 
     const selectedCountry = form.watch('arriveCountry');
     const selectedCountryName =
@@ -146,29 +146,36 @@ export default function TourProductForm({
     );
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchUsersAndMe = async () => {
             try {
+                // 取得所有使用者（給下拉選單）
                 const res = await fetch('/api/users');
-                if (!res.ok) throw new Error('取得使用者失敗');
+                if (!res.ok) throw new Error('取得使用者清單失敗');
                 const { users } = await res.json();
                 setUsers(users || []);
 
+                // 取得目前登入使用者
                 const meRes = await fetch('/api/me');
-                if (meRes.ok) {
-                    const me = await meRes.json();
-                    if (!isEdit && me?.id) {
-                        form.setValue('staff', me.id, { shouldValidate: true });
-                    }
+                if (!meRes.ok) throw new Error('取得目前登入使用者失敗');
+                const me = await meRes.json();
+
+                // ✅ 解析 user.id
+                const currentUserId = me?.user?.id;
+                if (!isEdit && currentUserId) {
+                    form.setValue('staff', currentUserId, {
+                        shouldValidate: true,
+                    });
                 }
             } catch (err: any) {
                 toast({
                     variant: 'destructive',
-                    title: err?.message ?? '無法載入使用者',
+                    title: err?.message ?? '無法載入使用者資料',
                 });
             }
         };
-        fetchUsers();
-    }, [toast, form, isEdit]);
+
+        fetchUsersAndMe();
+    }, [isEdit, form, toast]);
 
     useEffect(() => {
         const subscription = form.watch((value, { name }) => {
@@ -615,22 +622,26 @@ export default function TourProductForm({
                                         name="feedbackId"
                                         render={({ field }) => (
                                             <FormItem>
-                                            <FormLabel>旅客回饋</FormLabel>
-                                            <FormControl>
-                                                <Combobox
-                                                options={(feedbacks ?? []).map((f: any) => ({
-                                                    value: f.id,
-                                                    label: `${f.nickname} - ${f.title}`,
-                                                }))}
-                                                value={field.value ?? ''}
-                                                onChange={(val) => {
-                                                    field.onChange(val);
-                                                }}
-                                                placeholder="選擇旅客回饋"
-                                                searchPlaceholder="搜尋暱稱或標題..."
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
+                                                <FormLabel>旅客回饋</FormLabel>
+                                                <FormControl>
+                                                    <Combobox
+                                                        options={(
+                                                            feedbacks ?? []
+                                                        ).map((f: any) => ({
+                                                            value: f.id,
+                                                            label: `${f.nickname} - ${f.title}`,
+                                                        }))}
+                                                        value={
+                                                            field.value ?? ''
+                                                        }
+                                                        onChange={(val) => {
+                                                            field.onChange(val);
+                                                        }}
+                                                        placeholder="選擇旅客回饋"
+                                                        searchPlaceholder="搜尋暱稱或標題..."
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />

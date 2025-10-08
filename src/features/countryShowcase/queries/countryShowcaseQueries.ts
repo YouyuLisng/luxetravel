@@ -4,15 +4,66 @@ import { z } from 'zod';
 // === Schema ===
 export const countryShowcaseSchema = z.object({
     id: z.string(),
-    imageUrl: z.string(),
+    bookImage: z.string(),                     // ✅ 主圖片
+    landscapeImage: z.string().nullable(),     // ✅ 風景圖片
     title: z.string(),
     subtitle: z.string().nullable().optional(),
-    description: z.string().nullable().optional(), 
+    description: z.string().nullable().optional(),
     linkUrl: z.string().nullable().optional(),
     linkText: z.string().nullable().optional(),
     order: z.number(),
     createdAt: z.string(),
     updatedAt: z.string(),
+
+    // ✅ 若你有回傳關聯產品，可提前定義（可省略）
+    groupProducts: z
+        .array(
+            z.object({
+                id: z.string(),
+                code: z.string(),
+                name: z.string(),
+                category: z.string(),
+                arriveCountry: z.string().nullable().optional(),
+                days: z.number().optional(),
+                nights: z.number().optional(),
+                priceMin: z.number().optional(),
+                priceMax: z.number().nullable().optional(),
+                status: z.number().optional(),
+            })
+        )
+        .optional(),
+    freeProducts: z
+        .array(
+            z.object({
+                id: z.string(),
+                code: z.string(),
+                name: z.string(),
+                category: z.string(),
+                arriveCountry: z.string().nullable().optional(),
+                days: z.number().optional(),
+                nights: z.number().optional(),
+                priceMin: z.number().optional(),
+                priceMax: z.number().nullable().optional(),
+                status: z.number().optional(),
+            })
+        )
+        .optional(),
+    recoProducts: z
+        .array(
+            z.object({
+                id: z.string(),
+                code: z.string(),
+                name: z.string(),
+                category: z.string(),
+                arriveCountry: z.string().nullable().optional(),
+                days: z.number().optional(),
+                nights: z.number().optional(),
+                priceMin: z.number().optional(),
+                priceMax: z.number().nullable().optional(),
+                status: z.number().optional(),
+            })
+        )
+        .optional(),
 });
 
 export type CountryShowcaseEntity = z.infer<typeof countryShowcaseSchema>;
@@ -28,7 +79,7 @@ export const paginationSchema = z.object({
 // === Response Schema ===
 export const listResponseSchema = z.object({
     rows: countryShowcaseSchema.array(),
-    pagination: paginationSchema,
+    pagination: paginationSchema, // ✅ 不再 nullable（因為後端不回傳 null）
 });
 
 // === Query Keys ===

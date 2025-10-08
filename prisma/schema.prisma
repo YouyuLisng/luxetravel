@@ -143,8 +143,28 @@ model CountryShowcase {
   linkUrl     String?
   order       Int     @default(0)
 
+  /// ✅ 多對多：關聯多個 TourProduct
+  tourProducts CountryShowcaseOnTourProduct[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// ✅ 關聯表（多對多關係）
+/// 一個 CountryShowcase 可以包含多個 TourProduct，
+/// 一個 TourProduct 也可以出現在多個 CountryShowcase。
+model CountryShowcaseOnTourProduct {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  countryShowcaseId String @db.ObjectId
+  tourProductId      String @db.ObjectId
+
+  countryShowcase CountryShowcase @relation(fields: [countryShowcaseId], references: [id], onDelete: Cascade)
+  tourProduct      TourProduct      @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
+
+  @@unique([countryShowcaseId, tourProductId]) // 防止重複關聯
+  @@index([countryShowcaseId])
+  @@index([tourProductId])
 }
 
 model ArticleCountry {
@@ -190,14 +210,14 @@ model TravelArticleOnCountry {
 }
 
 model Feedback {
-  id        String        @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  content   String?
-  nickname  String
-  imageUrl  String
-  linkUrl   String
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  content  String?
+  nickname String
+  imageUrl String
+  linkUrl  String
 
-  products  TourProduct[] @relation("ProductFeedback")
+  products TourProduct[] @relation("ProductFeedback")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -439,30 +459,30 @@ enum VisitType {
 }
 
 model TourProduct {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  code          String   @unique
-  namePrefix    String?
-  name          String
-  mainImageUrl  String
-  summary       String?
-  description   String?
-  days          Int
-  nights        Int
-  departAirport String
-  arriveCountry String
-  arriveCity    String
-  arriveAirport String
-  category      String
-  priceMin      Int
-  priceMax      Int?
-  tags          String[] @default([])
-  countries     String[] @default([])
-  note          String?
-  status        Int      @default(1)
-  staff         String?
-  reminder      String?
-  policy        String?
-  isFeatured    Boolean   @default(false)
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  code               String   @unique
+  namePrefix         String?
+  name               String
+  mainImageUrl       String
+  summary            String?
+  description        String?
+  days               Int
+  nights             Int
+  departAirport      String
+  arriveCountry      String
+  arriveCity         String
+  arriveAirport      String
+  category           ProductType @default(GROUP)
+  priceMin           Int
+  priceMax           Int?
+  tags               String[] @default([])
+  countries          String[] @default([])
+  note               String?
+  status             Int      @default(1)
+  staff              String?
+  reminder           String?
+  policy             String?
+  isFeatured         Boolean  @default(false)
 
   categoryId    String  @db.ObjectId
   subCategoryId String? @db.ObjectId
@@ -478,8 +498,11 @@ model TourProduct {
   feedbackId String?   @db.ObjectId
   feedback   Feedback? @relation("ProductFeedback", fields: [feedbackId], references: [id], onDelete: SetNull)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  /// ✅ 多對多關聯
+  countryShowcases CountryShowcaseOnTourProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([feedbackId])
 }
@@ -624,15 +647,17 @@ model Page {
   seoDesc        String?
   seoImage       String?
   keywords       String[]            @default([])
-  icon           String? /// 小 icon（圖片 URL）
-  activityTextEn String? /// 活動文字（英文）
+  icon           String?             /// 小 icon（圖片 URL）
+  activityTextEn String?             /// 活動文字（英文）
+
+  /// ✅ 多對多關聯：Page 可關聯多個 TourProduct
   tourProducts   PageOnTourProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-/// 多對多關聯表：Page × TourProduct
+/// ✅ 多對多關聯表：Page × TourProduct
 model PageOnTourProduct {
   id            String @id @default(auto()) @map("_id") @db.ObjectId
   pageId        String @db.ObjectId
@@ -641,7 +666,7 @@ model PageOnTourProduct {
   page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
   tourProduct TourProduct @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
 
-  @@unique([pageId, tourProductId]) /// 防止重複關聯
+  @@unique([pageId, tourProductId])
   @@index([pageId])
   @@index([tourProductId])
 }

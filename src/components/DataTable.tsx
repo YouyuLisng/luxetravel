@@ -375,9 +375,7 @@ function generateColumns<T extends Record<string, any>>(
         generated.push({ id: 'drag', header: () => null, cell: () => null });
 
     // 判斷是不是 TourProduct
-    const isTourProduct =
-        'code' in first &&
-        'days' in first;
+    const isTourProduct = 'code' in first && 'days' in first;
 
     for (const key of keys) {
         // ===== TourProduct 專屬欄位 =====
@@ -412,6 +410,36 @@ function generateColumns<T extends Record<string, any>>(
                             <span className="font-mono">
                                 {categoryMap[raw] ?? raw ?? '—'}
                             </span>
+                        );
+                    },
+                } as ColumnDef<T>);
+                continue;
+            }
+            if (key === 'arriveCountry') {
+                generated.push({
+                    accessorKey: key,
+                    header: () => L(key, '目的地國家'),
+                    cell: ({ row }) => {
+                        const raw = (row.original as any)[key];
+
+                        let label: string;
+                        if (!raw) {
+                            label = '—';
+                        } else if (typeof raw === 'object') {
+                            label =
+                                raw.nameZh ||
+                                raw.nameEn ||
+                                raw.code ||
+                                raw.id ||
+                                JSON.stringify(raw);
+                        } else {
+                            label = String(raw);
+                        }
+
+                        return (
+                            <Badge variant="outline" className="px-1.5">
+                                {label}
+                            </Badge>
                         );
                     },
                 } as ColumnDef<T>);
@@ -532,7 +560,8 @@ function generateColumns<T extends Record<string, any>>(
             key === 'region' ||
             key === 'category' ||
             key === 'categoryName' ||
-            key === 'city'
+            key === 'city' ||
+            key === 'arriveCountry'
         ) {
             generated.push({
                 accessorKey: key,
@@ -741,6 +770,8 @@ function generateColumns<T extends Record<string, any>>(
             'bannerUrl',
             'photo',
             'picture',
+            'bookImage',
+            'landscapeImage'
         ];
         if (IMAGE_KEYS.includes(key)) {
             generated.push({

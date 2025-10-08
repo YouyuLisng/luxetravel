@@ -9,7 +9,22 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
-    return { title: `Country Showcase - ${id}` };
+    const data = await db.countryShowcase.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            imageUrl: true,
+            imageUrl1: true,
+            imageUrl2: true,
+            title: true,
+            subtitle: true,
+            description: true,
+            linkText: true,
+            linkUrl: true,
+            order: true,
+        },
+    });
+    return { title: `經典卡片行程 - ${data?.title}` };
 }
 
 export default async function Page({ params }: Props) {

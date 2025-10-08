@@ -10,7 +10,7 @@ import {
 } from '@/schemas/countryShowcase';
 import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
-/** 新增 CountryShowcase */
+/** ------------------------- 新增 CountryShowcase ------------------------- */
 export async function createCountryShowcase(
     values: CountryShowcaseCreateValues
 ) {
@@ -27,26 +27,41 @@ export async function createCountryShowcase(
         linkText,
         linkUrl,
         order,
+        tourProducts, // ✅ 新增關聯的產品 IDs
     } = parsed.data;
 
-    const data = await db.countryShowcase.create({
-        data: {
-            imageUrl,
-            imageUrl1: imageUrl1 || null,
-            imageUrl2: imageUrl2 || null,
-            title,
-            subtitle: subtitle || null,
-            description: description || null,
-            linkText: linkText || null,
-            linkUrl: linkUrl || null,
-            order,
-        },
-    });
+    try {
+        const showcase = await db.countryShowcase.create({
+            data: {
+                imageUrl,
+                imageUrl1: imageUrl1 || null,
+                imageUrl2: imageUrl2 || null,
+                title,
+                subtitle: subtitle || null,
+                description: description || null,
+                linkText: linkText || null,
+                linkUrl: linkUrl || null,
+                order,
+                // ✅ 建立多對多關聯
+                tourProducts: tourProducts?.length
+                    ? {
+                          create: tourProducts.map((id) => ({
+                              tourProductId: id,
+                          })),
+                      }
+                    : undefined,
+            },
+            include: { tourProducts: true },
+        });
 
-    return { success: '新增成功', data };
+        return { success: '新增成功', data: showcase };
+    } catch (err) {
+        console.error('createCountryShowcase error:', err);
+        return { error: '新增失敗' };
+    }
 }
 
-/** 編輯 CountryShowcase（依 id，並刪除舊 blob 圖片） */
+/** ------------------------- 編輯 CountryShowcase ------------------------- */
 export async function editCountryShowcase(
     id: string,
     values: CountryShowcaseEditValues
@@ -56,7 +71,10 @@ export async function editCountryShowcase(
     const parsed = CountryShowcaseEditSchema.safeParse(values);
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
-    const exists = await db.countryShowcase.findUnique({ where: { id } });
+    const exists = await db.countryShowcase.findUnique({
+        where: { id },
+        include: { tourProducts: true },
+    });
     if (!exists) return { error: '找不到 CountryShowcase' };
 
     const {
@@ -69,11 +87,11 @@ export async function editCountryShowcase(
         linkText,
         linkUrl,
         order,
+        tourProducts, // ✅ 關聯產品 IDs
     } = parsed.data;
 
-    // ⚡ 只檢查圖片欄位
+    // ⚡ 刪除舊圖片（僅檢查變動者）
     const imageFields = ['imageUrl', 'imageUrl1', 'imageUrl2'] as const;
-
     for (const field of imageFields) {
         const newValue = parsed.data[field];
         const oldValue = exists[field] as string | null;
@@ -81,30 +99,64 @@ export async function editCountryShowcase(
             try {
                 await deleteFromVercelBlob(oldValue);
             } catch (err) {
-                console.error(`刪除舊 Blob 圖片失敗 (${field}):`, err);
+                console.warn(`刪除舊圖片失敗 (${field}):`, err);
             }
         }
     }
 
-    const data = await db.countryShowcase.update({
-        where: { id },
-        data: {
-            imageUrl,
-            imageUrl1: imageUrl1 || null,
-            imageUrl2: imageUrl2 || null,
-            title,
-            subtitle: subtitle || null,
-            description: description || null,
-            linkText: linkText || null,
-            linkUrl: linkUrl || null,
-            order,
-        },
-    });
+    try {
+        // ✅ 更新主資料
+        const updated = await db.countryShowcase.update({
+            where: { id },
+            data: {
+                imageUrl,
+                imageUrl1: imageUrl1 || null,
+                imageUrl2: imageUrl2 || null,
+                title,
+                subtitle: subtitle || null,
+                description: description || null,
+                linkText: linkText || null,
+                linkUrl: linkUrl || null,
+                order,
+            },
+        });
 
-    return { success: '更新成功', data };
+        // ✅ 重新同步多對多關聯
+        if (Array.isArray(tourProducts)) {
+            await db.$transaction([
+                // 先清空舊關聯
+                db.countryShowcaseOnTourProduct.deleteMany({
+                    where: { countryShowcaseId: id },
+                }),
+                // 建立新關聯
+                ...tourProducts.map((pid) =>
+                    db.countryShowcaseOnTourProduct.create({
+                        data: {
+                            countryShowcaseId: id,
+                            tourProductId: pid,
+                        },
+                    })
+                ),
+            ]);
+        }
+
+        const result = await db.countryShowcase.findUnique({
+            where: { id },
+            include: {
+                tourProducts: {
+                    include: { tourProduct: true },
+                },
+            },
+        });
+
+        return { success: '更新成功', data: result };
+    } catch (err) {
+        console.error('editCountryShowcase error:', err);
+        return { error: '更新失敗' };
+    }
 }
 
-/** 刪除 CountryShowcase（依 id，並刪除 blob 圖片） */
+/** ------------------------- 刪除 CountryShowcase ------------------------- */
 export async function deleteCountryShowcase(id: string) {
     if (!id) return { error: '無效的 ID' };
 
@@ -114,29 +166,40 @@ export async function deleteCountryShowcase(id: string) {
     });
     if (!exists) return { error: '找不到 CountryShowcase' };
 
-    // ⚡ 刪除舊圖片 (最多 3 張)
-    for (const field of ['imageUrl', 'imageUrl1', 'imageUrl2'] as const) {
-        if (exists[field]) {
-            try {
-                await deleteFromVercelBlob(exists[field]!);
-            } catch (err) {
-                console.error(`刪除 Blob 圖片失敗 (${field}):`, err);
+    try {
+        // ⚡ 刪除舊圖片
+        for (const field of ['imageUrl', 'imageUrl1', 'imageUrl2'] as const) {
+            if (exists[field]) {
+                try {
+                    await deleteFromVercelBlob(exists[field]!);
+                } catch (err) {
+                    console.warn(`刪除 Blob 圖片失敗 (${field}):`, err);
+                }
             }
         }
-    }
 
-    const data = await db.countryShowcase.delete({ where: { id } });
-    return { success: '刪除成功', data };
+        // ✅ 同時刪除關聯的 CountryShowcaseOnTourProduct
+        await db.$transaction([
+            db.countryShowcaseOnTourProduct.deleteMany({
+                where: { countryShowcaseId: id },
+            }),
+            db.countryShowcase.delete({ where: { id } }),
+        ]);
+
+        return { success: '刪除成功' };
+    } catch (err) {
+        console.error('deleteCountryShowcase error:', err);
+        return { error: '刪除失敗' };
+    }
 }
 
-/* ------------------------- 拖曳排序 Server Actions ------------------------- */
+/* ------------------------- 拖曳排序 ------------------------- */
 
 const ReorderSchema = z.object({
     ids: z.array(z.string().min(1)).nonempty(),
     startFrom: z.number().int().min(0).optional(),
 });
 
-/** 重排 CountryShowcase */
 export async function reorderCountryShowcases(
     input: z.infer<typeof ReorderSchema>
 ) {
@@ -144,14 +207,9 @@ export async function reorderCountryShowcases(
     if (!parsed.success) return { error: '欄位格式錯誤' };
 
     const { ids, startFrom = 1 } = parsed.data;
-
-    // 檢查重複
     const set = new Set(ids);
-    if (set.size !== ids.length) {
-        return { error: 'ids 內含重複值' };
-    }
+    if (set.size !== ids.length) return { error: 'ids 內含重複值' };
 
-    // 確認存在
     const existing = await db.countryShowcase.findMany({
         where: { id: { in: ids } },
         select: { id: true },
@@ -177,7 +235,6 @@ export async function reorderCountryShowcases(
                 })
             ),
         ]);
-
         return { success: '排序已更新', count: ids.length };
     } catch (err) {
         console.error('reorderCountryShowcases error:', err);
