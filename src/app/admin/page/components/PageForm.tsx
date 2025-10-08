@@ -123,7 +123,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
 
     const { isValid, isSubmitting } = form.formState;
 
-    const headingTitle = isEdit ? '編輯活動頁面' : '新增活動頁面';
+    const headingTitle = isEdit ? '編輯主題旅遊頁面' : '新增主題旅遊頁面';
     const formId = 'page-form';
 
     // 共用上傳處理
@@ -370,7 +370,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="after:ml-1 after:text-rose-500 after:content-['*']">
-                                                活動頁面標題
+                                                主題旅遊頁面標題
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
@@ -613,7 +613,7 @@ export default function PageForm({ mode = 'create', initialData }: Props) {
                                 name="activityTextEn"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>活動文字 (英文)</FormLabel>
+                                        <FormLabel>主題旅遊文字 (英文)</FormLabel>
                                         <FormControl>
                                             <Input
                                                 {...field}

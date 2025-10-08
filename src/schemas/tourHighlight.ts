@@ -3,8 +3,7 @@ import { z } from "zod";
 export const TourHighlightSchema = z.object({
   productId: z.string().min(1, "缺少產品 ID"),
   imageUrls: z
-    .array(z.string().url("圖片必須是合法網址"))
-    .min(1, "至少要有一張圖片"),
+    .array(z.string().optional().nullable()),
   layout: z.number().int().min(1, "版型必填"),
   title: z.string().min(1, "標題必填"),
   subtitle: z.string().optional().nullable(),

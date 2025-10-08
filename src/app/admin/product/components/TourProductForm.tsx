@@ -55,6 +55,7 @@ import { TextareaInput } from '@/components/TextareaInput';
 import { Combobox } from '@/components/combobox';
 import { useCountriesAll } from '@/features/country/queries/countryQueries';
 import { useFeedbacksAll } from '@/features/feedback/queries/feedbackQueries';
+import { Separator } from '@/components/ui/separator';
 
 const LIST_PATH = '/admin/product';
 
@@ -327,6 +328,87 @@ export default function TourProductForm({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
                                     control={form.control}
+                                    name="isFeatured"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>是否精選(顯示在列表頁面的輪播與搜尋結果前六筆)</FormLabel>
+                                            <Select
+                                                value={
+                                                    field.value
+                                                        ? 'true'
+                                                        : 'false'
+                                                }
+                                                onValueChange={(val) =>
+                                                    field.onChange(
+                                                        val === 'true'
+                                                    )
+                                                }
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="請選擇是否精選" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectItem value="true">
+                                                            是
+                                                        </SelectItem>
+                                                        <SelectItem value="false">
+                                                            否
+                                                        </SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>狀態</FormLabel>
+                                            <Select
+                                                value={String(
+                                                    field.value ?? '1'
+                                                )}
+                                                onValueChange={(val) =>
+                                                    field.onChange(Number(val))
+                                                }
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="請選擇狀態" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectLabel>
+                                                            狀態
+                                                        </SelectLabel>
+                                                        <SelectItem value="1">
+                                                            上架
+                                                        </SelectItem>
+                                                        <SelectItem value="2">
+                                                            下架
+                                                        </SelectItem>
+                                                        <SelectItem value="3">
+                                                            草稿
+                                                        </SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <Separator className="my-4 bg-blue-600" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
                                     name="code"
                                     render={({ field }) => (
                                         <FormItem>
@@ -343,7 +425,48 @@ export default function TourProductForm({
                                         </FormItem>
                                     )}
                                 />
-                                <div></div>
+                                
+                                <FormField
+                                    control={form.control}
+                                    name="category"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className='text-red-900'>類別</FormLabel>
+                                            <Select
+                                                value={field.value ?? ''}
+                                                onValueChange={(val) =>
+                                                    field.onChange(val)
+                                                }
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger className='text-red-900'>
+                                                        <SelectValue placeholder="請選擇類別" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectGroup className='text-red-900'>
+                                                        <SelectLabel>
+                                                            類別
+                                                        </SelectLabel>
+                                                        <SelectItem value="GROUP">
+                                                            團體
+                                                        </SelectItem>
+                                                        <SelectItem value="FREE">
+                                                            自由行
+                                                        </SelectItem>
+                                                        <SelectItem value="RCAR">
+                                                            包車
+                                                        </SelectItem>
+                                                        <SelectItem value="RECO">
+                                                            推薦
+                                                        </SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <FormField
                                     control={form.control}
                                     name="namePrefix"
@@ -356,7 +479,7 @@ export default function TourProductForm({
                                                     onChange={(e) =>
                                                         field.onChange(
                                                             e.target.value ||
-                                                                null
+                                                            null
                                                         )
                                                     }
                                                 />
@@ -495,157 +618,6 @@ export default function TourProductForm({
                                         );
                                     }}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="category"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>類別</FormLabel>
-                                            <Select
-                                                value={field.value ?? ''}
-                                                onValueChange={(val) =>
-                                                    field.onChange(val)
-                                                }
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="請選擇類別" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <SelectLabel>
-                                                            類別
-                                                        </SelectLabel>
-                                                        <SelectItem value="GROUP">
-                                                            團體
-                                                        </SelectItem>
-                                                        <SelectItem value="FREE">
-                                                            自由行
-                                                        </SelectItem>
-                                                        <SelectItem value="RCAR">
-                                                            包車
-                                                        </SelectItem>
-                                                        <SelectItem value="RECO">
-                                                            推薦
-                                                        </SelectItem>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="status"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>狀態</FormLabel>
-                                            <Select
-                                                value={String(
-                                                    field.value ?? '1'
-                                                )}
-                                                onValueChange={(val) =>
-                                                    field.onChange(Number(val))
-                                                }
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="請選擇狀態" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <SelectLabel>
-                                                            狀態
-                                                        </SelectLabel>
-                                                        <SelectItem value="1">
-                                                            上架
-                                                        </SelectItem>
-                                                        <SelectItem value="2">
-                                                            下架
-                                                        </SelectItem>
-                                                        <SelectItem value="3">
-                                                            草稿
-                                                        </SelectItem>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="isFeatured"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>是否精選</FormLabel>
-                                            <Select
-                                                value={
-                                                    field.value
-                                                        ? 'true'
-                                                        : 'false'
-                                                }
-                                                onValueChange={(val) =>
-                                                    field.onChange(
-                                                        val === 'true'
-                                                    )
-                                                }
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="請選擇是否精選" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        <SelectItem value="true">
-                                                            是
-                                                        </SelectItem>
-                                                        <SelectItem value="false">
-                                                            否
-                                                        </SelectItem>
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* 旅客回饋 */}
-                                {form.watch('category') !== 'GROUP' && (
-                                    <FormField
-                                        control={form.control}
-                                        name="feedbackId"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>旅客回饋</FormLabel>
-                                                <FormControl>
-                                                    <Combobox
-                                                        options={(
-                                                            feedbacks ?? []
-                                                        ).map((f: any) => ({
-                                                            value: f.id,
-                                                            label: `${f.nickname} - ${f.title}`,
-                                                        }))}
-                                                        value={
-                                                            field.value ?? ''
-                                                        }
-                                                        onChange={(val) => {
-                                                            field.onChange(val);
-                                                        }}
-                                                        placeholder="選擇旅客回饋"
-                                                        searchPlaceholder="搜尋暱稱或標題..."
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
                             </div>
 
                             {/* === 行程時間 === */}
@@ -914,7 +886,7 @@ export default function TourProductForm({
                                 name="countries"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>參訪國家</FormLabel>
+                                        <FormLabel>參訪國家 (多選)</FormLabel>
                                         <FormControl>
                                             <CreatableMultiSelect
                                                 value={field.value ?? []}
@@ -945,13 +917,13 @@ export default function TourProductForm({
                                 name="summary"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>行程簡述</FormLabel>
+                                        <FormLabel>行程簡述 (出現在列表頁面的卡片上)</FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={3}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入行程簡短介紹（會出現在列表卡片上）"
+                                                placeholder="請輸入行程簡短介紹（出現在列表頁面的卡片上）"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||
@@ -968,13 +940,15 @@ export default function TourProductForm({
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>行程描述</FormLabel>
+                                        <FormLabel>
+                                            <span className='font-bold text-lg'>團體:</span> 貼心安排　｜　<span className='font-bold text-lg'>自由行/包車:</span> 售價包含
+                                        </FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入行程描述"
+                                                placeholder="請輸入貼心安排"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||
@@ -1015,14 +989,14 @@ export default function TourProductForm({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>
-                                            請輸入貼心提醒餐團須知 旅客篇
+                                            <span className='font-bold text-lg'>團體:</span> 貼心提醒餐團須知 旅客篇　｜　<span className='font-bold text-lg'>自由行/包車:</span> 服務流程與注意事項 服務流程
                                         </FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
                                                 {...field}
                                                 value={field.value ?? ''}
-                                                placeholder="請輸入請輸入貼心提醒餐團須知 旅客篇"
+                                                placeholder="請輸入"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||
@@ -1041,7 +1015,7 @@ export default function TourProductForm({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>
-                                            請輸入貼心提醒餐團須知 航空篇
+                                            <span className='font-bold text-lg'>團體:</span> 貼心提醒餐團須知 航空篇　｜　<span className='font-bold text-lg'>自由行/包車:</span> 服務流程與注意事項 旅遊注意事項
                                         </FormLabel>
                                         <FormControl>
                                             <TextareaInput
@@ -1073,11 +1047,10 @@ export default function TourProductForm({
                                         >
                                             <div className="absolute inset-0 z-10" />
                                             <div
-                                                className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${
-                                                    imgPreview
-                                                        ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
-                                                        : ''
-                                                }`}
+                                                className={`z-[3] flex flex-col items-center justify-center px-10 text-center ${imgPreview
+                                                    ? 'absolute inset-0 rounded-xl bg-white/80 opacity-0 backdrop-blur-sm transition group-hover:opacity-100'
+                                                    : ''
+                                                    }`}
                                             >
                                                 <svg
                                                     className="h-7 w-7"
@@ -1119,6 +1092,39 @@ export default function TourProductForm({
                                     </FormItem>
                                 )}
                             />
+
+                            {/* 旅客迴響 */}
+                            {form.watch('category') !== 'GROUP' && (
+                                <FormField
+                                    control={form.control}
+                                    name="feedbackId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>旅客迴響 (只有自由行的產品會出現推薦的旅客迴響在頁面中)</FormLabel>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={(
+                                                        feedbacks ?? []
+                                                    ).map((f: any) => ({
+                                                        value: f.id,
+                                                        label: `${f.nickname} - ${f.title}`,
+                                                    }))}
+                                                    value={
+                                                        field.value ?? ''
+                                                    }
+                                                    onChange={(val) => {
+                                                        field.onChange(val);
+                                                    }}
+                                                    placeholder="選擇旅客迴響"
+                                                    searchPlaceholder="搜尋暱稱或標題..."
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+
                             {/* === 其他：上架人員 === */}
                             <FormField
                                 control={form.control}

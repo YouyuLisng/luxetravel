@@ -10,7 +10,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
-    return { title: `活動頁面 - ${id}` };
+    return { title: `主題旅遊頁面 - ${id}` };
 }
 
 export default async function Page({ params }: Props) {

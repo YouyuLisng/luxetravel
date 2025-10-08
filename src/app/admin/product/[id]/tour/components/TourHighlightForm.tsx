@@ -543,6 +543,7 @@ function ImageFields({
             ))}
 
             <Button
+                className='bg-blue-600 text-white'
                 type="button"
                 variant="secondary"
                 onClick={() => append('')}

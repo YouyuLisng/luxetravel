@@ -26,7 +26,7 @@ export const breadcrumbMap: Record<string, string> = {
     // 首頁設定
     menu: '前台選單',
     banner: '首頁輪播大圖',
-    page: '活動管理',
+    page: '主題旅遊',
     countryshowcases: '經典行程卡片',
     concern: '自由行規劃',
     // 模組內容管理
@@ -70,7 +70,7 @@ export const breadcrumbPathOverrides: Record<string, string> = {
     '/admin/users/new': '新增使用者',
     '/admin/attraction/new': '新增景點',
     '/admin/airline/new': '新增使用者',
-    '/admin/page/new': '新增活動',
+    '/admin/page/new': '新增主題旅遊',
     // ✅ 特例：出發日曆
     '/admin/product/:id/tour': '出發日曆',
 

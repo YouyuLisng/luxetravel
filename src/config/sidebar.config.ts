@@ -69,7 +69,6 @@ export const sidebarItems: SidebarItem[] = [
         icon: Home,
         items: [
             { title: '首頁輪播大圖', url: '/admin/banner' },
-            { title: '活動管理', url: '/admin/page' },
             { title: '經典行程卡片', url: '/admin/countryshowcases' },
             { title: '自由行規劃', url: '/admin/concern' },
             { title: '典藏優勢', url: '/admin/advantage' },
@@ -82,6 +81,7 @@ export const sidebarItems: SidebarItem[] = [
         url: '',
         icon: MapPinned,
         items: [
+            { title: '主題旅遊管理', url: '/admin/page' },
             { title: '團體', url: '/admin/product/group' },
             { title: '自由行', url: '/admin/product/free' },
             { title: '包車', url: '/admin/product/reco' },

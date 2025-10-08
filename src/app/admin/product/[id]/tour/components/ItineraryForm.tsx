@@ -37,7 +37,7 @@ import {
 import { replaceItineraries } from '@/app/admin/product/action/itinerary';
 import { useAttractions } from '@/features/attraction/hooks/useAttraction';
 
-import { X, Check, ChevronsUpDown } from 'lucide-react';
+import { X, Check, ChevronsUpDown, SeparatorVerticalIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import {
@@ -137,8 +137,8 @@ export default function ItineraryForm({ productId, initialData }: Props) {
             >
                 {fields.map((field, index) => (
                     <Card key={field.id} className="p-6 space-y-6 relative">
-                        <h3 className="text-lg font-semibold">
-                            Day {field.day}
+                        <h3 className="text-2xl font-bold text-blue-600">
+                            每日行程 第 {field.day} 天
                         </h3>
 
                         {/* 基本資訊 */}
@@ -210,8 +210,8 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                                                 {meal === 'breakfast'
                                                     ? '早餐'
                                                     : meal === 'lunch'
-                                                      ? '午餐'
-                                                      : '晚餐'}
+                                                        ? '午餐'
+                                                        : '晚餐'}
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
@@ -261,7 +261,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                         />
 
                         {/* 路線 (Accordion) */}
-                        <Accordion type="single" collapsible>
+                        <Accordion type="multiple" defaultValue={['routes']}>
                             <AccordionItem value="routes">
                                 <AccordionTrigger>路線設定</AccordionTrigger>
                                 <AccordionContent>
@@ -274,7 +274,7 @@ export default function ItineraryForm({ productId, initialData }: Props) {
                         </Accordion>
 
                         {/* 景點 (Accordion) */}
-                        <Accordion type="single" collapsible>
+                        <Accordion type="multiple" defaultValue={['attractions']}>
                             <AccordionItem value="attractions">
                                 <AccordionTrigger>景點設定</AccordionTrigger>
                                 <AccordionContent>
@@ -336,10 +336,10 @@ function ItineraryRoutesField({
                                         {f === 'depart'
                                             ? '出發'
                                             : f === 'arrive'
-                                              ? '抵達'
-                                              : f === 'duration'
-                                                ? '耗時'
-                                                : '距離'}
+                                                ? '抵達'
+                                                : f === 'duration'
+                                                    ? '耗時'
+                                                    : '距離'}
                                     </FormLabel>
                                     <FormControl>
                                         <Input
@@ -364,6 +364,7 @@ function ItineraryRoutesField({
                 </div>
             ))}
             <Button
+                className='bg-blue-600 text-white'
                 type="button"
                 onClick={() =>
                     append({
@@ -510,7 +511,7 @@ function ItineraryAttractionsField({
                     {/* 刪除按鈕 */}
                     <Button
                         type="button"
-                        variant="ghost"
+                        variant="ghost" 
                         size="icon"
                         className="absolute right-2 top-2 text-red-500 hover:text-red-700 bg-transparent"
                         onClick={() => remove(aIndex)}
@@ -521,6 +522,7 @@ function ItineraryAttractionsField({
             ))}
 
             <Button
+                className='bg-blue-600 text-white'
                 type="button"
                 onClick={() =>
                     append({ attractionId: '', visitType: 'INSIDE' })
