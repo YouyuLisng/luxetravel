@@ -645,7 +645,7 @@ function generateColumns<T extends Record<string, any>>(
             } as ColumnDef<T>);
             continue;
         }
-        if (key === 'content') {
+        if (key === 'content' || key === 'description' || key === 'seoDesc') {
             generated.push({
                 accessorKey: key,
                 header: () => L(key, '內容'),
