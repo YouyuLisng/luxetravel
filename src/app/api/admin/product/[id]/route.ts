@@ -12,7 +12,7 @@ function formatDate(date: Date | string | null | undefined): string | null {
     return d.toISOString().split('T')[0]; // 取 "2025-09-29"
 }
 
-/** 取得單一 TourProduct */
+/** 取得單一 TourProduct（含 feedback） */
 export async function GET(_req: NextRequest, { params }: Props) {
     try {
         const { id } = await params;
@@ -40,6 +40,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
                         },
                     },
                 },
+                feedback: true,
             },
         });
 
@@ -67,6 +68,18 @@ export async function GET(_req: NextRequest, { params }: Props) {
                 createdAt: formatDate(i.createdAt),
                 updatedAt: formatDate(i.updatedAt),
             })),
+            feedback: data.feedback
+                ? {
+                      id: data.feedback.id,
+                      title: data.feedback.title,
+                      nickname: data.feedback.nickname,
+                      content: data.feedback.content,
+                      imageUrl: data.feedback.imageUrl,
+                      linkUrl: data.feedback.linkUrl,
+                      createdAt: formatDate(data.feedback.createdAt),
+                      updatedAt: formatDate(data.feedback.updatedAt),
+                  }
+                : null,
         };
 
         return NextResponse.json({ status: true, data: formatted });

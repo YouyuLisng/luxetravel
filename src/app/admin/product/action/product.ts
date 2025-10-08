@@ -8,6 +8,7 @@ import {
     type TourProductEditValues,
 } from '@/schemas/tourProduct';
 import { deleteFromVercelBlob } from '@/lib/vercel-blob';
+import { ProductType } from '@prisma/client'; // ✅ Prisma Enum 引入
 
 /** 建立 TourProduct */
 export async function createTourProduct(values: TourProductCreateValues) {
@@ -45,12 +46,14 @@ export async function createTourProduct(values: TourProductCreateValues) {
 
     try {
         // ✅ 檢查同一 category 的精選上限
+        const categoryEnum = category as ProductType;
+
         if (isFeatured) {
             const count = await db.tourProduct.count({
-                where: { isFeatured: true, category },
+                where: { isFeatured: true, category: categoryEnum },
             });
             if (count >= 6) {
-                return { error: `「${category}」類別的精選最多只能有六筆` };
+                return { error: `「${categoryEnum}」類別的精選最多只能有六筆` };
             }
         }
 
@@ -68,7 +71,7 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 arriveCountry,
                 arriveCity,
                 arriveAirport,
-                category,
+                category: categoryEnum, // ✅ Enum 型別
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
@@ -111,10 +114,15 @@ export async function toggleFeatured(id: string, isFeatured: boolean) {
         if (isFeatured) {
             // ✅ 檢查同一 category 的精選上限
             const count = await db.tourProduct.count({
-                where: { isFeatured: true, category: product.category },
+                where: {
+                    isFeatured: true,
+                    category: product.category as ProductType,
+                },
             });
             if (count >= 6) {
-                return { error: `「${product.category}」類別的精選最多只能有六筆` };
+                return {
+                    error: `「${product.category}」類別的精選最多只能有六筆`,
+                };
             }
         }
 
@@ -173,6 +181,9 @@ export async function editTourProduct(
     } = parsed.data;
 
     try {
+        const categoryEnum = category as ProductType;
+
+        // ✅ 若圖片更換 → 刪除舊檔
         if (
             mainImageUrl &&
             exists.mainImageUrl &&
@@ -188,10 +199,12 @@ export async function editTourProduct(
         // ✅ 檢查同一 category 的精選上限
         if (isFeatured) {
             const count = await db.tourProduct.count({
-                where: { isFeatured: true, category },
+                where: { isFeatured: true, category: categoryEnum },
             });
             if (count >= 6 && !exists.isFeatured) {
-                return { error: `「${category}」類別的精選最多只能有六筆` };
+                return {
+                    error: `「${categoryEnum}」類別的精選最多只能有六筆`,
+                };
             }
         }
 
@@ -210,7 +223,7 @@ export async function editTourProduct(
                 arriveCountry,
                 arriveCity,
                 arriveAirport,
-                category,
+                category: categoryEnum, // ✅ Enum 型別
                 priceMin,
                 priceMax: priceMax ?? null,
                 tags: tags ?? [],
@@ -227,7 +240,7 @@ export async function editTourProduct(
             },
         });
 
-        // itinerary 同步
+        // ✅ 同步行程天數
         const existingItineraries = await db.itinerary.findMany({
             where: { productId: id },
             orderBy: { day: 'asc' },
