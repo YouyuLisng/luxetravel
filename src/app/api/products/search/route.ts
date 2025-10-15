@@ -18,8 +18,24 @@ export async function GET(req: Request) {
     const limit = limitParam ? Number(limitParam) : undefined;
     const skip = page && limit ? (page - 1) * limit : undefined;
 
+    // ✅ 排序欄位與自動排序方向
     const sort = searchParams.get('sort') ?? 'createdAt';
-    const order = (searchParams.get('order') as 'asc' | 'desc') ?? 'desc';
+    let order = (searchParams.get('order') as 'asc' | 'desc') ?? undefined;
+
+    if (!order) {
+        switch (sort) {
+            case 'priceMin':
+                order = 'asc'; // 價格由便宜到貴
+                break;
+            case 'priceMax':
+                order = 'desc'; // 價格由貴到便宜
+                break;
+            case 'createdAt':
+            default:
+                order = 'desc'; // 最新在前
+                break;
+        }
+    }
 
     const where: any = { status: 1 };
 
