@@ -15,6 +15,15 @@ export async function GET(_request: NextRequest, { params }: Props) {
     }
 
     try {
+        // ✅ 取出國家代碼對照表
+        const countries = await db.country.findMany({
+            select: { code: true, nameZh: true },
+        });
+        const countryMap = Object.fromEntries(
+            countries.map((c) => [c.code, c.nameZh])
+        );
+
+        // ✅ 取出 CountryShowcase + 關聯產品
         const item = await db.countryShowcase.findUnique({
             where: { id },
             include: {
@@ -55,7 +64,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
         const bookImage = item.imageUrl;
         const landscapeImage = item.imageUrl2;
 
-        // ✅ 分類 products
+        // ✅ 分類產品 + 國家中文轉換
         const groupProducts: any[] = [];
         const freeProducts: any[] = [];
         const rcarProducts: any[] = [];
@@ -63,9 +72,20 @@ export async function GET(_request: NextRequest, { params }: Props) {
         for (const tp of item.tourProducts ?? []) {
             const p = tp.tourProduct;
             if (!p) continue;
-            if (p.category === 'GROUP') groupProducts.push(p);
-            else if (p.category === 'FREE') freeProducts.push(p);
-            else if (p.category === 'RCAR') rcarProducts.push(p);
+
+            const converted = {
+                ...p,
+                // 單一國家轉中文
+                arriveCountry: countryMap[p.arriveCountry] ?? p.arriveCountry,
+                // 陣列國家轉中文
+                countries: (p.countries ?? []).map(
+                    (code: string) => countryMap[code] ?? code
+                ),
+            };
+
+            if (p.category === 'GROUP') groupProducts.push(converted);
+            else if (p.category === 'FREE') freeProducts.push(converted);
+            else if (p.category === 'RCAR') rcarProducts.push(converted);
         }
 
         return NextResponse.json({
@@ -85,7 +105,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
                 updatedAt: item.updatedAt,
                 groupProducts,
                 freeProducts,
-                rcarProducts, // ✅ 改名完成
+                rcarProducts,
             },
         });
     } catch (error) {
@@ -120,7 +140,6 @@ export async function PUT(request: NextRequest, { params }: Props) {
         order,
     } = body;
 
-    // ✅ 兼容 bookImage 或 imageUrl
     const mainImage = bookImage || imageUrl;
     const wideImage = landscapeImage || imageUrl2;
 

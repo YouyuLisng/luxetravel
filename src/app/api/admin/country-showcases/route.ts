@@ -15,7 +15,6 @@ export async function POST(request: Request) {
             order,
         } = body;
 
-        // ✅ 驗證欄位
         if (!bookImage || !title) {
             return NextResponse.json(
                 { error: '缺少必要欄位（bookImage, title）' },
@@ -23,7 +22,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // ✅ 寫入資料庫時對應原欄位名稱
         const item = await db.countryShowcase.create({
             data: {
                 imageUrl: bookImage,
@@ -38,7 +36,6 @@ export async function POST(request: Request) {
             },
         });
 
-        // ✅ 回傳時轉換命名
         return NextResponse.json(
             {
                 success: true,
@@ -68,13 +65,22 @@ export async function POST(request: Request) {
     }
 }
 
+/* ------------------------- 取得 CountryShowcase 清單 ------------------------- */
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const pageParam = searchParams.get('page');
         const pageSizeParam = searchParams.get('pageSize');
 
-        // ✅ 查詢主資料 + 關聯產品
+        // ✅ 先取出所有國家資料（代碼 → 中文）
+        const countries = await db.country.findMany({
+            select: { code: true, nameZh: true },
+        });
+        const countryMap = Object.fromEntries(
+            countries.map((c) => [c.code, c.nameZh])
+        );
+
+        // ✅ 查主資料 + 關聯產品
         const fetchData = async (skip?: number, take?: number): Promise<any[]> => {
             const data = await db.countryShowcase.findMany({
                 orderBy: { order: 'asc' },
@@ -118,7 +124,7 @@ export async function GET(req: Request) {
             }));
         };
 
-        // ✅ 處理分頁邏輯
+        // ✅ 分頁處理
         const page = Math.max(1, Number(pageParam ?? 1));
         const pageSize = Math.max(1, Math.min(100, Number(pageSizeParam ?? 0)));
 
@@ -135,7 +141,7 @@ export async function GET(req: Request) {
             ]);
         }
 
-        // ✅ 分類產品
+        // ✅ 分類產品並轉換國家名稱
         const formatted = rows.map((item) => {
             const groupProducts: any[] = [];
             const freeProducts: any[] = [];
@@ -144,9 +150,22 @@ export async function GET(req: Request) {
             for (const tp of item.tourProducts ?? []) {
                 const p = tp.tourProduct;
                 if (!p) continue;
-                if (p.category === 'GROUP') groupProducts.push(p);
-                else if (p.category === 'FREE') freeProducts.push(p);
-                else if (p.category === 'RCAR') rcarProducts.push(p);
+
+                const converted = {
+                    ...p,
+                    // ✅ 單一國家轉中文
+                    arriveCountry:
+                        countryMap[p.arriveCountry] ?? p.arriveCountry,
+
+                    // ✅ 陣列國家轉中文
+                    countries: (p.countries ?? []).map(
+                        (code: string) => countryMap[code] ?? code
+                    ),
+                };
+
+                if (p.category === 'GROUP') groupProducts.push(converted);
+                else if (p.category === 'FREE') freeProducts.push(converted);
+                else if (p.category === 'RCAR') rcarProducts.push(converted);
             }
 
             return {
@@ -167,7 +186,7 @@ export async function GET(req: Request) {
             };
         });
 
-        // ✅ 統一 pagination 結構
+        // ✅ 分頁結構
         const pagination = {
             page,
             pageSize: pageSize || total || 1,
@@ -178,7 +197,8 @@ export async function GET(req: Request) {
         return NextResponse.json(
             {
                 status: true,
-                message: '成功取得 CountryShowcase 清單（含關聯產品）',
+                message:
+                    '成功取得 CountryShowcase 清單（含關聯產品與國家中文名稱）',
                 rows: formatted,
                 pagination,
             },
