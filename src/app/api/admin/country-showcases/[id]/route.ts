@@ -3,13 +3,11 @@ import { db } from '@/lib/db';
 import type { NextRequest } from 'next/server';
 
 interface Props {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
 }
 
-/** 取得單筆 CountryShowcase */
-export async function GET(request: NextRequest, { params }: Props) {
+/* ------------------------- 取得單筆 CountryShowcase ------------------------- */
+export async function GET(_request: NextRequest, { params }: Props) {
     const { id } = await params;
 
     if (!id) {
@@ -17,7 +15,16 @@ export async function GET(request: NextRequest, { params }: Props) {
     }
 
     try {
-        const item = await db.countryShowcase.findUnique({ where: { id } });
+        const item = await db.countryShowcase.findUnique({
+            where: { id },
+            include: {
+                tourProducts: {
+                    include: {
+                        tourProduct: true, // ✅ 取出完整 TourProduct 所有欄位
+                    },
+                },
+            },
+        });
 
         if (!item) {
             return NextResponse.json(
@@ -26,9 +33,42 @@ export async function GET(request: NextRequest, { params }: Props) {
             );
         }
 
+        // ✅ 欄位重新命名
+        const bookImage = item.imageUrl;
+        const landscapeImage = item.imageUrl2;
+
+        // ✅ 分類 products
+        const groupProducts: any[] = [];
+        const freeProducts: any[] = [];
+        const recoProducts: any[] = [];
+
+        for (const tp of item.tourProducts ?? []) {
+            const p = tp.tourProduct;
+            if (!p) continue;
+            if (p.category === 'GROUP') groupProducts.push(p);
+            else if (p.category === 'FREE') freeProducts.push(p);
+            else if (p.category === 'RECO') recoProducts.push(p);
+        }
+
         return NextResponse.json({
             status: true,
-            data: item,
+            message: `成功取得 Country Showcase「${item.title}」`,
+            data: {
+                id: item.id,
+                bookImage,
+                landscapeImage,
+                title: item.title,
+                subtitle: item.subtitle,
+                description: item.description,
+                linkText: item.linkText,
+                linkUrl: item.linkUrl,
+                order: item.order,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                groupProducts,
+                freeProducts,
+                recoProducts,
+            },
         });
     } catch (error) {
         console.error('Error fetching country showcase:', error);
@@ -39,7 +79,7 @@ export async function GET(request: NextRequest, { params }: Props) {
     }
 }
 
-/** 更新單筆 CountryShowcase */
+/* ------------------------- 更新單筆 CountryShowcase ------------------------- */
 export async function PUT(request: NextRequest, { params }: Props) {
     const { id } = await params;
 
@@ -49,6 +89,8 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
     const body = await request.json();
     const {
+        bookImage,
+        landscapeImage,
         imageUrl,
         imageUrl1,
         imageUrl2,
@@ -60,9 +102,13 @@ export async function PUT(request: NextRequest, { params }: Props) {
         order,
     } = body;
 
-    if (!imageUrl || !title) {
+    // ✅ 兼容 bookImage 或 imageUrl
+    const mainImage = bookImage || imageUrl;
+    const wideImage = landscapeImage || imageUrl2;
+
+    if (!mainImage || !title) {
         return NextResponse.json(
-            { error: '缺少必要欄位（imageUrl, title）' },
+            { error: '缺少必要欄位（bookImage, title）' },
             { status: 400 }
         );
     }
@@ -71,9 +117,9 @@ export async function PUT(request: NextRequest, { params }: Props) {
         const updated = await db.countryShowcase.update({
             where: { id },
             data: {
-                imageUrl,
+                imageUrl: mainImage,
                 imageUrl1: imageUrl1 || null,
-                imageUrl2: imageUrl2 || null,
+                imageUrl2: wideImage || null,
                 title,
                 subtitle: subtitle || null,
                 description: description || null,
@@ -86,7 +132,19 @@ export async function PUT(request: NextRequest, { params }: Props) {
         return NextResponse.json({
             status: true,
             message: `Country Showcase「${updated.title}」更新成功`,
-            data: updated,
+            data: {
+                id: updated.id,
+                bookImage: updated.imageUrl,
+                landscapeImage: updated.imageUrl2,
+                title: updated.title,
+                subtitle: updated.subtitle,
+                description: updated.description,
+                linkText: updated.linkText,
+                linkUrl: updated.linkUrl,
+                order: updated.order,
+                createdAt: updated.createdAt,
+                updatedAt: updated.updatedAt,
+            },
         });
     } catch (error) {
         console.error('Error updating country showcase:', error);
@@ -97,8 +155,8 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 }
 
-/** 刪除單筆 CountryShowcase */
-export async function DELETE(request: NextRequest, { params }: Props) {
+/* ------------------------- 刪除單筆 CountryShowcase ------------------------- */
+export async function DELETE(_request: NextRequest, { params }: Props) {
     const { id } = await params;
 
     if (!id) {
@@ -113,7 +171,13 @@ export async function DELETE(request: NextRequest, { params }: Props) {
         return NextResponse.json({
             status: true,
             message: `Country Showcase「${deleted.title}」已成功刪除`,
-            data: deleted,
+            data: {
+                id: deleted.id,
+                title: deleted.title,
+                order: deleted.order,
+                createdAt: deleted.createdAt,
+                updatedAt: deleted.updatedAt,
+            },
         });
     } catch (error) {
         console.error('Error deleting country showcase:', error);
