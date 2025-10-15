@@ -9,13 +9,11 @@ import {
 
 type ReplacePayload = { itineraries: ItineraryCreateValues[] };
 
-// ✅ 處理 hotel 欄位
+/** ✅ 處理 hotel 欄位 */
 function formatHotel(hotel?: string | null): string | null {
     if (hotel == null) return null;
-
     const parts = hotel.split(' 或 ');
     if (parts.length === 1) return hotel;
-
     return parts.slice(0, -1).join('<br/>') + ' 或 ' + parts[parts.length - 1];
 }
 
@@ -30,8 +28,10 @@ export async function replaceItineraries(
     try {
         await db.$transaction(
             async (tx) => {
+                // 先刪除舊行程
                 await tx.itinerary.deleteMany({ where: { productId } });
 
+                // 逐筆建立新行程
                 for (const it of parsed.data.itineraries) {
                     await tx.itinerary.create({
                         data: {
@@ -46,12 +46,19 @@ export async function replaceItineraries(
                             hotel: formatHotel(it.hotel),
                             note: it.note,
                             featured: it.featured ?? false,
+
+                            // ✅ routes 巢狀建立（移除 itineraryId、id、createdAt、updatedAt）
                             routes: {
                                 create:
                                     it.routes?.map((r) => ({
-                                        ...r,
+                                        depart: r.depart,
+                                        arrive: r.arrive,
+                                        duration: r.duration,
+                                        distance: r.distance,
                                     })) ?? [],
                             },
+
+                            // ✅ attractions 巢狀建立
                             attractions: {
                                 create:
                                     it.attractions?.map((a) => ({
@@ -68,7 +75,7 @@ export async function replaceItineraries(
 
         return { success: '每日行程更新成功' };
     } catch (e) {
-        console.error(e);
+        console.error('replaceItineraries error:', e);
         return { error: '每日行程更新失敗' };
     }
 }
@@ -106,12 +113,19 @@ export async function replaceItineraryByDay(
                     hotel: formatHotel(itinerary.hotel),
                     note: itinerary.note,
                     featured: itinerary.featured ?? false,
+
+                    // ✅ routes 巢狀建立（移除多餘欄位）
                     routes: {
                         create:
                             itinerary.routes?.map((r) => ({
-                                ...r,
+                                depart: r.depart,
+                                arrive: r.arrive,
+                                duration: r.duration,
+                                distance: r.distance,
                             })) ?? [],
                     },
+
+                    // ✅ attractions 巢狀建立
                     attractions: {
                         create:
                             itinerary.attractions?.map((a) => ({
@@ -125,7 +139,7 @@ export async function replaceItineraryByDay(
 
         return { success: `第 ${itinerary.day} 天行程更新成功` };
     } catch (e) {
-        console.error(e);
+        console.error('replaceItineraryByDay error:', e);
         return { error: `第 ${itinerary.day} 天行程更新失敗` };
     }
 }
