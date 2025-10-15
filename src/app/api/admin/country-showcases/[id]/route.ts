@@ -20,7 +20,25 @@ export async function GET(_request: NextRequest, { params }: Props) {
             include: {
                 tourProducts: {
                     include: {
-                        tourProduct: true, // ✅ 取出完整 TourProduct 所有欄位
+                        tourProduct: {
+                            select: {
+                                id: true,
+                                mainImageUrl: true,
+                                code: true,
+                                namePrefix: true,
+                                name: true,
+                                summary: true,
+                                tags: true,
+                                countries: true,
+                                category: true,
+                                arriveCountry: true,
+                                days: true,
+                                nights: true,
+                                priceMin: true,
+                                priceMax: true,
+                                status: true,
+                            },
+                        },
                     },
                 },
             },
