@@ -3,8 +3,9 @@
 import * as React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 
+/** ✅ 只將數字轉成全形，標點符號保留半形 */
 function toFullWidth(str: string) {
-    return str.replace(/[0-9!-/:-@[-`{-~]/g, (ch) =>
+    return str.replace(/[0-9]/g, (ch) =>
         String.fromCharCode(ch.charCodeAt(0) + 0xfee0)
     );
 }
@@ -19,9 +20,7 @@ export const TextareaInput = React.forwardRef<
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         e.target.value = toFullWidth(e.target.value);
 
-        if (onChange) {
-            onChange(e);
-        }
+        if (onChange) onChange(e);
     };
 
     return <Textarea ref={ref} onChange={handleChange} {...props} />;
