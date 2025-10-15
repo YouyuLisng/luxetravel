@@ -120,20 +120,15 @@ export async function GET(req: Request) {
 
         // ✅ 處理分頁邏輯
         const page = Math.max(1, Number(pageParam ?? 1));
-        const pageSize = Math.max(
-            1,
-            Math.min(100, Number(pageSizeParam ?? 0))
-        );
+        const pageSize = Math.max(1, Math.min(100, Number(pageSizeParam ?? 0)));
 
         let total = 0;
         let rows: any[] = [];
 
         if (!pageParam && !pageSizeParam) {
-            // 👉 沒有分頁參數：抓全部
             rows = await fetchData();
             total = rows.length;
         } else {
-            // 👉 有分頁參數：分頁查詢
             [total, rows] = await Promise.all([
                 db.countryShowcase.count(),
                 fetchData((page - 1) * pageSize, pageSize),
@@ -144,14 +139,14 @@ export async function GET(req: Request) {
         const formatted = rows.map((item) => {
             const groupProducts: any[] = [];
             const freeProducts: any[] = [];
-            const recoProducts: any[] = [];
+            const rcarProducts: any[] = [];
 
             for (const tp of item.tourProducts ?? []) {
                 const p = tp.tourProduct;
                 if (!p) continue;
                 if (p.category === 'GROUP') groupProducts.push(p);
                 else if (p.category === 'FREE') freeProducts.push(p);
-                else if (p.category === 'RCAR') recoProducts.push(p);
+                else if (p.category === 'RCAR') rcarProducts.push(p);
             }
 
             return {
@@ -168,14 +163,14 @@ export async function GET(req: Request) {
                 updatedAt: item.updatedAt,
                 groupProducts,
                 freeProducts,
-                recoProducts,
+                rcarProducts,
             };
         });
 
-        // ✅ 統一 pagination 結構（即使無分頁也有）
+        // ✅ 統一 pagination 結構
         const pagination = {
             page,
-            pageSize: pageSize || total || 1, // 若沒帶 pageSize 就用全部筆數
+            pageSize: pageSize || total || 1,
             total,
             pageCount: Math.max(1, Math.ceil(total / (pageSize || total || 1))),
         };
@@ -185,7 +180,7 @@ export async function GET(req: Request) {
                 status: true,
                 message: '成功取得 CountryShowcase 清單（含關聯產品）',
                 rows: formatted,
-                pagination, // ✅ 不會是 null
+                pagination,
             },
             { status: 200 }
         );

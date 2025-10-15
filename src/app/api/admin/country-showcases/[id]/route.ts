@@ -58,14 +58,14 @@ export async function GET(_request: NextRequest, { params }: Props) {
         // ✅ 分類 products
         const groupProducts: any[] = [];
         const freeProducts: any[] = [];
-        const recoProducts: any[] = [];
+        const rcarProducts: any[] = [];
 
         for (const tp of item.tourProducts ?? []) {
             const p = tp.tourProduct;
             if (!p) continue;
             if (p.category === 'GROUP') groupProducts.push(p);
             else if (p.category === 'FREE') freeProducts.push(p);
-            else if (p.category === 'RCAR') recoProducts.push(p);
+            else if (p.category === 'RCAR') rcarProducts.push(p);
         }
 
         return NextResponse.json({
@@ -85,7 +85,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
                 updatedAt: item.updatedAt,
                 groupProducts,
                 freeProducts,
-                recoProducts,
+                rcarProducts, // ✅ 改名完成
             },
         });
     } catch (error) {
