@@ -5,7 +5,15 @@ interface Props {
     params: Promise<{ productId: string }>;
 }
 
-/** GET /api/itinerary/[productId]/attractions - 取得某產品的所有每日行程的景點 */
+/** ✅ 將 hotel 欄位換成 HTML 可顯示格式 */
+function formatHotel(hotel?: string | null): string | null {
+    if (!hotel) return null;
+    const parts = hotel.split(' 或 ');
+    if (parts.length === 1) return hotel;
+    return parts.join('<br/> 或 ');
+}
+
+/** ✅ GET /api/itinerary/[productId]/attractions - 取得某產品的所有每日行程與景點 */
 export async function GET(_req: Request, { params }: Props) {
     try {
         const { productId } = await params;
@@ -16,14 +24,16 @@ export async function GET(_req: Request, { params }: Props) {
             );
         }
 
+        // ✅ 查詢每日行程（含景點與飯店欄位）
         const data = await db.itinerary.findMany({
             where: { productId },
             orderBy: { day: 'asc' },
             select: {
                 day: true,
+                hotel: true, // ✅ 取出飯店欄位
                 attractions: {
                     include: {
-                        attraction: true, // 關聯景點
+                        attraction: true,
                     },
                 },
             },
@@ -36,7 +46,13 @@ export async function GET(_req: Request, { params }: Props) {
             );
         }
 
-        return NextResponse.json({ status: true, data });
+        // ✅ 格式化飯店欄位
+        const formatted = data.map((i) => ({
+            ...i,
+            hotel: formatHotel(i.hotel),
+        }));
+
+        return NextResponse.json({ status: true, data: formatted });
     } catch (err: any) {
         console.error('取得每日行程景點失敗:', err);
         return NextResponse.json(

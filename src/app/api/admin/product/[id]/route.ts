@@ -5,14 +5,23 @@ interface Props {
     params: Promise<{ id: string }>;
 }
 
-// 將 Date 物件或 ISO 字串轉換成 YYYY-MM-DD
+// ✅ 將 Date 物件或 ISO 字串轉換成 YYYY-MM-DD
 function formatDate(date: Date | string | null | undefined): string | null {
     if (!date) return null;
     const d = new Date(date);
     return d.toISOString().split('T')[0]; // 取 "2025-09-29"
 }
 
-/** 取得單一 TourProduct（含 feedback） */
+// ✅ 將 hotel 欄位換成 HTML 可顯示格式
+function formatHotel(hotel?: string | null): string | null {
+    if (!hotel) return null;
+    // 將「 或 」分段換成 <br/> 或保留最後一段
+    const parts = hotel.split(' 或 ');
+    if (parts.length === 1) return hotel;
+    return parts.join('<br/> 或 ');
+}
+
+/** ✅ 取得單一 TourProduct（含 feedback） */
 export async function GET(_req: NextRequest, { params }: Props) {
     try {
         const { id } = await params;
@@ -39,9 +48,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
                             },
                         },
                     },
-                    orderBy: {
-                        day: 'asc',
-                    },
+                    orderBy: { day: 'asc' },
                 },
                 feedback: true,
             },
@@ -54,7 +61,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
             );
         }
 
-        // 格式化所有日期欄位
+        // ✅ 格式化所有日期與飯店欄位
         const formatted = {
             ...data,
             createdAt: formatDate(data.createdAt),
@@ -68,6 +75,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
             })),
             itineraries: data.itineraries.map((i) => ({
                 ...i,
+                hotel: formatHotel(i.hotel), // ✅ 飯店欄位格式化
                 createdAt: formatDate(i.createdAt),
                 updatedAt: formatDate(i.updatedAt),
             })),
