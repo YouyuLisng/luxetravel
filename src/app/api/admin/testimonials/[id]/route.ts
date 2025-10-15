@@ -2,29 +2,27 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { FeedbackMode } from '@prisma/client';
 import type { NextRequest } from 'next/server';
-import { deleteFromVercelBlob } from '@/lib/vercel-blob'; // ⬅️ 加入
+import { deleteFromVercelBlob } from '@/lib/vercel-blob';
 
 interface Props {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
 }
 
-const COLORS = [
-    '#F87171',
-    '#FBBF24',
-    '#34D399',
-    '#60A5FA',
-    '#A78BFA',
-    '#F472B6',
-    '#F59E0B',
-    '#10B981',
+// 🎨 背景色 + 文字色（移除 desc）
+const COLOR_PAIRS = [
+    { bg: '#F87171', text: '#B91C1C' },
+    { bg: '#FBBF24', text: '#B45309' },
+    { bg: '#34D399', text: '#065F46' },
+    { bg: '#60A5FA', text: '#1D4ED8' },
+    { bg: '#A78BFA', text: '#6D28D9' },
+    { bg: '#F472B6', text: '#BE185D' },
+    { bg: '#F59E0B', text: '#B45309' },
+    { bg: '#10B981', text: '#065F46' },
 ];
 
-function getRandomColor() {
-    return COLORS[Math.floor(Math.random() * COLORS.length)];
+function getRandomColorPair() {
+    return COLOR_PAIRS[Math.floor(Math.random() * COLOR_PAIRS.length)];
 }
-
 
 /* ------------------------- 取得單筆 ------------------------- */
 export async function GET(_request: NextRequest, { params }: Props) {
@@ -49,7 +47,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
             message: `已取得旅客回饋「${row.nickname || row.id}」`,
             data: {
                 ...row,
-                color: getRandomColor(),
+                color: getRandomColorPair(),
             },
         });
     } catch (error) {
@@ -95,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
             );
         }
 
-        // 如果有新圖，刪除舊圖
+        // 若有更新圖片 → 刪除舊圖
         if (imageUrl && exists.imageUrl && imageUrl !== exists.imageUrl) {
             try {
                 await deleteFromVercelBlob(exists.imageUrl);
@@ -122,7 +120,10 @@ export async function PUT(request: NextRequest, { params }: Props) {
             message: `旅客回饋「${
                 updatedTestimonial.nickname || updatedTestimonial.id
             }」更新成功`,
-            data: updatedTestimonial,
+            data: {
+                ...updatedTestimonial,
+                color: getRandomColorPair(),
+            },
         });
     } catch (error) {
         console.error('Error updating testimonial:', error);
@@ -164,8 +165,13 @@ export async function DELETE(_request: NextRequest, { params }: Props) {
 
         return NextResponse.json({
             status: true,
-            message: `Testimonial「${deletedTestimonial.nickname || deletedTestimonial.id}」已成功刪除`,
-            data: deletedTestimonial,
+            message: `Testimonial「${
+                deletedTestimonial.nickname || deletedTestimonial.id
+            }」已成功刪除`,
+            data: {
+                ...deletedTestimonial,
+                color: getRandomColorPair(),
+            },
         });
     } catch (error) {
         console.error('Error deleting testimonial:', error);

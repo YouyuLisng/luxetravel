@@ -2,22 +2,23 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { FeedbackMode } from '@prisma/client';
 
-const COLORS = [
-    '#F87171',
-    '#FBBF24',
-    '#34D399',
-    '#60A5FA',
-    '#A78BFA',
-    '#F472B6',
-    '#F59E0B',
-    '#10B981',
+// 🎨 背景色 + 文字色
+const COLOR_PAIRS = [
+    { bg: '#F87171', text: '#B91C1C' }, // 柔紅 → 深紅
+    { bg: '#FBBF24', text: '#B45309' }, // 柔黃 → 深橙
+    { bg: '#34D399', text: '#065F46' }, // 薄荷綠 → 深墨綠
+    { bg: '#60A5FA', text: '#1D4ED8' }, // 淡藍 → 深藍
+    { bg: '#A78BFA', text: '#6D28D9' }, // 淡紫 → 深紫
+    { bg: '#F472B6', text: '#BE185D' }, // 粉紅 → 深玫紅
+    { bg: '#F59E0B', text: '#B45309' }, // 金橙 → 深橙（與柔黃共用）
+    { bg: '#10B981', text: '#065F46' }, // 青綠 → 深墨綠（與薄荷綠共用）
 ];
 
-function getRandomColor() {
-    return COLORS[Math.floor(Math.random() * COLORS.length)];
+function getRandomColorPair() {
+    return COLOR_PAIRS[Math.floor(Math.random() * COLOR_PAIRS.length)];
 }
 
-// 建立 Testimonial
+// === 建立 Testimonial ===
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -49,11 +50,13 @@ export async function POST(request: Request) {
             },
         });
 
+        const colorPair = getRandomColorPair();
+
         return NextResponse.json(
             {
                 status: true,
                 message: 'Testimonial 建立成功',
-                data: { ...testimonial, color: getRandomColor() },
+                data: { ...testimonial, color: colorPair },
             },
             { status: 201 }
         );
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
     }
 }
 
-// 查詢 Testimonial
+// === 查詢 Testimonial ===
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -83,30 +86,30 @@ export async function GET(request: Request) {
 
         const where = mode ? { mode: mode as FeedbackMode } : {};
 
-        // 👉 如果沒傳 page / pageSize → 回傳全部
+        // ✅ 若沒分頁 → 全部資料
         if (!pageParam && !pageSizeParam) {
             const rows = await db.testimonial.findMany({
                 where,
                 orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
             });
 
-            const testimonialsWithColor = rows.map((t) => ({
+            const testimonialsWithColors = rows.map((t, i) => ({
                 ...t,
-                color: getRandomColor(),
+                color: COLOR_PAIRS[i % COLOR_PAIRS.length], // 循環配色
             }));
 
             return NextResponse.json(
                 {
                     status: true,
                     message: `成功取得${mode ? `「${mode}」` : '所有'}旅客回饋（全部資料）`,
-                    rows: testimonialsWithColor,
+                    rows: testimonialsWithColors,
                     pagination: null,
                 },
                 { status: 200 }
             );
         }
 
-        // 👉 有分頁參數 → 回傳分頁資料
+        // ✅ 分頁模式
         const page = Math.max(1, Number(pageParam ?? 1));
         const pageSize = Math.max(1, Number(pageSizeParam ?? 10));
 
@@ -120,16 +123,16 @@ export async function GET(request: Request) {
             take: pageSize,
         });
 
-        const testimonialsWithColor = rows.map((t) => ({
+        const testimonialsWithColors = rows.map((t, i) => ({
             ...t,
-            color: getRandomColor(),
+            color: COLOR_PAIRS[i % COLOR_PAIRS.length],
         }));
 
         return NextResponse.json(
             {
                 status: true,
                 message: `成功取得${mode ? `「${mode}」` : '所有'}旅客回饋（分頁）`,
-                rows: testimonialsWithColor,
+                rows: testimonialsWithColors,
                 pagination: { page, pageSize, total, pageCount },
             },
             { status: 200 }
