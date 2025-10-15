@@ -100,7 +100,7 @@ export default function TourProductTable() {
             }}
             onRefresh={refetch}
             getEditHref={(id) => `/admin/product/${id}/wizard/rcar${currentQuery}`}
-            addButtonLabel="新增行程產品"
+            addButtonLabel="新增包車產品"
             addButtonHref={`/admin/product/new/rcar${currentQuery}`}
             pagination={
                 keyword

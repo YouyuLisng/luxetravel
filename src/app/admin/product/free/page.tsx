@@ -102,7 +102,7 @@ export default function TourProductTable() {
             }}
             onRefresh={refetch}
             getEditHref={(id) => `/admin/product/${id}/wizard/free${currentQuery}`}
-            addButtonLabel="新增行程產品"
+            addButtonLabel="新增自由行產品"
             addButtonHref={`/admin/product/new/free${currentQuery}`}
             pagination={
                 keyword

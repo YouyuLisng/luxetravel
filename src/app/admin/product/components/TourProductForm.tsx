@@ -7,7 +7,7 @@ import React, {
     useCallback,
     ChangeEvent,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     Form,
     FormControl,
@@ -80,6 +80,7 @@ export default function TourProductForm({
     method = 'POST',
 }: Props) {
     const router = useRouter();
+    const pathname = usePathname();
     const { show, hide } = useLoadingStore();
     const { toast } = useToast();
     const qc = useQueryClient();
@@ -94,7 +95,21 @@ export default function TourProductForm({
     const [users, setUsers] = useState<UserEntity[]>([]);
 
     const isEdit = method === 'PUT' || Boolean(initialData?.id);
-    const headingTitle = isEdit ? '編輯行程產品' : '新增行程產品';
+
+    const getCategoryLabel = () => {
+        if (!pathname) return '';
+        if (pathname.includes('/wizard/free')) return '自由行';
+        if (pathname.includes('/wizard/group')) return '團體';
+        if (pathname.includes('/wizard/rcar')) return '包車';
+        return '';
+    };
+
+    const categoryLabel = getCategoryLabel();
+    const headingTitle = isEdit
+        ? categoryLabel
+            ? `編輯${categoryLabel}產品`
+            : '編輯行程產品'
+        : '新增行程產品';
 
     const form = useForm<TourProductFormValues>({
         resolver: zodResolver(TourProductCreateSchema) as any,
