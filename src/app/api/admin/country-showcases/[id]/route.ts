@@ -65,7 +65,7 @@ export async function GET(_request: NextRequest, { params }: Props) {
             if (!p) continue;
             if (p.category === 'GROUP') groupProducts.push(p);
             else if (p.category === 'FREE') freeProducts.push(p);
-            else if (p.category === 'RECO') recoProducts.push(p);
+            else if (p.category === 'RCAR') recoProducts.push(p);
         }
 
         return NextResponse.json({
