@@ -1,0 +1,672 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProductType {
+  GROUP
+  FREE
+  RCAR
+  RECO
+}
+
+enum FeedbackMode {
+  REAL
+  MARKETING
+}
+
+enum ModuleType {
+  CONCERN
+  ADVANTAGE
+  BANNER
+  ARTICLE
+  TESTIMONIAL
+}
+
+// -------------------- 使用者與授權 --------------------
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(ADMIN)
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+// -------------------- CMS 元件 --------------------
+
+model Menu {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  linkUrl  String?
+  icon     String?
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+
+  parentId String? @db.ObjectId
+  parent   Menu?   @relation("MenuToSub", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children Menu[]  @relation("MenuToSub")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Banner {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl String
+  title    String
+  subtitle String?
+  linkText String?
+  linkUrl  String?
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CountryShowcase {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl    String
+  imageUrl1   String?
+  imageUrl2   String?
+  title       String
+  subtitle    String?
+  description String?
+  linkText    String?
+  linkUrl     String?
+  order       Int     @default(0)
+
+  /// ✅ 多對多：關聯多個 TourProduct
+  tourProducts CountryShowcaseOnTourProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// ✅ 關聯表（多對多關係）
+/// 一個 CountryShowcase 可以包含多個 TourProduct，
+/// 一個 TourProduct 也可以出現在多個 CountryShowcase。
+model CountryShowcaseOnTourProduct {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  countryShowcaseId String @db.ObjectId
+  tourProductId      String @db.ObjectId
+
+  countryShowcase CountryShowcase @relation(fields: [countryShowcaseId], references: [id], onDelete: Cascade)
+  tourProduct      TourProduct      @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
+
+  @@unique([countryShowcaseId, tourProductId]) // 防止重複關聯
+  @@index([countryShowcaseId])
+  @@index([tourProductId])
+}
+
+model ArticleCountry {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  name   String @unique
+  nameZh String
+  code   String
+
+  // 多對多：透過關聯表
+  articles TravelArticleOnCountry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Article {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  subtitle String
+  linkUrl  String
+  imageUrl String
+
+  // 多對多：透過關聯表
+  countries TravelArticleOnCountry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 顯式關聯表（Join Collection）
+model TravelArticleOnCountry {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  articleId String @db.ObjectId
+  countryId String @db.ObjectId
+
+  article Article        @relation(fields: [articleId], references: [id])
+  country ArticleCountry @relation(fields: [countryId], references: [id])
+
+  @@unique([articleId, countryId]) // 防止重複關聯
+  @@index([articleId])
+  @@index([countryId])
+}
+
+model Feedback {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  content  String?
+  nickname String
+  imageUrl String
+  linkUrl  String
+
+  products TourProduct[] @relation("ProductFeedback")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Testimonial {
+  id       String       @id @default(auto()) @map("_id") @db.ObjectId
+  mode     FeedbackMode
+  nickname String?
+  stars    Int?
+  content  String
+  linkUrl  String?
+  imageUrl String?
+  order    Int          @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------- 模組化內容設計 --------------------
+
+model Module {
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
+  key      String     @unique // 例：travel_concern
+  title    String
+  subtitle String?
+  type     ModuleType
+
+  concerns   TravelConcern[]   @relation("ModuleConcerns")
+  advantages TravelAdvantage[] @relation("ModuleAdvantages")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TravelConcern {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  moduleId String @db.ObjectId
+  number   String
+  content  String
+  order    Int
+
+  module Module @relation("ModuleConcerns", fields: [moduleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TravelAdvantage {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  moduleId String @db.ObjectId
+  imageUrl String
+  title    String
+  content  String
+  order    Int
+  module   Module @relation("ModuleAdvantages", fields: [moduleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------- 共用資料表 --------------------
+
+model Category {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  code     String  @unique // 代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  imageUrl String? // 圖片網址
+  enabled  Boolean @default(true) // 啟用與否
+
+  // 🔗 關聯：一個 Category 可以有多個 SubCategory
+  subCategories SubCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model SubCategory {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  code     String  @unique // 代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  imageUrl String? // 圖片網址
+  enabled  Boolean @default(true) // 啟用與否
+
+  // 🔗 關聯：每個 SubCategory 隸屬一個 Category
+  categoryId String   @db.ObjectId
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@index([categoryId])
+}
+
+model Region {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  code     String  @unique // 代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  imageUrl String? // 圖片網址
+  enabled  Boolean @default(true) // 啟用與否
+
+  // 只保留被 Airport 參照
+  airports Airport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model Country {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  code     String  @unique // 代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  imageUrl String? // 圖片網址
+  enabled  Boolean @default(true) // 啟用與否
+
+  // 只保留被 Airport 參照
+  airports Airport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model Airport {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  code     String  @unique // 機場代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  imageUrl String? // 圖片網址
+  enabled  Boolean @default(true) // 啟用與否
+
+  // 各自獨立關聯到 Region 與 Country
+  regionId String @db.ObjectId
+  region   Region @relation(fields: [regionId], references: [id])
+
+  countryId String  @db.ObjectId
+  country   Country @relation(fields: [countryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([regionId])
+  @@index([countryId])
+  @@index([enabled])
+}
+
+/// 航空公司（共用資料表）
+model Airline {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl String? // 圖片網址
+  code     String  @unique // 航空公司代碼
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  enabled  Boolean @default(true) // 是否啟用
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model City {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl String? // 圖片網址（可選）
+  code     String  @unique // 城市代碼（如 TYO, OSA, CTS）
+  nameZh   String // 中文名稱（如 東京、大阪、札幌）
+  nameEn   String // 英文名稱（如 Tokyo, Osaka, Sapporo）
+  country  String // 所屬國家（如 JP, TW, US）
+  enabled  Boolean @default(true) // 是否啟用
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+  @@index([country])
+}
+
+/// 景點資料庫（共用資料表）
+model Attraction {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  code     String?  @unique // 自訂代碼（可選）
+  nameZh   String // 中文名稱
+  nameEn   String // 英文名稱
+  content  String // 介紹內文
+  region   String // 地區（純文字存檔）
+  country  String // 國家（純文字存檔）
+  city     String? // 城市
+  tags     String[] @default([]) // 用預設空陣列
+  imageUrl String? // 圖片網址
+  enabled  Boolean  @default(true) // 是否啟用
+
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  itineraries ItineraryOnAttraction[]
+
+  @@index([enabled])
+  @@index([region])
+  @@index([country])
+  @@index([city])
+}
+
+model Lexicon {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  title   String
+  type    String
+  context String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+}
+
+// -------------------- 行程系統 --------------------
+
+/// 航班方向：去程 / 回程
+enum FlightDirection {
+  OUTBOUND /// 去程
+  RETURN /// 回程
+}
+
+/// 景點參觀方式
+enum VisitType {
+  INSIDE /// 入內參觀
+  OUTSIDE /// 下車參觀
+  PHOTO /// 拍照打卡
+  PASSBY /// 車覽
+  FEATURED /// 精選
+}
+
+model TourProduct {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  code               String   @unique
+  namePrefix         String?
+  name               String
+  mainImageUrl       String
+  summary            String?
+  description        String?
+  days               Int?
+  nights             Int?
+  departAirport      String
+  arriveCountry      String
+  arriveCity         String
+  arriveAirport      String
+  category           ProductType @default(GROUP)
+  priceMin           Int?
+  priceMax           Int?
+  tags               String[] @default([])
+  countries          String[] @default([])
+  note               String?
+  status             Int      @default(1)
+  staff              String?
+  reminder           String?
+  policy             String?
+  isFeatured         Boolean  @default(false)
+
+  categoryId    String  @db.ObjectId
+  subCategoryId String? @db.ObjectId
+
+  /// 關聯
+  tour        Tours[]
+  flights     Flight[]
+  map         TourMap?
+  highlights  TourHighlight[]
+  itineraries Itinerary[]
+  pages       PageOnTourProduct[]
+
+  feedbackId String?   @db.ObjectId
+  feedback   Feedback? @relation("ProductFeedback", fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  /// ✅ 多對多關聯
+  countryShowcases CountryShowcaseOnTourProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([feedbackId])
+}
+
+model Tours {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
+  productId  String   @db.ObjectId /// 關聯 TourProduct ID
+  code       String /// 團體代碼
+  departDate DateTime /// 出發日期
+  returnDate DateTime /// 回程日期
+
+  adult         String /// 大人價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childWithBed  String /// 佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childNoBed    String /// 不佔床兒童價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  childExtraBed String /// 加床價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  infant        String /// 嬰兒價錢 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+
+  deposit String? /// 訂金 (數字 = 金額, "0" = 免費, "NIL" = 無此報價)
+  status  Int /// 1: 熱銷中, 2: 已成團, 3: 已滿團, 4: 取消
+  note    String? /// 備註
+
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) /// 建立時間
+  updatedAt DateTime @updatedAt /// 更新時間
+}
+
+model Flight {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
+  productId     String          @db.ObjectId /// 關聯 TourProduct ID
+  direction     FlightDirection /// 去程 or 回程
+  day           Int? /// 此航段對應的天數
+  departAirport String /// 出發機場代碼
+  departName    String /// 出發機場名稱
+  arriveAirport String /// 抵達機場代碼
+  arriveName    String /// 抵達機場名稱
+  departTime    String /// 起飛時間
+  arriveTime    String /// 抵達時間
+  duration      String /// 飛行時長
+  crossDay      Boolean         @default(false) /// 是否跨日航班
+  airlineCode   String /// 航空公司代碼
+  airlineName   String /// 航空公司名稱
+  flightNo      String /// 航班編號
+  isTransit     Boolean         @default(false) /// 是否為轉機航班
+  remark        String? /// 備註
+
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) /// 建立時間
+  updatedAt DateTime @updatedAt /// 更新時間
+}
+
+model TourMap {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @unique @db.ObjectId
+  imageUrl  String
+  content   String?
+
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TourHighlight {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  imageUrls String[] @default([]) /// 多張亮點圖片 URL
+  layout    Int
+  title     String
+  subtitle  String?
+  content   String?
+  order     Int
+
+  product TourProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Itinerary {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId /// 主鍵 ID
+  productId String  @db.ObjectId /// 關聯 TourProduct ID
+  day       Int /// 第幾天
+  title     String /// 行程標題
+  subtitle  String? /// 行程副標題
+  content   String? /// 行程內容描述
+  breakfast String? /// 早餐資訊
+  lunch     String? /// 午餐資訊
+  dinner    String? /// 晚餐資訊
+  hotel     String? /// 住宿飯店
+  note      String? /// 備註
+  featured  Boolean @default(false) /// 是否精選 (顯示在上方)
+
+  product     TourProduct             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attractions ItineraryOnAttraction[]
+  routes      ItineraryRoute[] /// 多段路線（出發/抵達/耗時/距離）
+
+  createdAt DateTime @default(now()) /// 建立時間
+  updatedAt DateTime @updatedAt /// 更新時間
+}
+
+model ItineraryRoute {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  itineraryId String @db.ObjectId
+
+  depart   String? /// 出發地
+  arrive   String? /// 抵達地
+  duration String? /// 行程時間 (例：2.5h)
+  distance String? /// 行程距離 (例：140KM)
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([itineraryId])
+}
+
+model ItineraryOnAttraction {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  itineraryId  String    @db.ObjectId
+  attractionId String    @db.ObjectId
+  visitType    VisitType /// 入內參觀 / 下車參觀 / 拍照打卡 / 車覽
+
+  itinerary  Itinerary  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  attraction Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([itineraryId])
+  @@index([attractionId])
+}
+
+model Page {
+  id             String              @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  slug           String              @unique /// 用於前台 URL，例如 /pages/japan-ski
+  content        String?
+  seoTitle       String?
+  seoDesc        String?
+  seoImage       String?
+  keywords       String[]            @default([])
+  icon           String?             /// 小 icon（圖片 URL）
+  activityTextEn String?             /// 活動文字（英文）
+
+  /// ✅ 多對多關聯：Page 可關聯多個 TourProduct
+  tourProducts   PageOnTourProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// ✅ 多對多關聯表：Page × TourProduct
+model PageOnTourProduct {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  pageId        String @db.ObjectId
+  tourProductId String @db.ObjectId
+
+  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tourProduct TourProduct @relation(fields: [tourProductId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, tourProductId])
+  @@index([pageId])
+  @@index([tourProductId])
+}
