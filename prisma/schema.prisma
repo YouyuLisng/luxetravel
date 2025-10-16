@@ -451,11 +451,12 @@ enum FlightDirection {
 
 /// 景點參觀方式
 enum VisitType {
-  INSIDE /// 入內參觀
-  OUTSIDE /// 下車參觀
-  PHOTO /// 拍照打卡
-  PASSBY /// 車覽
-  FEATURED /// 精選
+  SELF_PAY /// 自費參觀（客人要自費）
+  INSIDE   /// 入內參觀（參訪費用已含）
+  OUTSIDE  /// 下車參觀
+  PHOTO    /// 拍照打卡
+  PASSBY   /// 車覽
+  FEATURED /// 精選（界面中特別顯示）
 }
 
 model TourProduct {
