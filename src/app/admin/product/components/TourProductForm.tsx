@@ -759,50 +759,46 @@ export default function TourProductForm({
 
                                 {/* 最高價 */}
                                 {form.watch('category') !== 'FREE' &&
-                                    form.watch('category') !== 'RCAR' && (
-                                        <FormField
-                                            control={form.control}
-                                            name="priceMax"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>
-                                                        最高價
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            value={
-                                                                field.value?.toString() ??
-                                                                ''
+                                form.watch('category') !== 'RCAR' ? (
+                                    <FormField
+                                        control={form.control}
+                                        name="priceMax"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>最高價</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={
+                                                            field.value?.toString() ??
+                                                            ''
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val =
+                                                                e.target.value.trim();
+                                                            if (val === '') {
+                                                                field.onChange(
+                                                                    null
+                                                                );
+                                                                return;
                                                             }
-                                                            onChange={(e) => {
-                                                                const val =
-                                                                    e.target.value.trim();
-
-                                                                if (
-                                                                    val === ''
-                                                                ) {
-                                                                    field.onChange(
-                                                                        null
-                                                                    );
-                                                                    return;
-                                                                }
-
-                                                                const num =
-                                                                    Number(val);
-                                                                if (!isNaN(num))
-                                                                    field.onChange(
-                                                                        num
-                                                                    );
-                                                            }}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    )}
+                                                            const num =
+                                                                Number(val);
+                                                            if (!isNaN(num))
+                                                                field.onChange(
+                                                                    num
+                                                                );
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                    <div /> // ✅ 若是 FREE / RCAR，就輸出一個空 div，保持 grid 結構
+                                )}
 
                                 <FormField
                                     control={form.control}
@@ -1099,7 +1095,7 @@ export default function TourProductForm({
                                             <span className="font-bold text-lg">
                                                 注意:
                                             </span>{' '}
-                                            (內頁中的備註)
+                                            (列表中的備註)
                                         </FormLabel>
                                         <FormControl>
                                             <TextareaInput
