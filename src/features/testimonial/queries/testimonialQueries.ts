@@ -14,7 +14,16 @@ export const testimonialSchema = z.object({
     content: z.string(),
     linkUrl: z.string().url().nullish(),
     imageUrl: z.string().url().nullish(),
-    color: z.string().nullish(),
+
+    // ✅ color 改為物件
+    color: z
+        .object({
+            bg: z.string(),
+            text: z.string(),
+        })
+        .optional()
+        .nullable(),
+
     order: z.number().int(),
     createdAt: z.string(),
     updatedAt: z.string(),
@@ -29,7 +38,7 @@ export type TestimonialDTO = {
     nickname?: string | null;
     stars?: number | null;
     linkUrl?: string | null;
-    imageUrl?: string | null; 
+    imageUrl?: string | null;
     color?: string | null;
 };
 /** === Pagination Schema === */
