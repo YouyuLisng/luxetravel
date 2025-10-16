@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>典藏旅遊 - 旅遊諮詢通知</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      color: #333;
+      line-height: 1.6;
+    }
+    h3 {
+      color: #7FB31A;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid #e0e0e0;
+      margin: 20px 0;
+    }
+    p {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <p>親愛的 {{contactName}}{{gender}} 您好：</p>
+
+  <p>
+    感謝您提交 <b>旅遊諮詢需求表單</b>，我們已順利收到您的資訊。
+  </p>
+
+  <hr>
+
+  <h3>您的需求內容如下：</h3>
+
+  <p><b>旅遊形式：</b>{{travelType}}</p>
+  <p><b>聯絡人：</b>{{contactName}} {{gender}}</p>
+  <p><b>手機：</b>{{phone}}</p>
+  <p><b>LINE：</b>{{lineId}}</p>
+  <p><b>聯絡方式：</b>{{contactMethod}}</p>
+  <p><b>聯絡時間：</b>{{contactTime}}</p>
+  <p><b>來源：</b>{{source}}</p>
+  <p><b>想詢問的團體行程：</b>{{inquiryTour}}</p>
+  <p><b>每人預算：</b>{{budget}}</p>
+  <p><b>想去的地區：</b>{{regions}}</p>
+  <p><b>人數：</b>大人 {{adults}} 位　小孩 {{children}} 位　嬰兒 {{infants}} 位</p>
+  <p><b>旅遊天數：</b>{{days}} 天</p>
+  <p><b>出發日期：</b>{{departDate}}</p>
+  <p><b>需求說明：</b>{{wishlist}}</p>
+
+  <hr>
+
+  <p>
+    我們的專屬旅遊規劃師將於近期與您聯繫，<br>
+    針對您的需求提供完整的規劃與報價，<br>
+    感謝您選擇典藏旅遊，祝您有個愉快的一天！
+  </p>
+
+  <p>
+    <b>典藏旅遊．旅遊規劃師團隊</b><br>
+    <small>www.luxetravel.com.tw ｜ 02-2711-6889</small>
+  </p>
+</body>
+</html>
