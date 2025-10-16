@@ -69,8 +69,12 @@ export const TourProductBaseSchema = z.object({
 
     /** 其他說明 */
     note: z.string().optional().nullable(),
+    memo: z.string().optional().nullable(),      // ✅ 新增：注意(列表頁中的備註)
     reminder: z.string().optional().nullable(),
     policy: z.string().optional().nullable(),
+
+    /** 訂金 */
+    deposit: z.string().optional().nullable(),   // ✅ 新增：訂金（已改成 string）
 
     /** 狀態與設定 */
     status: z.number().int().min(0).default(1),

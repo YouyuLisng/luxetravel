@@ -134,6 +134,7 @@ export default function TourProductForm({
             tags: initialData?.tags ?? [],
             countries: initialData?.countries ?? [],
             note: initialData?.note ?? '',
+            memo: initialData?.memo ?? '',
             status: initialData?.status ?? 1,
             staff: initialData?.staff ?? '',
             reminder: initialData?.reminder ?? '',
@@ -910,6 +911,35 @@ export default function TourProductForm({
                             </div>
                             <FormField
                                 control={form.control}
+                                name="deposit"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            訂金（可輸入金額或說明）
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                value={field.value ?? ''}
+                                                onChange={(e) =>
+                                                    field.onChange(
+                                                        e.target.value || null
+                                                    )
+                                                }
+                                                placeholder="例如：NT$ 10,000 起 或 需預付 30%"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
                                 name="tags"
                                 render={({ field }) => (
                                     <FormItem>
@@ -1034,6 +1064,31 @@ export default function TourProductForm({
                                                 {...field}
                                                 value={field.value ?? ''}
                                                 placeholder="請輸入行程備註"
+                                                disabled={
+                                                    isPending ||
+                                                    isLoading ||
+                                                    isSubmitting
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="memo"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            注意（列表頁中的備註）
+                                        </FormLabel>
+                                        <FormControl>
+                                            <TextareaInput
+                                                rows={8}
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                placeholder="請輸入列表頁備註"
                                                 disabled={
                                                     isPending ||
                                                     isLoading ||

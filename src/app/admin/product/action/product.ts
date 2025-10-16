@@ -39,6 +39,8 @@ export async function createTourProduct(values: TourProductCreateValues) {
         tags,
         countries,
         note,
+        memo,       // ✅ 新增
+        deposit,    // ✅ 新增
         status,
         staff,
         reminder,
@@ -84,6 +86,8 @@ export async function createTourProduct(values: TourProductCreateValues) {
                 tags: tags ?? [],
                 countries: countries ?? [],
                 note: note || null,
+                memo: memo || null,         // ✅ 新增
+                deposit: deposit || null,   // ✅ 新增
                 status,
                 staff: staff || null,
                 reminder: reminder || null,
@@ -146,10 +150,7 @@ export async function toggleFeatured(id: string, isFeatured: boolean) {
 }
 
 /** ✅ 編輯 TourProduct */
-export async function editTourProduct(
-    id: string,
-    values: TourProductEditValues
-) {
+export async function editTourProduct(id: string, values: TourProductEditValues) {
     if (!id) return { error: '無效的 ID' };
 
     const parsed = TourProductEditSchema.safeParse(values);
@@ -181,6 +182,8 @@ export async function editTourProduct(
         tags,
         countries,
         note,
+        memo,        // ✅ 新增
+        deposit,     // ✅ 新增
         status,
         staff,
         reminder,
@@ -239,6 +242,8 @@ export async function editTourProduct(
                 tags: tags ?? [],
                 countries: countries ?? [],
                 note: note || null,
+                memo: memo || null,         // ✅ 新增
+                deposit: deposit || null,   // ✅ 新增
                 status,
                 staff: staff || null,
                 reminder: reminder || null,
@@ -255,7 +260,6 @@ export async function editTourProduct(
         const newDays = toSafeNumber(days);
 
         if (newDays > oldDays) {
-            // ➕ 補上新天數
             const toCreate = Array.from(
                 { length: newDays - oldDays },
                 (_, i) => ({
@@ -265,13 +269,10 @@ export async function editTourProduct(
                 })
             );
             await db.itinerary.createMany({ data: toCreate });
-            console.log(`新增 ${toCreate.length} 天的行程`);
         } else if (newDays < oldDays) {
-            // ➖ 刪除多出的天數
             await db.itinerary.deleteMany({
                 where: { productId: id, day: { gt: newDays } },
             });
-            console.log(`刪除第 ${newDays + 1} 天之後的行程`);
         }
 
         return { success: '行程更新成功', data: product };

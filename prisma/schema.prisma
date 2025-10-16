@@ -478,6 +478,8 @@ model TourProduct {
   tags               String[] @default([])
   countries          String[] @default([])
   note               String?
+  memo               String?  // ✅ 注意（列表頁備註）
+  deposit            String?     // ✅ 訂金
   status             Int      @default(1)
   staff              String?
   reminder           String?

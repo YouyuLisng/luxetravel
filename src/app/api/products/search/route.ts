@@ -1,6 +1,21 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
+// ✅ 將 {{文字}} 包成有背景樣式的 <span>
+function formatRichText(content?: string | null): string | null {
+    if (!content) return null;
+
+    let html = content.replace(/\{\{(.*?)\}\}/g, (_match, p1) => {
+        const inner = p1.trim();
+        return `<span style="background-color:#f5deb3;color:#000;padding:0 2px;border-radius:2px;">${inner}</span>`;
+    });
+
+    // ✅ 換行符號改成 <br/>
+    html = html.replace(/\r?\n/g, '<br/>');
+
+    return html;
+}
+
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
@@ -10,10 +25,8 @@ export async function GET(req: Request) {
     const daysRange = searchParams.get('daysRange');
     const category = searchParams.get('category');
 
-    // 取得 page / limit，如果沒傳就是 undefined
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
-
     const page = pageParam ? Number(pageParam) : undefined;
     const limit = limitParam ? Number(limitParam) : undefined;
     const skip = page && limit ? (page - 1) * limit : undefined;
@@ -26,7 +39,6 @@ export async function GET(req: Request) {
     // 目的地 (支援多國家搜尋)
     if (destination) {
         const destinations = destination.split(',').map((d) => d.trim());
-
         where.OR = [
             { arriveCountry: { in: destinations } },
             { countries: { hasSome: destinations } },
@@ -59,12 +71,10 @@ export async function GET(req: Request) {
     }
 
     try {
-        // 如果有分頁參數 → 用 skip / take
-        // 如果沒有分頁參數 → 回傳全部
         const [products, total] = await Promise.all([
             db.tourProduct.findMany({
                 where,
-                skip: skip,
+                skip,
                 take: limit,
                 select: {
                     id: true,
@@ -74,6 +84,9 @@ export async function GET(req: Request) {
                     mainImageUrl: true,
                     summary: true,
                     description: true,
+                    reminder: true,
+                    policy: true,
+                    memo: true, // ✅ 新增
                     days: true,
                     nights: true,
                     departAirport: true,
@@ -85,7 +98,7 @@ export async function GET(req: Request) {
                     priceMax: true,
                     tags: true,
                     countries: true,
-                    policy: true,
+                    note: true,
                     status: true,
                     categoryId: true,
                     subCategoryId: true,
@@ -102,15 +115,12 @@ export async function GET(req: Request) {
                     createdAt: true,
                     updatedAt: true,
                     tour: {
-                        include: {},
                         orderBy: { departDate: 'asc' },
                     },
                     flights: {
-                        include: {},
                         orderBy: [{ day: 'asc' }, { departTime: 'asc' }],
                     },
                     highlights: {
-                        include: {},
                         orderBy: { order: 'asc' },
                     },
                 },
@@ -119,6 +129,16 @@ export async function GET(req: Request) {
             db.tourProduct.count({ where }),
         ]);
 
+        // ✅ 將 summary / description / reminder / policy / memo 轉為 HTML
+        const formattedProducts = products.map((p) => ({
+            ...p,
+            summary: formatRichText(p.summary),
+            description: formatRichText(p.description),
+            reminder: formatRichText(p.reminder),
+            policy: formatRichText(p.policy),
+            memo: formatRichText(p.memo), // ✅ 新增處理
+        }));
+
         return NextResponse.json({
             page: page ?? null,
             limit: limit ?? null,
@@ -126,7 +146,7 @@ export async function GET(req: Request) {
             totalPages: page && limit ? Math.ceil(total / limit) : 1,
             sort,
             order,
-            data: products,
+            data: formattedProducts,
         });
     } catch (err) {
         console.error('GET /api/admin/product error:', err);
