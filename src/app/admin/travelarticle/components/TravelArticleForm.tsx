@@ -200,7 +200,11 @@ export default function TravelArticleForm({
     // 多選國家：只接受在 options 裡存在的 id（避免手打文字不是有效 id）
     const handleCountriesChange = (vals: string[]) => {
         const allowed = new Set(options.map((o) => o.value));
+
+        // 過濾出有效的值
         const filtered = vals.filter((v) => allowed.has(v));
+
+        // 若有無效值，提示錯誤
         if (filtered.length !== vals.length) {
             toast({
                 title: '有些選項不是有效的國家',
@@ -209,7 +213,19 @@ export default function TravelArticleForm({
                 variant: 'destructive',
             });
         }
-        form.setValue('countryIds', filtered, { shouldValidate: true });
+
+        // ✅ 限制只能選一個：取第一個有效值
+        const limited = filtered.length > 0 ? [filtered[0]] : [];
+
+        if (filtered.length > 1) {
+            toast({
+                title: '最多只能選擇一個國家',
+                description: '若要更換請先取消原選項再選擇新國家',
+                variant: 'destructive',
+            });
+        }
+
+        form.setValue('countryIds', limited, { shouldValidate: true });
     };
 
     const onSubmit: SubmitHandler<TravelArticleFormValues> = (values) => {
