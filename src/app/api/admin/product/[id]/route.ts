@@ -27,7 +27,7 @@ function formatRichText(content?: string | null): string | null {
     // 1️⃣ 將 {{文字}} 轉成高亮 span
     let html = content.replace(/\{\{(.*?)\}\}/g, (_match, p1) => {
         const inner = p1.trim();
-        return `<span style="background-color:#f5deb3;color:#000;padding:0 2px;border-radius:2px;">${inner}</span>`;
+        return `<span style="background-color:#e6e2d9;color:#000;padding:0 2px;border-radius:2px;">${inner}</span>`;
     });
 
     // 2️⃣ 換行符號改成 <br/>
