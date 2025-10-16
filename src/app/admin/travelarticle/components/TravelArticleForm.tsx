@@ -201,10 +201,10 @@ export default function TravelArticleForm({
     const handleCountriesChange = (vals: string[]) => {
         const allowed = new Set(options.map((o) => o.value));
 
-        // 過濾出有效的值
+        // 過濾出有效選項
         const filtered = vals.filter((v) => allowed.has(v));
 
-        // 若有無效值，提示錯誤
+        // 若包含無效值，顯示警告（但不報錯）
         if (filtered.length !== vals.length) {
             toast({
                 title: '有些選項不是有效的國家',
@@ -214,16 +214,8 @@ export default function TravelArticleForm({
             });
         }
 
-        // ✅ 限制只能選一個：取第一個有效值
-        const limited = filtered.length > 0 ? [filtered[0]] : [];
-
-        if (filtered.length > 1) {
-            toast({
-                title: '最多只能選擇一個國家',
-                description: '若要更換請先取消原選項再選擇新國家',
-                variant: 'destructive',
-            });
-        }
+        // ✅ 限制只能選一個：如果選多個，就取最後一個（取代舊的）
+        const limited = filtered.length > 0 ? [filtered.at(-1)!] : [];
 
         form.setValue('countryIds', limited, { shouldValidate: true });
     };
