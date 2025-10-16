@@ -275,10 +275,10 @@ export default function TourHighlightForm({
                                                                 版型四：三張圖 -
                                                                 1:1 正方形圖片
                                                             </SelectItem>
-                                                            <SelectItem value="5">
+                                                            {/* <SelectItem value="5">
                                                                 版型五：每日行程中的景點輪播
                                                                 - 9:16 直式圖片
-                                                            </SelectItem>
+                                                            </SelectItem> */}
                                                         </SelectGroup>
                                                     </SelectContent>
                                                 </Select>

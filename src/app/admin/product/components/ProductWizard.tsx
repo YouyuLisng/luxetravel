@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import TourProductForm from './TourProductForm';
 import FlightForm from '../[id]/tour/components/FlightForm';
 import ItineraryForm from '../[id]/tour/components/ItineraryForm';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useLoadingStore } from '@/stores/useLoadingStore';
 import TourForm from '../[id]/tour/components/TourForm';
@@ -37,8 +37,12 @@ const steps = [
 
 export default function ProductWizard({ productId, tourProduct, data }: Props) {
     const searchParams = useSearchParams();
+    const pathname = usePathname(); // ✅ 取得當前網址
     const { show, hide } = useLoadingStore();
     const queryClient = useQueryClient();
+
+    // ✅ 判斷是否為自由行類型
+    const isFreeWizard = pathname?.includes('/wizard/free');
 
     const stepParam = searchParams.get('step') ?? 'product';
     const [currentStep, setCurrentStep] = useState(stepParam);
@@ -64,8 +68,7 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         isError,
     } = useQuery<ProductProgress>({
         queryKey: ['product-progress', productId],
-        queryFn: () =>
-            getProductProgress(productId) as Promise<ProductProgress>,
+        queryFn: () => getProductProgress(productId) as Promise<ProductProgress>,
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
         refetchOnMount: false,
@@ -79,12 +82,17 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
         return <p className="p-6 text-red-600">無法載入進度</p>;
     }
 
+    // ✅ 動態生成可顯示的步驟（free 時移除 highlight / tours）
+    const visibleSteps = isFreeWizard
+        ? steps.filter((s) => !['highlight', 'tours'].includes(s.id))
+        : steps;
+
     return (
         <div className="flex flex-col w-full min-h-[600px]">
             <Tabs value={currentStep} onValueChange={handleStepChange}>
                 {/* Tabs 列表 */}
                 <TabsList className="mb-4">
-                    {steps.map((step) => (
+                    {visibleSteps.map((step) => (
                         <TabsTrigger key={step.id} value={step.id}>
                             <div className="flex items-center space-x-1">
                                 <span>{step.label}</span>
@@ -139,31 +147,41 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                     />
                 </TabsContent>
 
-                <TabsContent value="highlight">
-                    <TourHighlightForm
-                        productId={productId}
-                        initialData={data.highlights}
-                    />
-                </TabsContent>
+                {/* ✅ 非自由行才顯示「焦點特色」 */}
+                {!isFreeWizard && (
+                    <TabsContent value="highlight">
+                        <TourHighlightForm
+                            productId={productId}
+                            initialData={data.highlights}
+                        />
+                    </TabsContent>
+                )}
 
                 <TabsContent value="map">
                     <TourMapForm productId={productId} initialData={data.map} />
                 </TabsContent>
 
-                <TabsContent value="tours">
-                    <TourForm
-                        productId={productId}
-                        productCode={tourProduct.code}                        
-                        productDays={data.days}
-                        initialData={data.tour}
-                        initialDates={data.tour?.map((t: any) => new Date(t.departDate)) ?? []}
-                    />
-                    {/* <div className="mt-6 flex justify-end">
-                        <Button onClick={handlePublish} disabled={loading}>
-                            完成並上架
-                        </Button>
-                    </div> */}
-                </TabsContent>
+                {/* ✅ 非自由行才顯示「團次」 */}
+                {!isFreeWizard && (
+                    <TabsContent value="tours">
+                        <TourForm
+                            productId={productId}
+                            productCode={tourProduct.code}
+                            productDays={data.days}
+                            initialData={data.tour}
+                            initialDates={
+                                data.tour?.map(
+                                    (t: any) => new Date(t.departDate)
+                                ) ?? []
+                            }
+                        />
+                        {/* <div className="mt-6 flex justify-end">
+                            <Button onClick={handlePublish} disabled={loading}>
+                                完成並上架
+                            </Button>
+                        </div> */}
+                    </TabsContent>
+                )}
             </Tabs>
 
             <FormError message={error} />

@@ -758,41 +758,51 @@ export default function TourProductForm({
                                 />
 
                                 {/* 最高價 */}
-                                <FormField
-                                    control={form.control}
-                                    name="priceMax"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>最高價</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    value={
-                                                        field.value?.toString() ??
-                                                        ''
-                                                    }
-                                                    onChange={(e) => {
-                                                        const val =
-                                                            e.target.value.trim();
+                                {form.watch('category') !== 'FREE' &&
+                                    form.watch('category') !== 'RCAR' && (
+                                        <FormField
+                                            control={form.control}
+                                            name="priceMax"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        最高價
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            value={
+                                                                field.value?.toString() ??
+                                                                ''
+                                                            }
+                                                            onChange={(e) => {
+                                                                const val =
+                                                                    e.target.value.trim();
 
-                                                        if (val === '') {
-                                                            field.onChange(
-                                                                null
-                                                            );
-                                                            return;
-                                                        }
+                                                                if (
+                                                                    val === ''
+                                                                ) {
+                                                                    field.onChange(
+                                                                        null
+                                                                    );
+                                                                    return;
+                                                                }
 
-                                                        const num = Number(val);
-                                                        if (!isNaN(num))
-                                                            field.onChange(num);
-                                                    }}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                                                const num =
+                                                                    Number(val);
+                                                                if (!isNaN(num))
+                                                                    field.onChange(
+                                                                        num
+                                                                    );
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     )}
-                                />
 
                                 <FormField
                                     control={form.control}
@@ -1057,7 +1067,12 @@ export default function TourProductForm({
                                 name="note"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>備註</FormLabel>
+                                        <FormLabel>
+                                            <span className="font-bold text-lg">
+                                                備註:
+                                            </span>{' '}
+                                            (內頁中的備註)
+                                        </FormLabel>
                                         <FormControl>
                                             <TextareaInput
                                                 rows={8}
@@ -1081,7 +1096,10 @@ export default function TourProductForm({
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>
-                                            注意（列表頁中的備註）
+                                            <span className="font-bold text-lg">
+                                                注意:
+                                            </span>{' '}
+                                            (內頁中的備註)
                                         </FormLabel>
                                         <FormControl>
                                             <TextareaInput
