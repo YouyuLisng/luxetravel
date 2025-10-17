@@ -292,7 +292,7 @@ export default function TourProductForm({
                             queryKey: KEYS.detail(values.id),
                         });
                     }
-
+                    router.refresh();
                     if (!isEdit) {
                         router.replace(LIST_PATH);
                     }
@@ -797,7 +797,7 @@ export default function TourProductForm({
                                         )}
                                     />
                                 ) : (
-                                    <div /> // ✅ 若是 FREE / RCAR，就輸出一個空 div，保持 grid 結構
+                                    <div />
                                 )}
 
                                 <FormField

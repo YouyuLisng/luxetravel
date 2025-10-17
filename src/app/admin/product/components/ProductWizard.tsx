@@ -6,7 +6,6 @@ import {
     publishProduct,
     type ProductProgress,
 } from '@/app/admin/product/action/productProgress';
-import { Button } from '@/components/ui/button';
 import TourProductForm from './TourProductForm';
 import FlightForm from '../[id]/tour/components/FlightForm';
 import ItineraryForm from '../[id]/tour/components/ItineraryForm';
@@ -37,7 +36,7 @@ const steps = [
 
 export default function ProductWizard({ productId, tourProduct, data }: Props) {
     const searchParams = useSearchParams();
-    const pathname = usePathname(); // ✅ 取得當前網址
+    const pathname = usePathname();
     const { show, hide } = useLoadingStore();
     const queryClient = useQueryClient();
 
@@ -96,11 +95,6 @@ export default function ProductWizard({ productId, tourProduct, data }: Props) {
                         <TabsTrigger key={step.id} value={step.id}>
                             <div className="flex items-center space-x-1">
                                 <span>{step.label}</span>
-                                {/* <span>
-                                    {progress[
-                                        step.id as keyof ProductProgress
-                                    ] ?? '⭕'}
-                                </span> */}
                             </div>
                         </TabsTrigger>
                     ))}
